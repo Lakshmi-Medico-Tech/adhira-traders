@@ -1,0 +1,19 @@
+{
+  "name": "adhira-pyrotech-billing",
+  "version": "2.0.0",
+  "description": "Advanced GST Quotation & Billing System for Adhira Pyrotech, Sivakasi",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "live": "npx --yes localtunnel --port 3000"
+  },
+  "dependencies": {
+    "express": "^4.22.3"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "author": "Adhira Pyrotech",
+  "license": "UNLICENSED"
+}
