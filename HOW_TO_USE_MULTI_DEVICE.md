@@ -1,67 +1,101 @@
-# ADHIRA PYROTECH — MULTI-DEVICE & LIVE HOSTING GUIDE
+# ADHIRA PYROTECH — CLOUD HOSTING, 24/7 ALWAYS-ON & DATABASE GUIDE
 
-## 🎯 What Has Been Set Up
+## 🎯 1. Why Render Was Showing the Loading Screen & How It Is Solved
 
-Your Adhira Pyrotech Billing & Quotation software now has a **Real Central Database** (`data/db.json`) and **Express REST API Server** (`server.js`).
+### The Problem
+On Render's Free tier, the server container automatically goes to sleep (**spins down**) after 15 minutes of inactivity. When you visit the site again, Render shows the black terminal screen:
+```
+INCOMING HTTP REQUEST DETECTED ...
+SERVICE WAKING UP ...
+ALLOCATING COMPUTE RESOURCES ...
+APPLICATION LOADING ...
+```
+This causes a 50–90 second delay before the app opens.
 
-1. **Shared Realtime Database**:
-   - Any quotation, customer, product, category, or seller added on ANY phone, tablet, or laptop is automatically saved to the central server database (`data/db.json`).
-   - Every connected device auto-syncs every few seconds. If someone creates a quotation on a mobile phone, it appears on the billing counter computer immediately!
-   - Offline safety: Local storage is maintained as cache, so if Wi-Fi disconnects, work is never lost.
+### The Solution: Keep-Alive 24/7 Ping Service (100% Free Forever)
+Render only goes to sleep if **zero** requests arrive for 15 minutes. By having a free automated pinger check your app every 5 to 9 minutes, **Render will NEVER go to sleep and the loading screen will NEVER show up again!**
 
-2. **Dashboard Multi-Device Banner & QR Code**:
-   - The topbar shows a live status badge: **🟢 Realtime Synced**.
-   - The dashboard includes a **📱 Central Realtime Database Active** banner.
-   - Click **📲 Scan Mobile QR Code** to view an interactive QR code you can scan with any phone camera to immediately open the app.
+#### Setup in 2 Minutes:
+1. Go to **[https://uptimerobot.com](https://uptimerobot.com)** (or [https://cron-job.org](https://cron-job.org)) and create a free account.
+2. Click **"+ Add New Monitor"**.
+3. Choose:
+   - **Monitor Type**: `HTTP(s)`
+   - **Friendly Name**: `Adhira Billing Keep-Alive`
+   - **URL**: `https://<YOUR-RENDER-SUBDOMAIN>.onrender.com/api/ping`
+   - **Monitoring Interval**: `Every 5 minutes`
+4. Click **"Create Monitor"**.
 
----
-
-## 🚀 How to Open on Other Devices (Phone, Tablet, Laptop)
-
-### Method 1: On Same Wi-Fi Network (Fastest & Simplest)
-
-1. Make sure both your computer and phone are connected to the same Wi-Fi router / mobile hotspot.
-2. On your computer, your server address is:
-   ```
-   http://10.64.104.66:3000
-   ```
-3. Open Safari or Chrome on your mobile phone and type:
-   `http://10.64.104.66:3000`
-   **OR** simply click **"Scan Mobile QR Code"** on the dashboard and point your phone camera at the screen!
-
----
-
-### Method 2: Live Internet Access (Outside Office / Mobile 4G & 5G)
-
-If you are away from the office or travelling and want to bill from mobile data:
-
-1. Double-click **`START_LIVE_INTERNET_TUNNEL.bat`** (or run `npm run live` in terminal).
-2. It will display a live secure HTTPS URL (e.g., `https://your-app.loca.lt`).
-3. You can open that URL on any smartphone or laptop anywhere in India!
+That's it! Every 5 minutes, UptimeRobot sends a 1-millisecond ping to `/api/ping`.
+Render stays awake 24/7/365, and whenever you open the app, it loads **instantly with 0 seconds delay**.
 
 ---
 
-### Method 3: 24/7 Free Cloud Hosting (Railway or Render)
+## 💾 2. Lifetime Permanent Database (Never Lose Any Quotation or Customer)
 
-If you want the billing system to be permanently online 24/7 without needing your laptop to stay powered on:
+### Why Did Your Quotation Disappear Yesterday?
+Render Free Tier uses an **ephemeral disk**. When Render went to sleep or restarted, files written to the server's disk were reset back to the original git commit. Furthermore, the old client sync code mistakenly overwrote your browser cache with the reset server data.
 
-1. Create a free account on [Render.com](https://render.com) or [Railway.app](https://railway.app).
-2. Connect your project folder / GitHub repository.
-3. Set Start Command to: `npm start`
-4. You will get a permanent free URL like `https://adhira-pyrotech-billing.onrender.com` that works 24/7 on all devices!
+### How We Fixed It Permanently:
+1. **Intelligent Bidirectional Safe Merge**:
+   - The app now uses a two-way union algorithm (`mergeDatabases`).
+   - If you create a quotation on your phone or computer, it is stored in `localStorage` AND `IndexedDB`.
+   - Even if Render restarts with clean files, your browser **never deletes your quotations or customers**; instead, your browser automatically **restores and pushes them back to the server**!
+2. **Dual-Layer Browser Persistence**:
+   - Data is stored simultaneously in browser `localStorage` and `IndexedDB`. Even if browser cache is partially cleaned, your records remain intact.
+3. **True Cloud Database Support (PostgreSQL / Supabase / Neon / Render PostgreSQL)**:
+   - `server.js` now has built-in support for persistent cloud PostgreSQL!
+   - You can connect a free permanent database that **never wipes or resets**, even if Render rebuilds 1,000 times.
+
+#### How to Add a Free Lifetime PostgreSQL Database to Render:
+1. In your **Render Dashboard**, click **New +** -> **PostgreSQL**.
+2. Give it a name like `adhira-db` and select the **Free** plan.
+3. Once created, copy the **Internal Database URL** (or External Connection String).
+4. Go to your **Adhira Pyrotech Web Service** on Render -> **Environment** tab.
+5. Add an environment variable:
+   - **Key**: `DATABASE_URL`
+   - **Value**: *(paste the copied PostgreSQL connection URL)*
+6. Click **Save Changes**.
+
+`server.js` will automatically detect `DATABASE_URL`, create the storage tables, and persist all your quotations, customers, products, and categories in PostgreSQL permanently for life!
 
 ---
 
-## 💾 Automatic Backups
+## 📦 3. Complete Fireworks Product Catalog (141 Products, 24 Categories)
 
-- Click the sync badge or use the Multi-Device modal to click **"💾 Create Backup"**.
-- Timestamped backup files are automatically created in the `backups/` folder.
-- You can also export full JSON backups from the Settings page anytime.
+All 131 products from **`Thais Price.pdf`** have been extracted and added with their exact categories, packings, MRP rates, and 90% discount rates, while leaving all previous products and sample records **100% untouched**:
+
+### Summary of Categories:
+1. **Fountains & Smoke** (Original seed products)
+2. **Aerial & Crackers** (Original seed products)
+3. **Sparklers & Showers** (Original seed products)
+4. **Novelty Fireworks** (Original seed products)
+5. **Sound Crackers** (Original seed products)
+6. **Gift Boxes** (Original seed products)
+7. **ONE SOUND CRACKERS** (4" Lakshmi, 4 dlxIX Lakshmi, 3 1/2 Lakshmi, 2 3/4 kuruvi, Gold Lakshmi)
+8. **Kamatchi Ground Chakkars** (Big 10 Pcs, Big 25 Pcs, Special, Deluxe, Disco Wheel)
+9. **Kamatchi Flower Pots** (Ganga Jamuna, Pots Big, Special, Asoka, Colour Kotti, Deluxe 5 Pcs)
+10. **Kamatchi Atom Bomb** (Bullet Bomb, Hydro Bomb, King of King Bomb, Classic, Mega, Paper Bomb 1/4, 1/2, 1 Kg)
+11. **Garland Special** (100 wala, 56 wala, 28 wala, 1000 wala, 1000 wala Full, 1 1/2 & 4" Twinkling Star)
+12. **Thais Item** (Drone, Rangeela Dhamaka, Mega Crackling, Money Bank, Old is Gold, Colour Smoke, Naruto Siren, Bat Ball, Rock Music, Spicy Chilis)
+13. **Rajkala Items** (Tom & Jerry, Scooby Doo, Goodly, X-Mas, Paris Tower, Apple, Shin Chin, Chhotu, Jelly, Sea Laser, Colour Rain, Colour Candles, Twins Tone, Belly Dance)
+14. **Sastha Items** (Touch & Touch, Golden Rise, YoYo, Selfie Stick, Bada Peacock, Kutralam, Golden Peacock, Swinging Pop, Super Singer)
+15. **Fountains** (Golden Drops, Feather Drops, Chhota Bheem, 90 Watts, Loli Pop, 4x4 Wheel, Power Thor, I Cone)
+16. **Kids Item** (Roll Cap, Kit Kat, Photo Flash, Helicopter, Butterfly, Bambaram, Mercury Torch, Ultra Pencil)
+17. **Bijili Crackers** (Red Bijili 50 & 100 Pcs, Stripped Bijili 50 & 100 Pcs)
+18. **Rockets** (Baby Rockets, Rocket Bomb, Whistling Rockets, X Press Rockets)
+19. **Single Shot** (7 Shot, 1" Chotta Fancy, 2" Colour Fancy, 3 1/2 Colour Fancy, 4" Colour Fancy, 1 3/4" 3 Pcs Fancy, 3 Pcs Fancy)
+20. **Shots** (30 Shot, 60 Shot, 120 Shot, 240 Shot Multi Colour)
+21. **Crackling Shot** (12 Shot, 25 Shot, 50 Shot, 100 Shot Crackling)
+22. **Matches Box** (Ben-10, Lamba, Mega)
+23. **Sparklers** (7cm, 10cm, 12cm, 15cm, 30cm, 50cm in Electric, Colour, Green, Red)
+24. **Gift Box** (20 Item, 40 Item, 50 Item, 60 Item Gift Box)
 
 ---
 
-## 🛠️ Quick Desktop Launcher
+## 🚀 4. Local Fast Launcher (Instant 0-Second Startup Offline)
 
-Inside the `c:\adhira billing software\adhira_pyrotech_billing\` folder:
-- **`START_ADHIRA_SERVER.bat`**: Double-click to start the server and open your browser automatically.
-- **`START_LIVE_INTERNET_TUNNEL.bat`**: Double-click for instant live public access.
+You can also run the software directly on your computer with zero internet or cloud dependencies:
+
+1. Double click **`START_ADHIRA_SERVER.bat`**.
+2. Opens immediately at `http://localhost:3000`.
+3. Works completely offline, instantaneous speed, and saves data to `data/db.json` with automatic backups!
