@@ -4434,14 +4434,72 @@
             <div class="section-divider-title">
               <h4>2. Fireworks Product Items (GST 18% Editable)</h4>
               <div style="display:flex;gap:8px;">
-                <button class="btn btn-secondary btn-sm" onclick="window.adhiraApp.openQuickProductModal()">+ Add New Product to Master</button>
-                <button class="btn btn-gold btn-sm" onclick="window.adhiraApp.addQuoteItemRow()">+ Add Row</button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="window.adhiraApp.openQuickProductModal()">+ Add New Product to Master</button>
+                <button type="button" class="btn btn-gold btn-sm" onclick="window.adhiraApp.addQuoteItemRow()">+ Add Row</button>
               </div>
             </div>
 
-            
+            <!-- UNIFIED SEARCH, TYPE & QUICK-ADD PRODUCT BAR -->
+            <div class="unified-search-bar" style="margin-bottom:14px;position:relative">
+              <span class="search-icon">🔍</span>
+              <input
+                type="text"
+                class="search-input"
+                id="quickQuoteSearchInput"
+                placeholder="Search any of 141 fireworks products or type description to add..."
+                autocomplete="off"
+                oninput="window.adhiraApp.handleQuickQuoteSearch(this.value)"
+                onfocus="window.adhiraApp.showQuickQuoteDropdown()"
+                onblur="setTimeout(() => window.adhiraApp.hideQuickQuoteDropdown(), 220)"
+              />
+              <div class="search-divider"></div>
+              <button class="search-add-btn" type="button" onclick="window.adhiraApp.addQuoteItemRow()" title="Add an empty row">
+                <span>+</span> Add Row
+              </button>
+              <div
+                class="combo-dropdown"
+                id="quickQuoteSearchDropdown"
+                style="display:none;position:absolute;z-index:9999;left:0;right:0;top:100%;margin-top:6px;background:#fff;border:1.5px solid var(--gold-400);border-radius:var(--radius-md);box-shadow:0 8px 28px rgba(0,0,0,0.18);max-height:250px;overflow-y:auto"
+              >
+                ${db.products.filter(p => p.active !== false).map(p => `
+                  <div class="combo-option" data-id="${p.id}" data-name="${escapeHtml(p.name)}"
+                    onmousedown="window.adhiraApp.quickAddProductToQuote('${p.id}')"
+                    style="padding:8px 12px;cursor:pointer;font-size:12.5px;border-bottom:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center"
+                  >
+                    <span>🎆 <b>${escapeHtml(p.name)}</b> <span style="font-size:11px;color:var(--text-muted)">(${escapeHtml(p.packing || '1 Pcs')}) — ${escapeHtml(p.category || '')}</span></span>
+                    <span style="font-weight:700;color:var(--gold-600);font-size:12.5px">₹${p.rate}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+
+            <!-- TABLE OF PRODUCT ITEMS -->
+            <div class="table-responsive">
+              <table class="items-builder-table">
+                <thead>
+                  <tr>
+                    <th style="width:35px">#</th>
+                    <th style="width:240px">Description of Fireworks</th>
+                    <th style="width:75px">HSN</th>
+                    <th style="width:90px">Packing</th>
+                    <th style="width:65px">Qty</th>
+                    <th style="width:75px">Unit</th>
+                    <th style="width:90px">Rate (₹)</th>
+                    <th style="width:95px">Disc.</th>
+                    <th style="width:65px">GST%</th>
+                    <th style="width:95px;text-align:right">Taxable (₹)</th>
+                    <th style="width:100px;text-align:right">Total (₹)</th>
+                    <th style="width:90px;text-align:center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="quoteItemsTableBody">
+                  ${draftQuote.items.map((item, idx) => renderQuoteItemRow(item, idx)).join('')}
+                </tbody>
+              </table>
+            </div>
+
             <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center;">
-              <button class="btn btn-secondary btn-sm" onclick="window.adhiraApp.addQuoteItemRow()">+ Add Another Item</button>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="window.adhiraApp.addQuoteItemRow()">+ Add Another Item</button>
               <span style="font-size:11.5px;color:var(--text-muted)">Default Fireworks HSN: <b>3604</b> • GST: <b>18%</b> (Auto-calculated, all fields editable)</span>
             </div>
           </div>
@@ -7637,13 +7695,13 @@
       if (shipRow) shipRow.style.display = checked ? 'none' : 'block';
     },
 
-    // 1-Tap Quick Add Fireworks Chip
+    // Quick Add Fireworks Product to Quote
     quickAddProductToQuote: (prodId) => {
       if (!draftQuote) return;
       const p = db.products.find(x => x.id === prodId);
       if (!p) return;
 
-      draftQuote.items.push({
+      const newRow = {
         id: 'row-' + Date.now(),
         productId: p.id,
         name: p.name,
@@ -7655,10 +7713,46 @@
         discountType: 'fixed',
         discount: 0,
         gst: p.gst || 18
-      });
+      };
 
+      // Fill first empty row if exists, else append
+      const emptyIdx = draftQuote.items.findIndex(it => !it.productId && !it.name);
+      if (emptyIdx !== -1) {
+        draftQuote.items[emptyIdx] = newRow;
+      } else {
+        draftQuote.items.push(newRow);
+      }
+
+      window.adhiraApp.hideQuickQuoteDropdown();
       renderCurrentPage();
       showToast(`Added ${p.name} (₹${p.rate}) to quotation`, 'success');
+    },
+
+    handleQuickQuoteSearch: (val) => {
+      const dd = document.getElementById('quickQuoteSearchDropdown');
+      if (!dd) return;
+      const q = (val || '').trim().toLowerCase();
+      const options = dd.querySelectorAll('.combo-option');
+      let visible = false;
+      options.forEach(opt => {
+        const name = (opt.dataset.name || '').toLowerCase();
+        const show = !q || name.includes(q);
+        opt.style.display = show ? '' : 'none';
+        if (show) visible = true;
+      });
+      dd.style.display = visible ? 'block' : 'none';
+    },
+
+    showQuickQuoteDropdown: () => {
+      const dd = document.getElementById('quickQuoteSearchDropdown');
+      const input = document.getElementById('quickQuoteSearchInput');
+      if (!dd || !input) return;
+      window.adhiraApp.handleQuickQuoteSearch(input.value);
+    },
+
+    hideQuickQuoteDropdown: () => {
+      const dd = document.getElementById('quickQuoteSearchDropdown');
+      if (dd) dd.style.display = 'none';
     },
 
     handleRowProductSelect: (idx, prodId) => {
