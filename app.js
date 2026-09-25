@@ -3082,15 +3082,50 @@
     pushDbToServer(payload);
   }
 
+  // Universal API caller with automatic dual-engine fallback (Node /api/ and cPanel api.php?action=)
+  let detectedApiMode = null; // 'node' or 'php'
+
+  async function callApi(endpoint, options = {}) {
+    const base = window.__adhiraApiBase || '';
+    
+    // If we already know PHP mode works, use api.php directly
+    if (detectedApiMode === 'php') {
+      return await fetch(`${base}api.php?action=${endpoint}`, options);
+    }
+    
+    // Default try /api/ path
+    try {
+      const res = await fetch(`${base}/api/${endpoint}`, options);
+      if (res.ok || (res.status !== 404 && res.status !== 405)) {
+        detectedApiMode = 'node';
+        return res;
+      }
+    } catch (e) {
+      // network error or path not found, try fallback
+    }
+
+    // Fallback: try api.php?action=
+    try {
+      const phpRes = await fetch(`${base}api.php?action=${endpoint}`, options);
+      if (phpRes.ok || phpRes.status === 200) {
+        detectedApiMode = 'php';
+        return phpRes;
+      }
+      return phpRes;
+    } catch (err) {
+      throw err;
+    }
+  }
+
   async function pushDbToServer(payload) {
     try {
-      updateSyncBadge('syncing', 'Saving to Cloud...');
-      const res = await fetch('/api/db', {
+      updateSyncBadge('syncing', 'Saving...');
+      const res = await callApi('db', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      if (res.ok) {
+      if (res && res.ok) {
         updateSyncBadge('synced', 'Realtime Synced');
       } else {
         updateSyncBadge('offline', 'Sync Error');
@@ -3106,8 +3141,8 @@
     isSyncing = true;
     try {
       if (!silent) updateSyncBadge('syncing', 'Syncing...');
-      const res = await fetch('/api/db');
-      if (res.ok) {
+      const res = await callApi('db');
+      if (res && res.ok) {
         const json = await res.json();
         if (json && json.initialized && json.data) {
           const serverDb = json.data;
@@ -3144,8 +3179,8 @@
 
   async function fetchServerInfo() {
     try {
-      const res = await fetch('/api/info');
-      if (res.ok) {
+      const res = await callApi('info');
+      if (res && res.ok) {
         const data = await res.json();
         if (data && data.networkUrls) {
           serverInfo = data;
@@ -3989,13 +4024,17 @@
 
     return `
       <div class="card">
-        <div class="toolbar">
-          <div class="toolbar-left">
-            <div class="input-search-box">
-              <span class="input-search-icon">🔍</span>
-              <input type="text" class="input" id="quoteSearchInput" placeholder="Search Quote No, Customer, GSTIN, Phone..." value="${escapeHtml(state.quoteSearch)}" />
-            </div>
+        <div class="toolbar" style="gap:12px;flex-wrap:wrap">
+          <div class="unified-search-bar" style="flex:1;min-width:320px">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="search-input" id="quoteSearchInput" placeholder="Search quote no, customer, type name or GSTIN..." value="${escapeHtml(state.quoteSearch)}" />
+            <div class="search-divider"></div>
+            <button class="search-add-btn" onclick="window.adhiraApp.openNewQuotation()" title="Create New Quotation">
+              <span>+</span> New Quotation
+            </button>
+          </div>
 
+          <div class="toolbar-right" style="display:flex;gap:8px;align-items:center">
             <select class="select" id="quoteStatusFilter" style="width:160px;">
               <option value="All" ${state.quoteFilterStatus === 'All' ? 'selected' : ''}>All Statuses</option>
               <option value="Draft" ${state.quoteFilterStatus === 'Draft' ? 'selected' : ''}>Draft</option>
@@ -4005,14 +4044,8 @@
               <option value="Converted" ${state.quoteFilterStatus === 'Converted' ? 'selected' : ''}>Converted</option>
               <option value="Cancelled" ${state.quoteFilterStatus === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
             </select>
-          </div>
-
-          <div class="toolbar-right">
             <button class="btn btn-secondary" onclick="window.adhiraApp.exportQuotationsCsv()">
               <span>📥</span> Export CSV
-            </button>
-            <button class="btn btn-gold" onclick="window.adhiraApp.openNewQuotation()">
-              <span>+</span> New Quotation
             </button>
           </div>
         </div>
@@ -4406,41 +4439,7 @@
               </div>
             </div>
 
-            <!-- QUICK 1-TAP FIREWORKS PILLS -->
-            <div class="fireworks-quick-picker">
-              <span style="font-size:10.5px;font-weight:800;color:var(--text-muted);text-transform:uppercase;white-space:nowrap">⚡ 1-Tap Add:</span>
-              ${db.products.map(p => `
-                <button type="button" class="fireworks-chip" onclick="window.adhiraApp.quickAddProductToQuote('${p.id}')">
-                  <span>🎆 ${escapeHtml(p.shortName || p.name)}</span>
-                  <span class="chip-rate">₹${p.rate}</span>
-                </button>
-              `).join('')}
-            </div>
-
-            <div class="table-responsive">
-              <table class="items-builder-table">
-                <thead>
-                  <tr>
-                    <th style="width:35px">#</th>
-                    <th style="width:230px">Description of Fireworks</th>
-                    <th style="width:75px">HSN</th>
-                    <th style="width:90px">Packing</th>
-                    <th style="width:65px">Qty</th>
-                    <th style="width:75px">Unit</th>
-                    <th style="width:90px">Rate (₹)</th>
-                    <th style="width:95px">Disc.</th>
-                    <th style="width:65px">GST%</th>
-                    <th style="width:95px;text-align:right">Taxable (₹)</th>
-                    <th style="width:100px;text-align:right">Total (₹)</th>
-                    <th style="width:90px;text-align:center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="quoteItemsTableBody">
-                  ${draftQuote.items.map((item, idx) => renderQuoteItemRow(item, idx)).join('')}
-                </tbody>
-              </table>
-            </div>
-
+            
             <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center;">
               <button class="btn btn-secondary btn-sm" onclick="window.adhiraApp.addQuoteItemRow()">+ Add Another Item</button>
               <span style="font-size:11.5px;color:var(--text-muted)">Default Fireworks HSN: <b>3604</b> • GST: <b>18%</b> (Auto-calculated, all fields editable)</span>
@@ -4628,15 +4627,36 @@
       <tr data-row="${idx}">
         <td style="text-align:center;font-weight:700;color:var(--text-muted)">${idx + 1}</td>
         <td>
-          <select class="select" onchange="window.adhiraApp.handleRowProductSelect(${idx}, this.value)">
-            <option value="">-- Choose product or type below --</option>
-            ${db.products.map(p => `
-              <option value="${p.id}" ${item.productId === p.id ? 'selected' : ''}>
-                ${escapeHtml(p.name)} (${p.packing || '1 Pcs'}) - ₹${p.rate}
-              </option>
-            `).join('')}
-          </select>
-          <input type="text" class="input" style="margin-top:4px" placeholder="Custom product description" value="${escapeHtml(item.name || '')}" oninput="window.adhiraApp.updateItemField(${idx}, 'name', this.value)" />
+          <div class="smart-search-combo" style="position:relative">
+            <input
+              type="text"
+              class="input smart-combo-input"
+              id="comboInput_${idx}"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="Search product, type or select..."
+              value="${escapeHtml(item.name || '')}"
+              oninput="window.adhiraApp.handleComboInput(${idx}, this.value)"
+              onfocus="window.adhiraApp.showComboDropdown(${idx})"
+              onblur="setTimeout(() => window.adhiraApp.hideComboDropdown(${idx}), 180)"
+              onkeydown="window.adhiraApp.handleComboKeydown(event, ${idx})"
+            />
+            <div
+              class="combo-dropdown"
+              id="comboDropdown_${idx}"
+              style="display:none;position:absolute;z-index:9999;left:0;right:0;top:100%;background:#fff;border:1.5px solid var(--gold-400);border-radius:var(--radius-md);box-shadow:0 8px 28px rgba(0,0,0,0.18);max-height:200px;overflow-y:auto"
+            >
+              ${db.products.filter(p => p.active !== false).map(p => `
+                <div class="combo-option" data-id="${p.id}" data-name="${escapeHtml(p.name)}"
+                  onmousedown="window.adhiraApp.selectComboProduct(${idx}, '${p.id}')"
+                  style="padding:7px 11px;cursor:pointer;font-size:12.5px;border-bottom:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center"
+                >
+                  <span>${escapeHtml(p.name)} <span style="font-size:10.5px;color:var(--text-muted)">(${escapeHtml(p.packing || '1 Pcs')})</span></span>
+                  <span style="font-weight:700;color:var(--gold-600);font-size:12px">₹${p.rate}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
         </td>
         <td>
           <input type="text" class="input" value="${escapeHtml(item.hsn || '3604')}" oninput="window.adhiraApp.updateItemField(${idx}, 'hsn', this.value)" />
@@ -4767,27 +4787,25 @@
 
     return `
       <div class="card">
-        <div class="toolbar">
-          <div class="toolbar-left">
-            <div class="input-search-box">
-              <span class="input-search-icon">🔍</span>
-              <input type="text" class="input" id="invoiceSearchInput" placeholder="Search Invoice No, Customer, GSTIN, E-Way Bill..." value="${escapeHtml(state.invoiceSearch)}" />
-            </div>
+        <div class="toolbar" style="gap:12px;flex-wrap:wrap">
+          <div class="unified-search-bar" style="flex:1;min-width:320px">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="search-input" id="invoiceSearchInput" placeholder="Search invoice no, customer, type GSTIN or E-Way Bill..." value="${escapeHtml(state.invoiceSearch)}" />
+            <div class="search-divider"></div>
+            <button class="search-add-btn" onclick="window.adhiraApp.navigate('quotations')" title="Create / Convert from Quote">
+              <span>+</span> New Invoice
+            </button>
+          </div>
 
+          <div class="toolbar-right" style="display:flex;gap:8px;align-items:center">
             <select class="select" id="invoiceStatusFilter" style="width:160px;">
               <option value="All" ${state.invoiceFilterStatus === 'All' ? 'selected' : ''}>All Payments</option>
               <option value="Paid" ${state.invoiceFilterStatus === 'Paid' ? 'selected' : ''}>Paid</option>
               <option value="Unpaid" ${state.invoiceFilterStatus === 'Unpaid' ? 'selected' : ''}>Unpaid</option>
               <option value="Partially Paid" ${state.invoiceFilterStatus === 'Partially Paid' ? 'selected' : ''}>Partially Paid</option>
             </select>
-          </div>
-
-          <div class="toolbar-right">
             <button class="btn btn-secondary" onclick="window.adhiraApp.exportInvoicesCsv()">
               <span>📥</span> Export CSV
-            </button>
-            <button class="btn btn-gold" onclick="window.adhiraApp.navigate('quotations')">
-              <span>+</span> Convert from Quote
             </button>
           </div>
         </div>
@@ -4889,20 +4907,19 @@
 
     return `
       <div class="card">
-        <div class="toolbar">
-          <div class="toolbar-left">
-            <div class="input-search-box">
-              <span class="input-search-icon">🔍</span>
-              <input type="text" class="input" id="custSearchInput" placeholder="Search shop name, GSTIN, city, mobile..." value="${escapeHtml(state.customerSearch)}" />
-            </div>
+        <div class="toolbar" style="gap:12px;flex-wrap:wrap">
+          <div class="unified-search-bar" style="flex:1;min-width:320px">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="search-input" id="custSearchInput" placeholder="Search shop name, type GSTIN, city or mobile..." value="${escapeHtml(state.customerSearch)}" />
+            <div class="search-divider"></div>
+            <button class="search-add-btn" onclick="window.adhiraApp.openCustomerModal()" title="Add New Customer">
+              <span>+</span> Add Customer
+            </button>
           </div>
 
-          <div class="toolbar-right">
+          <div class="toolbar-right" style="display:flex;gap:8px;align-items:center">
             <button class="btn btn-secondary" onclick="window.adhiraApp.exportCustomersCsv()">
               <span>📥</span> Export CSV
-            </button>
-            <button class="btn btn-gold" onclick="window.adhiraApp.openCustomerModal()">
-              <span>+</span> Add New Customer
             </button>
           </div>
         </div>
@@ -4994,13 +5011,17 @@
 
     return `
       <div class="card">
-        <div class="toolbar">
-          <div class="toolbar-left">
-            <div class="input-search-box">
-              <span class="input-search-icon">🔍</span>
-              <input type="text" class="input" id="prodSearchInput" placeholder="Search product name, HSN, packing..." value="${escapeHtml(state.productSearch)}" />
-            </div>
+        <div class="toolbar" style="gap:12px;flex-wrap:wrap">
+          <div class="unified-search-bar" style="flex:1;min-width:320px">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="search-input" id="prodSearchInput" placeholder="Search product name, type HSN, packing or category..." value="${escapeHtml(state.productSearch)}" />
+            <div class="search-divider"></div>
+            <button class="search-add-btn" onclick="window.adhiraApp.openProductModal()" title="Add New Product">
+              <span>+</span> Add Product
+            </button>
+          </div>
 
+          <div class="toolbar-right" style="display:flex;gap:8px;align-items:center">
             <select class="select" id="prodCategoryFilter" style="width:180px;">
               <option value="All" ${state.productCategoryFilter === 'All' ? 'selected' : ''}>All Categories</option>
               ${db.categories.map(cat => `
@@ -5012,14 +5033,8 @@
               <button class="btn btn-sm ${state.productViewMode === 'grid' ? 'btn-primary' : 'btn-secondary'}" onclick="window.adhiraApp.setProductView('grid')">Grid</button>
               <button class="btn btn-sm ${state.productViewMode === 'table' ? 'btn-primary' : 'btn-secondary'}" onclick="window.adhiraApp.setProductView('table')">Table</button>
             </div>
-          </div>
-
-          <div class="toolbar-right">
             <button class="btn btn-secondary" onclick="window.adhiraApp.exportProductsCsv()">
               <span>📥</span> Export CSV
-            </button>
-            <button class="btn btn-gold" onclick="window.adhiraApp.openProductModal()">
-              <span>+</span> Add Product
             </button>
           </div>
         </div>
@@ -6179,8 +6194,8 @@
             <span>📥</span> Download PDF
           </button>
 
-          <button class="btn btn-primary btn-sm" onclick="window.print()">
-            <span>🖨️</span> Print / Save PDF
+          <button class="btn btn-primary btn-sm" onclick="window.adhiraApp.printPdfOnly()">
+            <span>🖨️</span> Print PDF Only
           </button>
 
           <button class="btn btn-success btn-sm" onclick="window.adhiraApp.shareWhatsApp('${doc.id}', ${isInvoice})">
@@ -6953,11 +6968,155 @@
           showToast('PDF downloaded successfully!', 'success');
         }).catch(err => {
           console.error(err);
-          window.print();
+          window.adhiraApp.printPdfOnly();
         });
       } else {
-        window.print();
+        window.adhiraApp.printPdfOnly();
       }
+    },
+
+    // Print ONLY the A4 PDF document, not the entire app page
+    printPdfOnly: () => {
+      const el = document.getElementById('printableA4Document');
+      if (!el) {
+        window.print();
+        return;
+      }
+
+      // Clone the A4 sheet, open in a print iframe
+      const printFrame = document.createElement('iframe');
+      printFrame.style.cssText = 'position:fixed;top:0;left:0;width:0;height:0;border:none;opacity:0;visibility:hidden';
+      document.body.appendChild(printFrame);
+
+      const doc = printFrame.contentDocument || printFrame.contentWindow.document;
+      const styleLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"], style')).map(s => s.outerHTML).join('\n');
+      const a4Html = el.outerHTML;
+
+      doc.open();
+      doc.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+        ${styleLinks}
+        <style>
+          @page { size: A4 portrait; margin: 0; }
+          html, body { margin: 0; padding: 0; background: #fff; }
+          .pdf-a4-sheet {
+            width: 210mm !important;
+            min-height: 297mm !important;
+            padding: 15mm 18mm !important;
+            margin: 0 auto !important;
+            box-shadow: none !important;
+            transform: none !important;
+            page-break-after: avoid !important;
+            overflow: visible !important;
+          }
+          .pdf-preview-toolbar, .app-sidebar, .app-topbar, .modal-header, .modal-footer { display: none !important; }
+        </style>
+      </head><body>${a4Html}</body></html>`);
+      doc.close();
+
+      // Draw the QR canvas into the iframe if present
+      const srcCanvas = document.querySelector('#pdfUpiQrCanvas canvas');
+      if (srcCanvas) {
+        setTimeout(() => {
+          const destCanvas = doc.querySelector('#pdfUpiQrCanvas canvas');
+          if (destCanvas) {
+            const ctx = destCanvas.getContext('2d');
+            ctx.drawImage(srcCanvas, 0, 0);
+          }
+          printFrame.contentWindow.focus();
+          printFrame.contentWindow.print();
+          setTimeout(() => document.body.removeChild(printFrame), 2000);
+        }, 350);
+      } else {
+        setTimeout(() => {
+          printFrame.contentWindow.focus();
+          printFrame.contentWindow.print();
+          setTimeout(() => document.body.removeChild(printFrame), 2000);
+        }, 250);
+      }
+    },
+
+    // Smart Combo Box handlers for product search+select+type
+    handleComboInput: (idx, value) => {
+      const dropdown = document.getElementById('comboDropdown_' + idx);
+      if (!dropdown) return;
+      // Update the draft item name immediately (free typing)
+      if (draftQuote && draftQuote.items[idx]) {
+        draftQuote.items[idx].name = value;
+      }
+      const q = value.trim().toLowerCase();
+      const options = dropdown.querySelectorAll('.combo-option');
+      let anyVisible = false;
+      options.forEach(opt => {
+        const name = (opt.dataset.name || '').toLowerCase();
+        const show = !q || name.includes(q);
+        opt.style.display = show ? '' : 'none';
+        if (show) anyVisible = true;
+      });
+      dropdown.style.display = anyVisible ? 'block' : 'none';
+    },
+
+    showComboDropdown: (idx) => {
+      const dropdown = document.getElementById('comboDropdown_' + idx);
+      const input = document.getElementById('comboInput_' + idx);
+      if (!dropdown || !input) return;
+      const q = (input.value || '').trim().toLowerCase();
+      const options = dropdown.querySelectorAll('.combo-option');
+      let anyVisible = false;
+      options.forEach(opt => {
+        const name = (opt.dataset.name || '').toLowerCase();
+        const show = !q || name.includes(q);
+        opt.style.display = show ? '' : 'none';
+        if (show) anyVisible = true;
+      });
+      dropdown.style.display = anyVisible ? 'block' : 'none';
+    },
+
+    hideComboDropdown: (idx) => {
+      const dropdown = document.getElementById('comboDropdown_' + idx);
+      if (dropdown) dropdown.style.display = 'none';
+    },
+
+    handleComboKeydown: (event, idx) => {
+      const dropdown = document.getElementById('comboDropdown_' + idx);
+      if (!dropdown || dropdown.style.display === 'none') return;
+      const opts = Array.from(dropdown.querySelectorAll('.combo-option:not([style*="display: none"])')).filter(o => o.style.display !== 'none');
+      const highlighted = dropdown.querySelector('.combo-option.highlighted');
+      let hIdx = opts.indexOf(highlighted);
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        if (highlighted) highlighted.classList.remove('highlighted');
+        hIdx = (hIdx + 1) % opts.length;
+        opts[hIdx].classList.add('highlighted');
+        opts[hIdx].scrollIntoView({ block: 'nearest' });
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        if (highlighted) highlighted.classList.remove('highlighted');
+        hIdx = (hIdx - 1 + opts.length) % opts.length;
+        opts[hIdx].classList.add('highlighted');
+        opts[hIdx].scrollIntoView({ block: 'nearest' });
+      } else if (event.key === 'Enter') {
+        event.preventDefault();
+        if (highlighted) {
+          window.adhiraApp.selectComboProduct(idx, highlighted.dataset.id);
+        }
+      } else if (event.key === 'Escape') {
+        window.adhiraApp.hideComboDropdown(idx);
+      }
+    },
+
+    selectComboProduct: (idx, prodId) => {
+      const p = db.products.find(x => x.id === prodId);
+      if (!p || !draftQuote || !draftQuote.items[idx]) return;
+      draftQuote.items[idx].productId = p.id;
+      draftQuote.items[idx].name = p.name;
+      draftQuote.items[idx].hsn = p.hsn || '3604';
+      draftQuote.items[idx].packing = p.packing || '1 Pcs';
+      draftQuote.items[idx].rate = p.rate;
+      draftQuote.items[idx].unit = p.unit || 'BOX';
+      draftQuote.items[idx].gst = p.gst || 18;
+      window.adhiraApp.hideComboDropdown(idx);
+      refreshQuoteItemRow(idx);
+      refreshTotals();
     },
 
     shareWhatsApp: (docId, isInvoice) => {
@@ -6965,10 +7124,46 @@
       if (!doc) return;
 
       const title = isInvoice ? 'Tax Invoice' : 'Quotation';
-      const text = `*ADHIRA FIRE WORKS & PYROTECH, SIVAKASI*\n${title} No: *${doc.number}*\nCustomer: ${doc.customer.name}\nDate: ${doc.date}\nTaxable Amount: ₹${doc.taxable}\nGST: ₹${doc.gstTotal}\n*Grand Total: ₹${doc.grandTotal}*\n\nThank you for choosing Adhira Pyrotech Sivakasi!`;
       const phone = (doc.customer.phone || '').replace(/\D/g, '');
-      const url = phone ? `https://wa.me/91${phone}?text=${encodeURIComponent(text)}` : `https://wa.me/?text=${encodeURIComponent(text)}`;
-      window.open(url, '_blank');
+
+      // Step 1: Download the PDF first so user has it, then open WhatsApp
+      const element = document.getElementById('printableA4Document');
+      const doWhatsApp = () => {
+        const text = [
+          `*ADHIRA FIRE WORKS & PYROTECH, SIVAKASI*`,
+          `${title} No: *${doc.number}*`,
+          `Customer: ${doc.customer.name}`,
+          `Date: ${doc.date}`,
+          `Taxable Amount: ₹${formatMoney(doc.taxable || doc.subtotal)}`,
+          `GST: ₹${formatMoney(doc.gstTotal)}`,
+          `*Grand Total: ₹${formatMoney(doc.grandTotal)}*`,
+          ``,
+          `📄 PDF has been downloaded to your device. Please attach it to this chat.`,
+          ``,
+          `Thank you for choosing Adhira Pyrotech Sivakasi! 🎆`
+        ].join('\n');
+        const url = phone
+          ? `https://wa.me/91${phone}?text=${encodeURIComponent(text)}`
+          : `https://wa.me/?text=${encodeURIComponent(text)}`;
+        window.open(url, '_blank');
+      };
+
+      if (element && typeof html2pdf !== 'undefined') {
+        showToast('Generating PDF for WhatsApp...', 'info');
+        const opt = {
+          margin: 0,
+          filename: `${(doc.number || 'document').replace(/\//g, '_')}.pdf`,
+          image: { type: 'jpeg', quality: 0.97 },
+          html2canvas: { scale: 2, useCORS: true, logging: false },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        html2pdf().set(opt).from(element).save().then(() => {
+          showToast('PDF downloaded! Opening WhatsApp...', 'success');
+          setTimeout(doWhatsApp, 400);
+        }).catch(() => doWhatsApp());
+      } else {
+        doWhatsApp();
+      }
     },
 
     shareEmail: (docId, isInvoice) => {
@@ -6976,9 +7171,48 @@
       if (!doc) return;
 
       const subject = `Adhira Pyrotech Sivakasi - ${isInvoice ? 'Tax Invoice' : 'Quotation'} ${doc.number}`;
-      const body = `Dear ${doc.customer.name},\n\nPlease find the quotation/billing details below:\n\nDocument No: ${doc.number}\nDate: ${doc.date}\nTaxable Amount: ₹${doc.taxable}\nGrand Total: ₹${doc.grandTotal}\n\nWarm regards,\nADHIRA FIRE WORKS & PYROTECH\nSivakasi, Tamil Nadu\nPhone: +91 94431 23456`;
-      const mailto = `mailto:${doc.customer.email || ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-      window.location.href = mailto;
+      const bodyText = [
+        `Dear ${doc.customer.name},`,
+        ``,
+        `Please find the ${isInvoice ? 'Tax Invoice' : 'Quotation'} details below:`,
+        ``,
+        `Document No: ${doc.number}`,
+        `Date: ${doc.date}`,
+        `Taxable Amount: Rs. ${doc.taxable}`,
+        `GST Amount: Rs. ${doc.gstTotal}`,
+        `Grand Total: Rs. ${doc.grandTotal}`,
+        ``,
+        `The PDF document has been downloaded to your device. Please attach it to this email before sending.`,
+        ``,
+        `Warm regards,`,
+        `ADHIRA FIRE WORKS & PYROTECH`,
+        `Sivakasi, Tamil Nadu`,
+        `Phone: +91 94431 23456`,
+        `Email: adhirapyrotech@gmail.com`
+      ].join('\n');
+
+      const element = document.getElementById('printableA4Document');
+      const doEmail = () => {
+        const mailto = `mailto:${doc.customer.email || ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyText)}`;
+        window.location.href = mailto;
+      };
+
+      if (element && typeof html2pdf !== 'undefined') {
+        showToast('Generating PDF for Email...', 'info');
+        const opt = {
+          margin: 0,
+          filename: `${(doc.number || 'document').replace(/\//g, '_')}.pdf`,
+          image: { type: 'jpeg', quality: 0.97 },
+          html2canvas: { scale: 2, useCORS: true, logging: false },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        html2pdf().set(opt).from(element).save().then(() => {
+          showToast('PDF downloaded! Opening email client...', 'success');
+          setTimeout(doEmail, 400);
+        }).catch(() => doEmail());
+      } else {
+        doEmail();
+      }
     },
 
     // Rapid Customer GST Lookup & Auto-fill

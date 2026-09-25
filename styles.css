@@ -2348,63 +2348,123 @@ a {
    ========================================================================== */
 
 @media print {
-  body {
-    background: #ffffff !important;
-    color: #000000 !important;
+  /* ---- Only the A4 document prints. Nothing else visible. ---- */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
   }
 
+  @page {
+    size: 210mm 297mm;
+    margin: 0mm;
+  }
+
+  html, body {
+    background: #fff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 210mm !important;
+  }
+
+  /* Hide EVERYTHING except the A4 sheet */
+  body > *:not(.pdf-a4-sheet),
   .app-sidebar,
   .app-topbar,
   .mobile-bottom-nav,
   .pdf-preview-toolbar,
   .modal-header,
   .modal-footer,
-  #toastContainer {
+  .modal-backdrop > .modal-dialog > .modal-header,
+  .modal-backdrop > .modal-dialog > .modal-footer,
+  #toastContainer,
+  #syncStatusBadge,
+  .app-main,
+  .card,
+  .page-content:not(.pdf-preview-backdrop),
+  .topbar-right,
+  .topbar-left,
+  .btn,
+  button {
     display: none !important;
   }
 
-  .app-main {
-    margin-left: 0 !important;
-  }
-
+  /* Show ONLY the modal overlay containing the A4 PDF */
   .modal-backdrop {
     position: static !important;
     background: none !important;
     padding: 0 !important;
     display: block !important;
+    overflow: visible !important;
   }
 
   .modal-dialog {
     box-shadow: none !important;
     border: none !important;
-    width: auto !important;
+    width: 210mm !important;
+    max-width: 210mm !important;
     max-height: none !important;
     overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
   }
 
   .modal-body {
     padding: 0 !important;
     overflow: visible !important;
+    background: #fff !important;
   }
 
   .pdf-preview-backdrop {
     background: #ffffff !important;
     padding: 0 !important;
+    display: block !important;
   }
 
+  /* The A4 sheet itself - perfect fit */
   .pdf-a4-sheet {
     box-shadow: none !important;
     width: 210mm !important;
     min-height: 297mm !important;
-    padding: 15mm 18mm !important;
+    max-height: 297mm !important;
+    padding: 12mm 16mm !important;
     margin: 0 !important;
     transform: none !important;
+    overflow: hidden !important;
     page-break-after: always;
+    page-break-inside: avoid;
+    font-size: 8.5pt !important;
+    background: #ffffff !important;
   }
 
-  @page {
-    size: A4 portrait;
-    margin: 0;
+  /* Scale down tables and text for perfect A4 fit */
+  .pdf-items-table th,
+  .pdf-items-table td {
+    font-size: 7.5pt !important;
+    padding: 3px 5px !important;
+  }
+
+  .pdf-header-container {
+    margin-bottom: 8px !important;
+  }
+
+  .pdf-summary-section {
+    margin-top: 8px !important;
+  }
+
+  .pdf-total-highlight {
+    padding: 8px 12px !important;
+  }
+
+  .pdf-bank-section, .pdf-terms-section {
+    font-size: 7pt !important;
+    margin-top: 6px !important;
+  }
+
+  #pdfZoomContainer {
+    transform: none !important;
+    justify-content: flex-start !important;
   }
 }
 
@@ -2676,4 +2736,119 @@ a {
   color: var(--navy-900);
   flex: 1;
   word-break: break-all;
+}
+
+/* ==========================================================================
+   SMART SEARCH COMBO BOX (Search + Type + Select in one box)
+   ========================================================================== */
+
+.smart-search-combo {
+  position: relative;
+  width: 100%;
+}
+
+.smart-combo-input {
+  width: 100%;
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 7px 12px;
+  font-size: 13px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.smart-combo-input:focus {
+  outline: none;
+  border-color: var(--gold-400);
+  box-shadow: 0 0 0 3px rgba(var(--gold-400-rgb, 201, 160, 52), 0.18);
+}
+
+.combo-dropdown {
+  animation: comboFadeIn 0.12s ease;
+}
+
+@keyframes comboFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.combo-option:hover,
+.combo-option.highlighted {
+  background: var(--gold-50, #fffbea) !important;
+  color: var(--navy-900);
+}
+
+/* Remove old 1-tap chip styles (kept for compatibility) */
+.fireworks-quick-picker {
+  display: none !important;
+}
+
+/* ==========================================================================
+   SEARCH-ADD-TYPE UNIFIED SEARCH BAR
+   ========================================================================== */
+
+.unified-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: 6px 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.unified-search-bar:focus-within {
+  border-color: var(--gold-400);
+  box-shadow: 0 0 0 3px rgba(201,160,52,0.15);
+}
+
+.unified-search-bar .search-icon {
+  color: var(--text-muted);
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.unified-search-bar .search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 13.5px;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+}
+
+.unified-search-bar .search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.unified-search-bar .search-divider {
+  width: 1px;
+  height: 22px;
+  background: var(--border-subtle);
+  margin: 0 4px;
+}
+
+.unified-search-bar .search-add-btn {
+  background: var(--gold-gradient, linear-gradient(135deg, #e6b94e, #c9a034));
+  color: #1a1200;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 5px 14px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: opacity 0.2s, transform 0.15s;
+  white-space: nowrap;
+}
+
+.unified-search-bar .search-add-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
 }
