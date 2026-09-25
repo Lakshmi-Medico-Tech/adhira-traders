@@ -2766,17 +2766,44 @@ a {
 
 .combo-dropdown {
   animation: comboFadeIn 0.12s ease;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gold-400) #f8fafc;
 }
 
-@keyframes comboFadeIn {
-  from { opacity: 0; transform: translateY(-4px); }
-  to   { opacity: 1; transform: translateY(0); }
+.combo-dropdown::-webkit-scrollbar {
+  width: 7px;
+}
+
+.combo-dropdown::-webkit-scrollbar-track {
+  background: #f8fafc;
+  border-radius: 4px;
+}
+
+.combo-dropdown::-webkit-scrollbar-thumb {
+  background: var(--gold-400);
+  border-radius: 4px;
+}
+
+.combo-dropdown::-webkit-scrollbar-thumb:hover {
+  background: #b48518;
+}
+
+.combo-option {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 12.5px;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background 0.1s;
+  user-select: none;
 }
 
 .combo-option:hover,
 .combo-option.highlighted {
-  background: var(--gold-50, #fffbea) !important;
-  color: var(--navy-900);
+  background: #fff8e1 !important;
+  color: #1a1200;
 }
 
 /* Remove old 1-tap chip styles (kept for compatibility) */

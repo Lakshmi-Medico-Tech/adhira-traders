@@ -4459,7 +4459,8 @@
               <div
                 class="combo-dropdown"
                 id="quickQuoteSearchDropdown"
-                style="display:none;position:absolute;z-index:9999;left:0;right:0;top:100%;margin-top:6px;background:#fff;border:1.5px solid var(--gold-400);border-radius:var(--radius-md);box-shadow:0 8px 28px rgba(0,0,0,0.18);max-height:250px;overflow-y:auto"
+                onmousedown="event.preventDefault()"
+                style="display:none;"
               >
                 ${db.products.filter(p => p.active !== false).map(p => `
                   <div class="combo-option" data-id="${p.id}" data-name="${escapeHtml(p.name)}"
@@ -4696,13 +4697,14 @@
               value="${escapeHtml(item.name || '')}"
               oninput="window.adhiraApp.handleComboInput(${idx}, this.value)"
               onfocus="window.adhiraApp.showComboDropdown(${idx})"
-              onblur="setTimeout(() => window.adhiraApp.hideComboDropdown(${idx}), 180)"
+              onblur="setTimeout(() => window.adhiraApp.hideComboDropdown(${idx}), 220)"
               onkeydown="window.adhiraApp.handleComboKeydown(event, ${idx})"
             />
             <div
               class="combo-dropdown"
               id="comboDropdown_${idx}"
-              style="display:none;position:absolute;z-index:9999;left:0;right:0;top:100%;background:#fff;border:1.5px solid var(--gold-400);border-radius:var(--radius-md);box-shadow:0 8px 28px rgba(0,0,0,0.18);max-height:200px;overflow-y:auto"
+              onmousedown="event.preventDefault()"
+              style="display:none;"
             >
               ${db.products.filter(p => p.active !== false).map(p => `
                 <div class="combo-option" data-id="${p.id}" data-name="${escapeHtml(p.name)}"
@@ -7093,10 +7095,41 @@
       }
     },
 
+    // Position floating dropdown outside table boundaries without clipping
+    positionDropdownElement: (input, dropdown, minWidth = 340, maxHeight = 280) => {
+      if (!input || !dropdown) return;
+      const rect = input.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const spaceBelow = viewportHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      const height = Math.min(maxHeight, Math.max(160, Math.max(spaceBelow, spaceAbove) - 24));
+      const placeAbove = spaceBelow < 200 && spaceAbove > spaceBelow;
+
+      dropdown.style.position = 'fixed';
+      dropdown.style.left = Math.max(10, Math.min(rect.left, window.innerWidth - minWidth - 16)) + 'px';
+      dropdown.style.width = Math.max(rect.width, minWidth) + 'px';
+      dropdown.style.maxHeight = height + 'px';
+      dropdown.style.overflowY = 'auto';
+      dropdown.style.zIndex = '999999';
+      dropdown.style.boxShadow = '0 14px 40px rgba(0,0,0,0.28), 0 3px 10px rgba(0,0,0,0.12)';
+      dropdown.style.background = '#ffffff';
+      dropdown.style.border = '1.5px solid var(--gold-400)';
+      dropdown.style.borderRadius = '8px';
+
+      if (placeAbove) {
+        dropdown.style.top = 'auto';
+        dropdown.style.bottom = (viewportHeight - rect.top + 4) + 'px';
+      } else {
+        dropdown.style.top = (rect.bottom + 4) + 'px';
+        dropdown.style.bottom = 'auto';
+      }
+    },
+
     // Smart Combo Box handlers for product search+select+type
     handleComboInput: (idx, value) => {
       const dropdown = document.getElementById('comboDropdown_' + idx);
-      if (!dropdown) return;
+      const input = document.getElementById('comboInput_' + idx);
+      if (!dropdown || !input) return;
       // Update the draft item name immediately (free typing)
       if (draftQuote && draftQuote.items[idx]) {
         draftQuote.items[idx].name = value;
@@ -7110,7 +7143,12 @@
         opt.style.display = show ? '' : 'none';
         if (show) anyVisible = true;
       });
-      dropdown.style.display = anyVisible ? 'block' : 'none';
+      if (anyVisible) {
+        window.adhiraApp.positionDropdownElement(input, dropdown, 340, 280);
+        dropdown.style.display = 'block';
+      } else {
+        dropdown.style.display = 'none';
+      }
     },
 
     showComboDropdown: (idx) => {
@@ -7126,7 +7164,12 @@
         opt.style.display = show ? '' : 'none';
         if (show) anyVisible = true;
       });
-      dropdown.style.display = anyVisible ? 'block' : 'none';
+      if (anyVisible) {
+        window.adhiraApp.positionDropdownElement(input, dropdown, 340, 280);
+        dropdown.style.display = 'block';
+      } else {
+        dropdown.style.display = 'none';
+      }
     },
 
     hideComboDropdown: (idx) => {
@@ -7730,7 +7773,8 @@
 
     handleQuickQuoteSearch: (val) => {
       const dd = document.getElementById('quickQuoteSearchDropdown');
-      if (!dd) return;
+      const input = document.getElementById('quickQuoteSearchInput');
+      if (!dd || !input) return;
       const q = (val || '').trim().toLowerCase();
       const options = dd.querySelectorAll('.combo-option');
       let visible = false;
@@ -7740,7 +7784,12 @@
         opt.style.display = show ? '' : 'none';
         if (show) visible = true;
       });
-      dd.style.display = visible ? 'block' : 'none';
+      if (visible) {
+        window.adhiraApp.positionDropdownElement(input, dd, 380, 300);
+        dd.style.display = 'block';
+      } else {
+        dd.style.display = 'none';
+      }
     },
 
     showQuickQuoteDropdown: () => {
@@ -8498,8 +8547,45 @@
       }
     },
     showToast: (msg, type) => showToast(msg, type),
-    closeModal: () => closeModal()
+    closeModal: () => closeModal(),
+    getDatabase: () => db
   };
+
+  // Helper to inspect database in browser console
+  window.adhiraGetDb = () => db;
+
+  // Track window scroll and resize so floating dropdown follows the input cleanly
+  window.addEventListener('scroll', () => {
+    const active = document.activeElement;
+    if (active && active.id && active.id.startsWith('comboInput_')) {
+      const idx = active.id.split('_')[1];
+      const dd = document.getElementById('comboDropdown_' + idx);
+      if (dd && dd.style.display !== 'none') {
+        window.adhiraApp.positionDropdownElement(active, dd, 340, 280);
+      }
+    } else if (active && active.id === 'quickQuoteSearchInput') {
+      const dd = document.getElementById('quickQuoteSearchDropdown');
+      if (dd && dd.style.display !== 'none') {
+        window.adhiraApp.positionDropdownElement(active, dd, 380, 300);
+      }
+    }
+  }, { passive: true });
+
+  window.addEventListener('resize', () => {
+    const active = document.activeElement;
+    if (active && active.id && active.id.startsWith('comboInput_')) {
+      const idx = active.id.split('_')[1];
+      const dd = document.getElementById('comboDropdown_' + idx);
+      if (dd && dd.style.display !== 'none') {
+        window.adhiraApp.positionDropdownElement(active, dd, 340, 280);
+      }
+    } else if (active && active.id === 'quickQuoteSearchInput') {
+      const dd = document.getElementById('quickQuoteSearchDropdown');
+      if (dd && dd.style.display !== 'none') {
+        window.adhiraApp.positionDropdownElement(active, dd, 380, 300);
+      }
+    }
+  });
 
   function openDeviceSyncModal() {
     const netUrl = (serverInfo && serverInfo.networkUrls && serverInfo.networkUrls[0])
