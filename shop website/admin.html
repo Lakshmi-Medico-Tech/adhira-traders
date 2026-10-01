@@ -2889,13 +2889,19 @@
       const pass = (document.getElementById('loginPass').value || '').trim();
 
       try {
-        const url = isPhp ? `${apiBase}?action=login` : `${apiBase}/login`;
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: user, password: pass })
-        });
-        const data = await res.json();
+        let data;
+        // On Cloudflare / static hosting, use SupabaseAPI directly
+        if (window.SupabaseAPI && !isNodeServer) {
+          data = await window.SupabaseAPI.login(user, pass);
+        } else {
+          const url = isPhp ? `${apiBase}?action=login` : `${apiBase}/login`;
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: user, password: pass })
+          });
+          data = await res.json();
+        }
         if (data.success) {
           authToken = data.token;
           try {
@@ -3047,22 +3053,37 @@
     // Load Complete Site Data
     async function loadSiteData() {
       try {
-        const url = isPhp ? `${apiBase}?action=site-data` : `${apiBase}/site-data`;
-        const res = await fetch(url);
-        const data = await res.json();
-        if (data.success) {
-          currentData = data;
-          
-          // Also fetch orders
-          try {
-            const ordersUrl = isPhp ? `${apiBase}?action=orders` : `${apiBase}/orders`;
-            const ordRes = await fetch(ordersUrl);
-            const ordData = await ordRes.json();
-            if (ordData.success) currentData.orders = ordData.orders || [];
-          } catch (e) {}
-
-          renderAll();
-          checkDbStatus(false);
+        let data;
+        // On Cloudflare / static hosting, use SupabaseAPI directly
+        if (window.SupabaseAPI && !isNodeServer) {
+          data = await window.SupabaseAPI.getSiteData();
+          if (data.success) {
+            currentData = data;
+            // Also fetch orders via SupabaseAPI
+            try {
+              const ordData = await window.SupabaseAPI.getOrders();
+              if (ordData && ordData.success) currentData.orders = ordData.orders || [];
+            } catch (e) {}
+            renderAll();
+            checkDbStatus(false);
+          } else {
+            showToast('Failed to load store data from Supabase', 'error');
+          }
+        } else {
+          const url = isPhp ? `${apiBase}?action=site-data` : `${apiBase}/site-data`;
+          const res = await fetch(url);
+          data = await res.json();
+          if (data.success) {
+            currentData = data;
+            try {
+              const ordersUrl = isPhp ? `${apiBase}?action=orders` : `${apiBase}/orders`;
+              const ordRes = await fetch(ordersUrl);
+              const ordData = await ordRes.json();
+              if (ordData.success) currentData.orders = ordData.orders || [];
+            } catch (e) {}
+            renderAll();
+            checkDbStatus(false);
+          }
         }
       } catch (err) {
         console.error('Error loading site data:', err);

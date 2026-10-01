@@ -13539,6 +13539,12 @@ document.addEventListener('keydown', function(e) {
               if (menuItem) menuList.appendChild(menuItem);
             });
           }
+          // Update category count badges dynamically from real backend
+          var catCount = data.categories.length;
+          var fabBadge = document.querySelector('.robo-cat-fab-badge');
+          var headBadge = document.querySelector('.robo-cat-head-badge');
+          if (fabBadge) fabBadge.textContent = catCount;
+          if (headBadge) headBadge.textContent = catCount;
         }
 
         // 2. Apply updated product data, add new rows, remove deleted rows, sort by position
@@ -14113,6 +14119,7 @@ document.addEventListener('keydown', function(e) {
       if (videoUrl && (videoUrl.endsWith('.mp4') || videoUrl.endsWith('.webm') || videoUrl.includes('storage/videos/'))) {
         var media = document.getElementById('tblLightboxMedia');
         var frame = document.getElementById('tblLightboxVideoFrame');
+        var actionBtn2 = document.getElementById('tblLightboxActionBtn');
         if (media && frame) {
           // Replace iframe with html5 video element if needed
           var existingVideo = media.querySelector('video.custom-player');
@@ -14121,14 +14128,18 @@ document.addEventListener('keydown', function(e) {
             existingVideo.className = 'custom-player';
             existingVideo.controls = true;
             existingVideo.autoplay = true;
-            existingVideo.style.width = '100%';
-            existingVideo.style.height = '100%';
-            existingVideo.style.borderRadius = '8px';
+            existingVideo.style.cssText = 'width:100%;height:100%;border-radius:8px;position:absolute;top:0;left:0;object-fit:contain;background:#000;';
             media.appendChild(existingVideo);
           }
           existingVideo.src = videoUrl;
           existingVideo.style.display = 'block';
           frame.style.display = 'none';
+          // Add is-video class to HIDE the image — both must not show together
+          media.classList.add('is-video');
+          if (actionBtn2) {
+            actionBtn2.innerHTML = '<i class="fa-solid fa-image"></i> <span>Show Image</span>';
+            actionBtn2.classList.remove('is-hidden');
+          }
         }
       }
     };

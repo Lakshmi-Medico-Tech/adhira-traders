@@ -1146,6 +1146,16 @@
     // Load Live Site Data
     async function loadPriceListData() {
       try {
+        // Use SupabaseAPI directly if available (Cloudflare/static hosting)
+        if (window.SupabaseAPI) {
+          const data = await window.SupabaseAPI.getSiteData();
+          if (data && data.success) {
+            siteData = data;
+            renderPriceList();
+            return;
+          }
+        }
+        // Fallback: try local API server (port 4000)
         const res = await fetch(apiEndpoint);
         if (!res.ok) throw new Error('API response not ok');
         const data = await res.json();
