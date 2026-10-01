@@ -908,7 +908,7 @@
       <div class="sheet-header-banner">
         <div class="banner-top-row">
           <div class="banner-logo-info">
-            <img src="./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg" class="shop-logo-img" id="shopLogoImg" alt="Shop Logo" onerror="this.src='./storage/settings/Adhira_Logo_1.jpg.jpeg'">
+            <img src="./storage/settings/adhira-logo.jpg" class="shop-logo-img" id="shopLogoImg" alt="Shop Logo" onerror="this.src='./storage/settings/Adhira_Logo_1.jpg.jpeg'">
             <div class="shop-title-area">
               <h1 id="shopTitleText">ATHIRA CRACKERS</h1>
               <div class="shop-subtitle" id="shopCompanyText">Adhira Pyrotech Sivakasi</div>
@@ -1195,7 +1195,7 @@
       const companyName = s.company_name || 'Athira Crackers / Adhira Pyrotech';
       const siteTitle = s.site_title || `${brandName} - Wholesale Price List 2026`;
       const tagline = s.tagline || 'Direct Factory Wholesale Sivakasi Fireworks | Genuine High Quality Crackers';
-      const logo = s.logo || './storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg';
+      const logo = s.logo || './storage/settings/adhira-logo.jpg';
       const address = s.address || 'Sivakasi, Tamil Nadu - 626123';
       const email = s.email || 'sales@adhirapyrotech.com';
       const whatsapp = s.whatsapp || '+918940855376';
@@ -1345,7 +1345,6 @@
 
       // 5. Render Main Product Categories
       const mainContainer = document.getElementById('categoryTablesContainer');
-      let globalSno = 1;
       let categoriesHtml = '';
 
       sortedCats.forEach(cat => {
@@ -1355,8 +1354,8 @@
 
         if (catProducts.length === 0) return;
 
-        let rowsHtml = catProducts.map(p => {
-          const sno = globalSno++;
+        let rowsHtml = catProducts.map((p, pIdx) => {
+          const sno = p.position !== undefined ? p.position : (pIdx + 1);
           const orig = Number(p.orig_price || 0);
           // Dynamic calculation: if orig_price is present, Net Rate reflects active store discount %
           let sale = Number(p.sale_price || 0);

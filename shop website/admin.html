@@ -953,25 +953,25 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 320px;
-      height: 320px;
+      width: 380px;
+      height: 380px;
       object-fit: contain;
-      opacity: 0.08;
+      opacity: 0.12;
       pointer-events: none;
       z-index: 0;
     }
     .bill-watermark-text {
       position: absolute;
-      top: 55%;
+      top: 52%;
       left: 50%;
-      transform: translate(-50%, -50%) rotate(-30deg);
-      font-size: 65px;
+      transform: translate(-50%, -50%) rotate(-25deg);
+      font-size: 70px;
       font-weight: 900;
-      color: rgba(198, 29, 35, 0.05);
+      color: rgba(198, 29, 35, 0.08);
       white-space: nowrap;
       pointer-events: none;
       z-index: 0;
-      letter-spacing: 2px;
+      letter-spacing: 3px;
       user-select: none;
     }
     .bill-content { position: relative; z-index: 1; }
@@ -1259,7 +1259,7 @@
   <!-- ========================================================= -->
   <div class="mobile-header" id="mobileHeader">
     <div class="mobile-header-brand">
-      <img id="mobileHeaderLogo" src="./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg" alt="Logo" onerror="this.src='./storage/banners/RjYgjasaT8W338t5DL0zfZu4wgAtGtDznzdKtY7B.png'">
+      <img id="mobileHeaderLogo" src="./storage/settings/adhira-logo.jpg" alt="Logo" onerror="this.src='./storage/banners/RjYgjasaT8W338t5DL0zfZu4wgAtGtDznzdKtY7B.png'">
       <div>
         <h4 id="mobileHeaderBrand">ADHIRA PYROTECH</h4>
         <span>Admin Portal</span>
@@ -1313,7 +1313,7 @@
     <!-- Sidebar -->
     <aside class="sidebar">
       <div class="sidebar-header">
-        <img id="sidebarLogo" src="./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg" class="sidebar-logo" alt="Logo" onerror="this.src='./storage/banners/RjYgjasaT8W338t5DL0zfZu4wgAtGtDznzdKtY7B.png'">
+        <img id="sidebarLogo" src="./storage/settings/adhira-logo.jpg" class="sidebar-logo" alt="Logo" onerror="this.src='./storage/banners/RjYgjasaT8W338t5DL0zfZu4wgAtGtDznzdKtY7B.png'">
         <div class="sidebar-brand">
           <h3 id="sidebarBrand">ATHIRA CRACKERS</h3>
           <span>Admin Portal</span>
@@ -2154,7 +2154,7 @@
             <input type="text" id="prod_name" class="form-control no-icon" required placeholder="e.g. 5&quot; Laxmi Special / 28 Chakkars">
           </div>
           <div class="form-group">
-            <label>Position in Category</label>
+            <label id="prod_position_label">Position in Category *</label>
             <input type="number" id="prod_position" class="form-control no-icon" value="1" min="1" placeholder="1" title="Order inside the selected category">
           </div>
         </div>
@@ -2192,8 +2192,11 @@
               </label>
             </div>
             <div class="media-preview-container">
-              <img id="modalImgPreview" src="" class="preview-img-box" alt="Preview" onerror="this.src='./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg'">
-              <span style="font-size: 12px; color: var(--text-muted);">Live Image Preview</span>
+              <img id="modalImgPreview" src="./storage/settings/adhira-logo.jpg" class="preview-img-box" alt="Preview" onerror="this.src='./storage/settings/adhira-logo.jpg'">
+              <div style="display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 6px;">
+                <img id="modalShopLogoBadge" src="./storage/settings/adhira-logo.jpg" style="width: 18px; height: 18px; object-fit: contain; border-radius: 3px;" alt="Shop Logo">
+                <span style="font-size: 11.5px; color: var(--text-muted);">Product Image / Fallback: Shop Logo</span>
+              </div>
             </div>
           </div>
 
@@ -2308,7 +2311,7 @@
               </label>
             </div>
             <div class="media-preview-container" style="margin-top: 8px;">
-              <img id="comboImgPreview" src="" class="preview-img-box" style="height: 60px;" alt="Preview" onerror="this.src='./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg'">
+              <img id="comboImgPreview" src="" class="preview-img-box" style="height: 60px;" alt="Preview" onerror="this.src='./storage/settings/adhira-logo.jpg'">
             </div>
           </div>
 
@@ -2381,7 +2384,7 @@
               </label>
             </div>
             <div class="media-preview-container" style="margin-top: 8px;">
-              <img id="giftboxImgPreview" src="" class="preview-img-box" style="height: 60px;" alt="Preview" onerror="this.src='./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg'">
+              <img id="giftboxImgPreview" src="" class="preview-img-box" style="height: 60px;" alt="Preview" onerror="this.src='./storage/settings/adhira-logo.jpg'">
             </div>
           </div>
 
@@ -3236,7 +3239,7 @@
       // Sidebar & Mobile Header branding
       if (currentData.settings) {
         const brand = currentData.settings.brand_name || 'ADHIRA PYROTECH';
-        const logo = currentData.settings.logo || './storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg';
+        const logo = currentData.settings.logo || './storage/settings/adhira-logo.jpg';
         if (document.getElementById('sidebarBrand')) document.getElementById('sidebarBrand').innerText = brand;
         if (document.getElementById('sidebarLogo')) document.getElementById('sidebarLogo').src = logo;
         if (document.getElementById('mobileHeaderBrand')) document.getElementById('mobileHeaderBrand').innerText = brand;
@@ -3266,32 +3269,68 @@
     // 2. Products Table
     function renderProducts(filtered = null) {
       let prods = filtered !== null ? filtered : (currentData.products || []);
-      prods = [...prods].sort((a, b) => (Number(a.position !== undefined ? a.position : a.id) - Number(b.position !== undefined ? b.position : b.id)));
       const tbody = document.getElementById('productsTableBody');
       const catMap = {};
-      (currentData.categories || []).forEach(c => { catMap[c.id] = c.name; });
+      const catOrder = {};
+      (currentData.categories || []).forEach((c, idx) => { 
+        catMap[c.id] = c.name; 
+        catOrder[c.id] = c.position !== undefined ? Number(c.position) : (idx + 1);
+      });
+
+      // Sort products category-wise like the website, then by position within that category
+      prods = [...prods].sort((a, b) => {
+        const catA = catOrder[a.cat_id] !== undefined ? catOrder[a.cat_id] : 9999;
+        const catB = catOrder[b.cat_id] !== undefined ? catOrder[b.cat_id] : 9999;
+        if (catA !== catB) return catA - catB;
+        return (Number(a.position !== undefined ? a.position : a.id) - Number(b.position !== undefined ? b.position : b.id));
+      });
 
       if (prods.length === 0) {
         tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: var(--text-muted); padding: 30px;">No products found matching criteria.</td></tr>';
         return;
       }
 
-      tbody.innerHTML = prods.map(p => {
+      let lastCatId = null;
+      let html = '';
+
+      prods.forEach(p => {
         const hasVideo = p.video && p.video.trim().length > 5;
         const discountPct = p.orig_price > p.sale_price ? Math.round(((p.orig_price - p.sale_price) / p.orig_price) * 100) : 0;
-        const pos = p.position !== undefined ? p.position : p.id;
-        
-        return `
+        const pos = p.position !== undefined ? p.position : 1;
+        const catName = catMap[p.cat_id] || 'General';
+
+        // Add Category Divider Banner if category changes
+        if (p.cat_id !== lastCatId) {
+          lastCatId = p.cat_id;
+          const prodsInThisCat = (currentData.products || []).filter(item => Number(item.cat_id) === Number(p.cat_id));
+          html += `
+            <tr class="cat-group-row" style="background: linear-gradient(90deg, rgba(245, 158, 11, 0.16), rgba(30, 41, 59, 0.4)); border-top: 2px solid rgba(245, 158, 11, 0.5); border-bottom: 1px solid rgba(245, 158, 11, 0.25);">
+              <td colspan="10" style="padding: 10px 16px;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <div style="font-weight: 800; color: #ffb703; font-size: 13.5px; display: flex; align-items: center; gap: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
+                    <i class="fa-solid fa-layer-group" style="color: var(--primary);"></i>
+                    <span>${catName}</span>
+                  </div>
+                  <span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; font-size: 11px; font-weight: 700; border: 1px solid rgba(245, 158, 11, 0.35);">
+                    ${prodsInThisCat.length} Products in Category
+                  </span>
+                </div>
+              </td>
+            </tr>
+          `;
+        }
+
+        html += `
           <tr>
-            <td>${p.id}</td>
+            <td><strong style="color: #94a3b8;">${p.id}</strong></td>
             <td>
               <div class="media-preview-cell">
-                <img src="${p.img || './storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg'}" 
+                <img src="${p.img || './storage/settings/adhira-logo.jpg'}" 
                      class="thumb-img" 
                      alt="${p.name}" 
                      title="Click to zoom image"
-                     onclick="zoomImage('${p.img}')"
-                     onerror="this.src='./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg'">
+                     onclick="zoomImage('${p.img || './storage/settings/adhira-logo.jpg'}')"
+                     onerror="this.src='./storage/settings/adhira-logo.jpg'">
                 ${hasVideo ? `
                   <button class="video-pill-btn" onclick="playVideoModal('${encodeURIComponent(p.video)}', '${encodeURIComponent(p.name)}')">
                     <i class="fa-solid fa-play"></i> Watch
@@ -3302,7 +3341,7 @@
             <td>
               <div style="font-weight: 600; color: #fff;">${p.name}</div>
             </td>
-            <td><span class="badge" style="background: rgba(255,255,255,0.06); color: #cbd5e1;">${catMap[p.cat_id] || 'General'}</span></td>
+            <td><span class="badge" style="background: rgba(255,255,255,0.06); color: #cbd5e1;">${catName}</span></td>
             <td>${p.desc || '-'}</td>
             <td style="text-decoration: line-through; color: var(--text-muted);">₹${Number(p.orig_price).toFixed(2)}</td>
             <td style="color: var(--primary); font-weight: 700;">
@@ -3316,22 +3355,24 @@
             </td>
             <td style="text-align: center; white-space: nowrap;">
               <div style="display: inline-flex; align-items: center; gap: 4px;">
-                <button type="button" class="btn btn-secondary" style="padding: 2px 7px; font-size: 11px;" onclick="moveProduct(${p.id}, -1)" title="Move Up">▲</button>
-                <input type="number" value="${pos}" style="width: 48px; text-align: center; padding: 3px; font-size: 12px; background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); color: #fff; border-radius: 4px;" onchange="changeProductPosition(${p.id}, this.value)">
-                <button type="button" class="btn btn-secondary" style="padding: 2px 7px; font-size: 11px;" onclick="moveProduct(${p.id}, 1)" title="Move Down">▼</button>
+                <button type="button" class="btn btn-secondary" style="padding: 2px 7px; font-size: 11px;" onclick="moveProduct(${p.id}, -1)" title="Move Up within ${catName}">▲</button>
+                <input type="number" value="${pos}" min="1" style="width: 48px; text-align: center; padding: 3px; font-size: 12px; background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); color: #fff; border-radius: 4px;" onchange="changeProductPosition(${p.id}, this.value)" title="Position inside ${catName}">
+                <button type="button" class="btn btn-secondary" style="padding: 2px 7px; font-size: 11px;" onclick="moveProduct(${p.id}, 1)" title="Move Down within ${catName}">▼</button>
               </div>
             </td>
             <td style="text-align: right; white-space: nowrap;">
-              <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px;" onclick="editProduct(${p.id})">
+              <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px;" onclick="editProduct(${p.id})" title="Edit Product">
                 <i class="fa-solid fa-pen-to-square"></i>
               </button>
-              <button class="btn btn-danger" style="padding: 6px 10px; font-size: 12px; margin-left: 4px;" onclick="deleteProduct(${p.id})">
+              <button class="btn btn-danger" style="padding: 6px 10px; font-size: 12px; margin-left: 4px;" onclick="deleteProduct(${p.id})" title="Delete Product">
                 <i class="fa-solid fa-trash"></i>
               </button>
             </td>
           </tr>
         `;
-      }).join('');
+      });
+
+      tbody.innerHTML = html;
 
       // Populate Category filter in products tab
       const catSelect = document.getElementById('productCatFilter');
@@ -3655,7 +3696,7 @@
                           '<span class="badge" style="background:rgba(255,255,255,0.1);color:#ccc;font-size:10px;">CRACKER</span>';
         return `
           <div class="suggestion-item" onclick="selectSuggestionProduct('${m.selectVal}', ${m.price}, '${encodeURIComponent(m.name)}')">
-            <img src="${m.img || './storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg'}" style="width: 32px; height: 32px; object-fit: cover; border-radius: 4px;" onerror="this.src='./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg'">
+            <img src="${m.img || './storage/settings/adhira-logo.jpg'}" style="width: 32px; height: 32px; object-fit: cover; border-radius: 4px;" onerror="this.src='./storage/settings/adhira-logo.jpg'">
             <div style="flex: 1; min-width: 0;">
               <div style="font-weight: 600; color: #fff; font-size: 13px; display: flex; align-items: center; gap: 6px;">
                 ${m.name} ${typeBadge}
@@ -3958,7 +3999,7 @@
       const s = currentData.settings || {};
       const companyName = s.company_name || 'Athira Crackers / Adhira Pyrotech';
       const brandName = s.brand_name || 'ADHIRA PYROTECH';
-      const logo = s.logo || './storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg';
+      const logo = s.logo || './storage/settings/adhira-logo.jpg';
       const address = s.address || 'Sivakasi, Tamil Nadu - 626123';
       const phones = Array.isArray(s.phones) ? s.phones.join(', ') : (s.phones || s.whatsapp || '+918940855376');
       const email = s.email || 'sales@adhirapyrotech.com';
@@ -3978,7 +4019,7 @@
         if (!catalogItem && currentData.giftboxes) catalogItem = currentData.giftboxes.find(g => g.id === item.id || g.name === item.name);
 
         const mrp = Number(item.orig_price || (catalogItem && catalogItem.orig_price) || (itemPrice > 0 ? Math.round(itemPrice * 2.5) : 0));
-        const itemImg = item.img || (catalogItem && catalogItem.img) || './storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg';
+        const itemImg = item.img || (catalogItem && catalogItem.img) || './storage/settings/adhira-logo.jpg';
         
         const disPct = mrp > itemPrice ? Math.round(((mrp - itemPrice) / mrp) * 100) : 0;
         const disAmt = Math.max(0, (mrp - itemPrice) * itemQty);
@@ -3991,7 +4032,7 @@
           <tr>
             <td style="text-align: center; font-weight: 600;">${idx + 1}</td>
             <td style="text-align: center; padding: 4px;">
-              <img src="${itemImg}" style="width: 36px; height: 36px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd;" onerror="this.src='./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg'">
+              <img src="${itemImg}" style="width: 36px; height: 36px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd;" onerror="this.src='./storage/settings/adhira-logo.jpg'">
             </td>
             <td>
               <div style="font-weight: 700; color: #111;">${item.name || item.product_name || 'Cracker Item'}</div>
@@ -4013,7 +4054,7 @@
 
       const billHtml = `
         <!-- Watermarks -->
-        <img src="${logo}" class="bill-watermark-logo" alt="Watermark" onerror="this.src='./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg'">
+        <img src="${logo}" class="bill-watermark-logo" alt="Watermark" onerror="this.src='./storage/settings/adhira-logo.jpg'">
         <div class="bill-watermark-text">${brandName}</div>
 
         <div class="bill-content">
@@ -4024,7 +4065,7 @@
 
           <!-- Header with Logo and Company Info -->
           <div class="bill-header-samys">
-            <img src="${logo}" class="logo-img" alt="${brandName}" onerror="this.src='./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg'">
+            <img src="${logo}" class="logo-img" alt="${brandName}" onerror="this.src='./storage/settings/adhira-logo.jpg'">
             <div style="flex: 1;">
               <h1>${brandName}</h1>
               <p style="font-weight: 700; color: #222; font-size: 13px;">${companyName}</p>
@@ -4359,15 +4400,19 @@ Wish you a Happy & Safe Diwali! 💥`;
       if (!catId) return;
       const prodsInCat = (currentData.products || []).filter(p => Number(p.cat_id) === Number(catId));
       const currentId = document.getElementById('prod_id').value;
+      const catObj = (currentData.categories || []).find(c => Number(c.id) === Number(catId));
+      const catName = catObj ? catObj.name : 'Category';
+
       if (!currentId) {
         const nextPos = prodsInCat.length + 1;
         document.getElementById('prod_position').value = nextPos;
       }
-      const catObj = (currentData.categories || []).find(c => Number(c.id) === Number(catId));
-      const catName = catObj ? catObj.name : 'Category';
+      const posLabel = document.getElementById('prod_position_label');
+      if (posLabel) posLabel.innerText = `Position in "${catName}" *`;
+
       const hint = document.getElementById('catPositionHint');
       if (hint) {
-        hint.innerHTML = `<i class="fa-solid fa-folder-open" style="color: var(--primary);"></i> Category: <strong>${catName}</strong> (Currently ${prodsInCat.length} products inside)`;
+        hint.innerHTML = `<i class="fa-solid fa-folder-open" style="color: var(--primary);"></i> Category: <strong>${catName}</strong> (Currently ${prodsInCat.length} products inside. This product will appear at this position inside "${catName}")`;
       }
     }
 
@@ -4446,7 +4491,10 @@ Wish you a Happy & Safe Diwali! 💥`;
 
     function updateImagePreview() {
       const url = document.getElementById('prod_img').value.trim();
-      document.getElementById('modalImgPreview').src = url || './storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg';
+      const defaultLogo = (currentData.settings && currentData.settings.logo) || './storage/settings/adhira-logo.jpg';
+      document.getElementById('modalImgPreview').src = url || defaultLogo;
+      const badge = document.getElementById('modalShopLogoBadge');
+      if (badge) badge.src = defaultLogo;
     }
 
     function updateVideoPreview() {
@@ -4785,13 +4833,10 @@ Wish you a Happy & Safe Diwali! 💥`;
       const targetIdx = idx + delta;
       if (targetIdx < 0 || targetIdx >= catProds.length) return;
 
-      const currentPos = catProds[idx].position !== undefined ? catProds[idx].position : (idx + 1);
-      const targetPos = catProds[targetIdx].position !== undefined ? catProds[targetIdx].position : (targetIdx + 1);
+      const [movedItem] = catProds.splice(idx, 1);
+      catProds.splice(targetIdx, 0, movedItem);
 
-      catProds[idx].position = currentPos === targetPos ? (targetIdx + 1) : targetPos;
-      catProds[targetIdx].position = currentPos === targetPos ? (idx + 1) : currentPos;
-
-      const items = catProds.map((p, i) => ({ id: p.id, position: p.position !== undefined ? p.position : (i + 1) }));
+      const items = catProds.map((p, i) => ({ id: p.id, position: i + 1 }));
 
       try {
         const url = isPhp ? `${apiBase}?action=reorder-products` : `${apiBase}/products/reorder`;
@@ -4813,17 +4858,32 @@ Wish you a Happy & Safe Diwali! 💥`;
     async function changeProductPosition(id, newPos) {
       const pos = parseInt(newPos, 10);
       if (isNaN(pos) || pos < 1) return;
+      const targetProd = (currentData.products || []).find(p => p.id === id);
+      if (!targetProd) return;
+      const catId = targetProd.cat_id;
+
+      let catProds = (currentData.products || [])
+        .filter(p => Number(p.cat_id) === Number(catId))
+        .sort((a, b) => Number(a.position !== undefined ? a.position : a.id) - Number(b.position !== undefined ? b.position : b.id));
+
+      const oldIdx = catProds.findIndex(p => p.id === id);
+      if (oldIdx !== -1) catProds.splice(oldIdx, 1);
+
+      const newIdx = Math.max(0, Math.min(pos - 1, catProds.length));
+      catProds.splice(newIdx, 0, targetProd);
+
+      const items = catProds.map((p, i) => ({ id: p.id, position: i + 1 }));
+
       try {
-        const url = isPhp ? `${apiBase}?action=update-product` : `${apiBase}/products/${id}`;
-        const method = isPhp ? 'POST' : 'PUT';
+        const url = isPhp ? `${apiBase}?action=reorder-products` : `${apiBase}/products/reorder`;
         const res = await fetch(url, {
-          method,
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id, position: pos })
+          body: JSON.stringify({ items })
         });
         const resData = await res.json();
         if (resData.success) {
-          showToast(`Product position set to #${pos}`);
+          showToast(`Product set to position #${pos} inside category`);
           loadSiteData();
         }
       } catch (e) {
@@ -4913,12 +4973,12 @@ Wish you a Happy & Safe Diwali! 💥`;
             <td><strong>#${c.id}</strong></td>
             <td>
               <div class="media-preview-cell">
-                <img src="${c.img || './storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg'}" 
+                <img src="${c.img || './storage/settings/adhira-logo.jpg'}" 
                      class="thumb-img" 
                      alt="${c.name}" 
                      title="Click to zoom image"
                      onclick="zoomImage('${c.img}')"
-                     onerror="this.src='./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg'">
+                     onerror="this.src='./storage/settings/adhira-logo.jpg'">
                 ${hasVideo ? `
                   <button class="video-pill-btn" onclick="playVideoModal('${encodeURIComponent(c.video)}', '${encodeURIComponent(c.name)}')">
                     <i class="fa-solid fa-play"></i> Watch
@@ -4993,7 +5053,7 @@ Wish you a Happy & Safe Diwali! 💥`;
 
     function updateComboImgPreview() {
       const url = document.getElementById('combo_img').value.trim();
-      document.getElementById('comboImgPreview').src = url || './storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg';
+      document.getElementById('comboImgPreview').src = url || './storage/settings/adhira-logo.jpg';
     }
 
     async function handleComboSubmit(e) {
@@ -5142,12 +5202,12 @@ Wish you a Happy & Safe Diwali! 💥`;
             <td><strong>#${g.id}</strong></td>
             <td>
               <div class="media-preview-cell">
-                <img src="${g.img || './storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg'}" 
+                <img src="${g.img || './storage/settings/adhira-logo.jpg'}" 
                      class="thumb-img" 
                      alt="${g.name}" 
                      title="Click to zoom image"
                      onclick="zoomImage('${g.img}')"
-                     onerror="this.src='./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg'">
+                     onerror="this.src='./storage/settings/adhira-logo.jpg'">
                 ${hasVideo ? `
                   <button class="video-pill-btn" onclick="playVideoModal('${encodeURIComponent(g.video)}', '${encodeURIComponent(g.name)}')">
                     <i class="fa-solid fa-play"></i> Watch
@@ -5222,7 +5282,7 @@ Wish you a Happy & Safe Diwali! 💥`;
 
     function updateGiftboxImgPreview() {
       const url = document.getElementById('giftbox_img').value.trim();
-      document.getElementById('giftboxImgPreview').src = url || './storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg';
+      document.getElementById('giftboxImgPreview').src = url || './storage/settings/adhira-logo.jpg';
     }
 
     async function handleGiftboxSubmit(e) {
