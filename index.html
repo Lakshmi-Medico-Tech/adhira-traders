@@ -174,11 +174,11 @@
             animation: ribbonHighlightPulse 1.2s ease-in-out;
         }
 
-        /* ===== BANNER CAROUSEL (NATURAL FLUID ASPECT RATIO, FULL SCREEN WIDTH) ===== */
+        /* ===== BANNER CAROUSEL (FIXED CONSTANT HEIGHT, FULL SCREEN WIDTH) ===== */
         .robo-banner-wrap {
             width: 100%;
             position: relative;
-            background: transparent;
+            background: #0a0a0a;
             overflow: hidden;
             margin: 0;
             padding: 0;
@@ -187,20 +187,28 @@
         .robo-banner-carousel {
             position: relative;
             width: 100%;
-            height: auto;
+            height: 380px;
+            max-height: 48vh;
             overflow: hidden;
-            background: transparent;
+            background: #080c14;
             line-height: 0;
             cursor: grab;
             user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         .robo-banner-carousel:active {
             cursor: grabbing;
         }
         .robo-banner-slide {
-            position: relative;
+            position: absolute;
+            inset: 0;
             width: 100%;
-            display: none;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             opacity: 0;
             z-index: 1;
             pointer-events: none;
@@ -208,20 +216,24 @@
             line-height: 0;
         }
         .robo-banner-slide.active {
-            display: block;
             opacity: 1;
             z-index: 2;
             pointer-events: auto;
         }
         .robo-banner-slide img {
             width: 100%;
-            height: auto;
+            height: 100%;
             display: block;
+            object-fit: contain;
+            object-position: center center;
             user-select: none;
             -webkit-user-drag: none;
-            image-rendering: -webkit-optimize-contrast;
-            image-rendering: high-quality;
-            -ms-interpolation-mode: bicubic;
+        }
+        @media (max-width: 768px) {
+            .robo-banner-carousel { height: 240px; }
+        }
+        @media (max-width: 480px) {
+            .robo-banner-carousel { height: 180px; }
         }
         .robo-banner-dots {
             position: absolute;
@@ -3163,7 +3175,7 @@ i.fa, i.fas, i.fab, i.far, i.fa-solid, i.fa-brands, i[class*="fa-"],
             <!-- Site Branding / Logo -->
             <div class="wp-branding">
                 <a href="https://adhirapyrotech.com" class="wp-logo-link" aria-label="ATHIRA CRACKERS &amp; ADHIRA PYROTECH">
-                                            <img src="./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg" alt="ATHIRA CRACKERS &amp; ADHIRA PYROTECH" class="wp-logo-img" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+                                            <img src="./storage/settings/adhira-logo.jpg" alt="ATHIRA CRACKERS &amp; ADHIRA PYROTECH" class="wp-logo-img" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
                                         <div class="wp-logo-fallback" style="display:none;">
                         <i class="fa-solid fa-fire-flame-curved"></i>
                     </div>
@@ -3187,7 +3199,7 @@ i.fa, i.fas, i.fab, i.far, i.fa-solid, i.fa-brands, i[class*="fa-"],
 
                     <!-- 2. Quick Purchase -->
                     <li class="wp-menu-item ">
-                        <a href="https://adhirapyrotech.com/quick-purchase">
+                        <a href="javascript:void(0)" onclick="scrollToProductCatalog()">
                             <span class="wp-nav-icon-box"><i class="fa-solid fa-cart-shopping"></i></span>
                             <span>Quick Purchase</span>
                         </a>
@@ -3201,25 +3213,9 @@ i.fa, i.fas, i.fab, i.far, i.fa-solid, i.fa-brands, i[class*="fa-"],
                         </a>
                     </li>
 
-                    <!-- 4. Track Order -->
+                    <!-- 4. About Us & Safety -->
                     <li class="wp-menu-item ">
-                        <a href="https://adhirapyrotech.com/track-order">
-                            <span class="wp-nav-icon-box"><i class="fa-solid fa-truck-fast"></i></span>
-                            <span>Track Order</span>
-                        </a>
-                    </li>
-
-                    <!-- 5. Pay for your order -->
-                    <li class="wp-menu-item ">
-                        <a href="https://adhirapyrotech.com/checkout/lookup">
-                            <span class="wp-nav-icon-box"><i class="fa-solid fa-credit-card"></i></span>
-                            <span>Pay for your order</span>
-                        </a>
-                    </li>
-
-                    <!-- 6. About Us -->
-                    <li class="wp-menu-item ">
-                        <a href="https://adhirapyrotech.com/about-us">
+                        <a href="javascript:void(0)" onclick="openAboutModal()">
                             <span class="wp-nav-icon-box"><i class="fa-solid fa-circle-info"></i></span>
                             <span>About Us</span>
                         </a>
@@ -3264,7 +3260,7 @@ i.fa, i.fas, i.fab, i.far, i.fa-solid, i.fa-brands, i[class*="fa-"],
 
                     <!-- 2. Quick Purchase -->
                     <li class="wp-mobile-item ">
-                        <a href="https://adhirapyrotech.com/quick-purchase">
+                        <a href="javascript:void(0)" onclick="scrollToProductCatalog(); closeWpMobileDrawer();">
                             <span class="wp-box-icon"><i class="fa-solid fa-cart-shopping"></i></span>
                             <span class="wp-item-text">Quick Purchase</span>
                         </a>
@@ -3278,25 +3274,9 @@ i.fa, i.fas, i.fab, i.far, i.fa-solid, i.fa-brands, i[class*="fa-"],
                         </a>
                     </li>
 
-                    <!-- 4. Track Order -->
+                    <!-- 4. About Us & Safety -->
                     <li class="wp-mobile-item ">
-                        <a href="https://adhirapyrotech.com/track-order">
-                            <span class="wp-box-icon"><i class="fa-solid fa-truck-fast"></i></span>
-                            <span class="wp-item-text">Track Order</span>
-                        </a>
-                    </li>
-
-                    <!-- 5. Pay for your order -->
-                    <li class="wp-mobile-item ">
-                        <a href="https://adhirapyrotech.com/checkout/lookup">
-                            <span class="wp-box-icon"><i class="fa-solid fa-credit-card"></i></span>
-                            <span class="wp-item-text">Pay for your order</span>
-                        </a>
-                    </li>
-
-                    <!-- 6. About Us -->
-                    <li class="wp-mobile-item ">
-                        <a href="https://adhirapyrotech.com/about-us">
+                        <a href="javascript:void(0)" onclick="closeWpMobileDrawer(); openAboutModal();">
                             <span class="wp-box-icon"><i class="fa-solid fa-circle-info"></i></span>
                             <span class="wp-item-text">About Us</span>
                         </a>
@@ -3304,7 +3284,7 @@ i.fa, i.fas, i.fab, i.far, i.fa-solid, i.fa-brands, i[class*="fa-"],
                 </ul>
 
                 <div class="wp-mobile-footer-action">
-                    <a href="https://adhirapyrotech.com/quick-purchase" class="wp-btn-cta-mobile">
+                    <a href="javascript:void(0)" onclick="scrollToProductCatalog(); closeWpMobileDrawer();" class="wp-btn-cta-mobile">
                         <span class="wp-btn-icon-box"><i class="fa-solid fa-bolt"></i></span>
                         <span>Order Crackers Online</span>
                     </a>
@@ -3500,7 +3480,102 @@ i.fa, i.fas, i.fab, i.far, i.fa-solid, i.fa-brands, i[class*="fa-"],
 })();
 </script>
 
-    <!-- Full Width Fluid Banner Carousel (Matches Mothers-Pyro, Natural Fluid Aspect Ratio, Swipeable) -->
+<!-- About Us & Safety Guidelines Modal -->
+<div id="wpAboutModal" style="display:none; position:fixed; inset:0; z-index:99999; align-items:center; justify-content:center; padding:14px;" role="dialog" aria-modal="true" aria-label="About Us & Safety Guidelines">
+    <div style="position:absolute; inset:0; background:rgba(10,10,20,0.75); backdrop-filter:blur(4px);" onclick="closeAboutModal()"></div>
+    <div style="position:relative; width:100%; max-width:620px; max-height:88vh; overflow-y:auto; background:#fff; border-radius:20px; box-shadow:0 30px 60px rgba(0,0,0,0.3); z-index:2;">
+        <!-- Modal Header -->
+        <div style="background:linear-gradient(135deg,#c62828,#e53935); color:#fff; padding:20px 22px 18px; border-radius:20px 20px 0 0; position:sticky; top:0; z-index:3;">
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:42px; height:42px; background:rgba(255,255,255,0.2); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:20px;">🎇</div>
+                    <div>
+                        <div style="font-size:17px; font-weight:800; letter-spacing:0.3px;">About Adhira Pyrotech</div>
+                        <div style="font-size:11.5px; opacity:0.85; margin-top:2px;">Sivakasi's Trusted Wholesale Cracker Store</div>
+                    </div>
+                </div>
+                <button type="button" onclick="closeAboutModal()" style="width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,0.2); border:none; color:#fff; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center;">&times;</button>
+            </div>
+        </div>
+        <!-- Modal Body -->
+        <div style="padding:20px 22px;">
+            <!-- About Section -->
+            <div style="background:#fff8f8; border:1px solid #fecaca; border-radius:12px; padding:16px; margin-bottom:16px;">
+                <div style="font-size:14px; font-weight:800; color:#c62828; margin-bottom:8px;"><i class="fa-solid fa-store" style="margin-right:6px;"></i>Our Story</div>
+                <p style="font-size:13.5px; color:#374151; line-height:1.7; margin:0;">Adhira Pyrotech is a licensed wholesale cracker distributor based in <strong>Sivakasi, Tamil Nadu</strong> — the fireworks capital of India. We source directly from certified factories to bring you genuine quality crackers at the best factory prices. Trusted by thousands of customers across South India.</p>
+            </div>
+            <!-- Store Locations -->
+            <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:16px; margin-bottom:16px;">
+                <div style="font-size:14px; font-weight:800; color:#15803d; margin-bottom:10px;"><i class="fa-solid fa-location-dot" style="margin-right:6px;"></i>Our Shop Locations</div>
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                    <div style="display:flex; align-items:flex-start; gap:10px; background:#fff; border-radius:8px; padding:10px 12px; border:1px solid #d1fae5;">
+                        <span style="font-size:18px;">🏪</span>
+                        <div>
+                            <div style="font-size:13px; font-weight:700; color:#1e293b;">Main Store — Sivakasi</div>
+                            <div style="font-size:12px; color:#64748b; margin-top:2px;">Old RTO Office Opposite, Parapatti, Sivakasi, Tamil Nadu 626123</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Safety Guidelines -->
+            <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:12px; padding:16px; margin-bottom:16px;">
+                <div style="font-size:14px; font-weight:800; color:#b45309; margin-bottom:10px;"><i class="fa-solid fa-shield-halved" style="margin-right:6px;"></i>Fireworks Safety Guidelines</div>
+                <!-- Do's -->
+                <div style="margin-bottom:10px;">
+                    <div style="font-size:12.5px; font-weight:700; color:#15803d; margin-bottom:6px; display:flex; align-items:center; gap:5px;"><i class="fa-solid fa-circle-check"></i> DO's</div>
+                    <ul style="margin:0; padding-left:0; list-style:none; display:flex; flex-direction:column; gap:5px;">
+                        <li style="font-size:12.5px; color:#374151; display:flex; align-items:flex-start; gap:7px;"><span style="color:#15803d; margin-top:2px;">✔</span> Always burst crackers in an open area away from buildings &amp; vehicles</li>
+                        <li style="font-size:12.5px; color:#374151; display:flex; align-items:flex-start; gap:7px;"><span style="color:#15803d; margin-top:2px;">✔</span> Keep a bucket of water or sand nearby at all times</li>
+                        <li style="font-size:12.5px; color:#374151; display:flex; align-items:flex-start; gap:7px;"><span style="color:#15803d; margin-top:2px;">✔</span> Read and follow instructions on every cracker packet carefully</li>
+                        <li style="font-size:12.5px; color:#374151; display:flex; align-items:flex-start; gap:7px;"><span style="color:#15803d; margin-top:2px;">✔</span> Light crackers one at a time and move away quickly</li>
+                        <li style="font-size:12.5px; color:#374151; display:flex; align-items:flex-start; gap:7px;"><span style="color:#15803d; margin-top:2px;">✔</span> Supervise children at all times; let adults handle lighting</li>
+                        <li style="font-size:12.5px; color:#374151; display:flex; align-items:flex-start; gap:7px;"><span style="color:#15803d; margin-top:2px;">✔</span> Store unused crackers in a cool, dry place away from heat sources</li>
+                        <li style="font-size:12.5px; color:#374151; display:flex; align-items:flex-start; gap:7px;"><span style="color:#15803d; margin-top:2px;">✔</span> Wear cotton clothes and safety goggles during bursting</li>
+                    </ul>
+                </div>
+                <!-- Don'ts -->
+                <div>
+                    <div style="font-size:12.5px; font-weight:700; color:#dc2626; margin-bottom:6px; display:flex; align-items:center; gap:5px;"><i class="fa-solid fa-circle-xmark"></i> DON'Ts</div>
+                    <ul style="margin:0; padding-left:0; list-style:none; display:flex; flex-direction:column; gap:5px;">
+                        <li style="font-size:12.5px; color:#374151; display:flex; align-items:flex-start; gap:7px;"><span style="color:#dc2626; margin-top:2px;">✘</span> Never burst crackers near hospitals, petrol bunks, or crowded areas</li>
+                        <li style="font-size:12.5px; color:#374151; display:flex; align-items:flex-start; gap:7px;"><span style="color:#dc2626; margin-top:2px;">✘</span> Do not hold crackers in your hand while lighting</li>
+                        <li style="font-size:12.5px; color:#374151; display:flex; align-items:flex-start; gap:7px;"><span style="color:#dc2626; margin-top:2px;">✘</span> Never attempt to re-light a dud cracker</li>
+                        <li style="font-size:12.5px; color:#374151; display:flex; align-items:flex-start; gap:7px;"><span style="color:#dc2626; margin-top:2px;">✘</span> Do not burst crackers near dry leaves, hay, or flammable materials</li>
+                        <li style="font-size:12.5px; color:#374151; display:flex; align-items:flex-start; gap:7px;"><span style="color:#dc2626; margin-top:2px;">✘</span> Never carry crackers in pockets or bags with phones/keys</li>
+                        <li style="font-size:12.5px; color:#374151; display:flex; align-items:flex-start; gap:7px;"><span style="color:#dc2626; margin-top:2px;">✘</span> Do not use crackers if packaging is damaged or wet</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- CTA -->
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button type="button" onclick="scrollToProductCatalog(); closeAboutModal();" style="flex:1; min-width:140px; background:linear-gradient(135deg,#c62828,#e53935); color:#fff; border:none; border-radius:10px; padding:12px 16px; font-size:13.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+                    <i class="fa-solid fa-cart-shopping"></i> Shop Now
+                </button>
+                <a href="./price-list.html" target="_blank" style="flex:1; min-width:140px; background:linear-gradient(135deg,#1e3a8a,#2563eb); color:#fff; border:none; border-radius:10px; padding:12px 16px; font-size:13.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; text-decoration:none;">
+                    <i class="fa-solid fa-file-pdf"></i> Price List
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+// About Modal & scroll helper
+window.openAboutModal = function() {
+    var m = document.getElementById('wpAboutModal');
+    if (m) { m.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+};
+window.closeAboutModal = function() {
+    var m = document.getElementById('wpAboutModal');
+    if (m) { m.style.display = 'none'; document.body.style.overflow = ''; }
+};
+window.scrollToProductCatalog = function() {
+    var el = document.getElementById('categoryBlocksList') || document.querySelector('.category-block-list') || document.querySelector('.main-wrapper');
+    if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+};
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { closeAboutModal(); } });
+</script>
+
+    <!-- Full Width Fluid Banner Carousel -->
     <div class="robo-banner-wrap">
         <div class="robo-banner-carousel" id="roboBannerCarousel" data-count="4">
             <a href="#" class="robo-banner-slide active" data-index="0">
@@ -3550,9 +3625,9 @@ i.fa, i.fas, i.fab, i.far, i.fa-solid, i.fa-brands, i[class*="fa-"],
         </span>
     </div>
     <div class="app-notes-list">
-                    <div class="app-note-item">
+                    <div class="app-note-item" id="storeDiscountNotice">
                 <span class="app-note-bullet"><i class="fas fa-check"></i></span>
-                <div class="app-note-text">90% Discount</div>
+                <div class="app-note-text" id="storeDiscountNoteText">90% Discount on MRP</div>
             </div>
             </div>
 </div>
@@ -3648,9 +3723,9 @@ i.fa, i.fas, i.fab, i.far, i.fa-solid, i.fa-brands, i[class*="fa-"],
 }
 </style>
 
-                    <div class="min-order-notice">
+                    <div class="min-order-notice" id="minOrderNoticeBar">
                 <i class="fa-solid fa-circle-info"></i>
-                <span>Minimum Order Requirement: <strong>₹4,500</strong>. Add crackers to your list to proceed.</span>
+                <span>Minimum Order Requirement: <strong id="minOrderAmt">₹4,500</strong>. Add crackers to your list to proceed.</span>
             </div>
         
         <!-- No Results Fallback Message -->
@@ -7180,14 +7255,14 @@ i.fa, i.fas, i.fab, i.far, i.fa-solid, i.fa-brands, i[class*="fa-"],
                                         data-name="classic bomb green"
                                         data-display-name="Classic Bomb Green"
                                         data-desc="1 box"
-                                        data-img="./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg"
+                                        data-img="./storage/settings/adhira-logo.jpg"
                                         data-video=""
                                         data-out-of-stock="0">
 
                                         <!-- Image -->
                                         <td class="td-image">
                                             <div class="prod-thumb-wrap" role="button" tabindex="0" title="Click to view image & video">
-                                                                                                    <img src="./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg" alt="Classic Bomb Green" class="prod-thumb-img" loading="lazy" decoding="async" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+                                                                                                    <img src="./storage/settings/adhira-logo.jpg" alt="Classic Bomb Green" class="prod-thumb-img" loading="lazy" decoding="async" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
                                                     <div class="prod-thumb-fallback" style="display: none;">
                                                         <i class="fa-solid fa-sparkles"></i>
                                                     </div>
@@ -7336,14 +7411,14 @@ i.fa, i.fas, i.fab, i.far, i.fa-solid, i.fa-brands, i[class*="fa-"],
                                         data-name="1/4 kg ati all"
                                         data-display-name="1/4 kg Ati All"
                                         data-desc="1 box"
-                                        data-img="./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg"
+                                        data-img="./storage/settings/adhira-logo.jpg"
                                         data-video=""
                                         data-out-of-stock="0">
 
                                         <!-- Image -->
                                         <td class="td-image">
                                             <div class="prod-thumb-wrap" role="button" tabindex="0" title="Click to view image & video">
-                                                                                                    <img src="./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg" alt="1/4 kg Ati All" class="prod-thumb-img" loading="lazy" decoding="async" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+                                                                                                    <img src="./storage/settings/adhira-logo.jpg" alt="1/4 kg Ati All" class="prod-thumb-img" loading="lazy" decoding="async" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
                                                     <div class="prod-thumb-fallback" style="display: none;">
                                                         <i class="fa-solid fa-sparkles"></i>
                                                     </div>
@@ -7388,14 +7463,14 @@ i.fa, i.fas, i.fab, i.far, i.fa-solid, i.fa-brands, i[class*="fa-"],
                                         data-name="1/2 kg ati all"
                                         data-display-name="1/2 kg Ati All"
                                         data-desc="1 box"
-                                        data-img="./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg"
+                                        data-img="./storage/settings/adhira-logo.jpg"
                                         data-video=""
                                         data-out-of-stock="0">
 
                                         <!-- Image -->
                                         <td class="td-image">
                                             <div class="prod-thumb-wrap" role="button" tabindex="0" title="Click to view image & video">
-                                                                                                    <img src="./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg" alt="1/2 kg Ati All" class="prod-thumb-img" loading="lazy" decoding="async" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+                                                                                                    <img src="./storage/settings/adhira-logo.jpg" alt="1/2 kg Ati All" class="prod-thumb-img" loading="lazy" decoding="async" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
                                                     <div class="prod-thumb-fallback" style="display: none;">
                                                         <i class="fa-solid fa-sparkles"></i>
                                                     </div>
@@ -7440,14 +7515,14 @@ i.fa, i.fas, i.fab, i.far, i.fa-solid, i.fa-brands, i[class*="fa-"],
                                         data-name="1 kg ati all"
                                         data-display-name="1 kg Ati All"
                                         data-desc="1 box"
-                                        data-img="./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg"
+                                        data-img="./storage/settings/adhira-logo.jpg"
                                         data-video=""
                                         data-out-of-stock="0">
 
                                         <!-- Image -->
                                         <td class="td-image">
                                             <div class="prod-thumb-wrap" role="button" tabindex="0" title="Click to view image & video">
-                                                                                                    <img src="./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg" alt="1 kg Ati All" class="prod-thumb-img" loading="lazy" decoding="async" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+                                                                                                    <img src="./storage/settings/adhira-logo.jpg" alt="1 kg Ati All" class="prod-thumb-img" loading="lazy" decoding="async" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
                                                     <div class="prod-thumb-fallback" style="display: none;">
                                                         <i class="fa-solid fa-sparkles"></i>
                                                     </div>
@@ -7492,14 +7567,14 @@ i.fa, i.fas, i.fab, i.far, i.fa-solid, i.fa-brands, i[class*="fa-"],
                                         data-name="1 k"
                                         data-display-name="1 K"
                                         data-desc="1 box"
-                                        data-img="./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg"
+                                        data-img="./storage/settings/adhira-logo.jpg"
                                         data-video=""
                                         data-out-of-stock="0">
 
                                         <!-- Image -->
                                         <td class="td-image">
                                             <div class="prod-thumb-wrap" role="button" tabindex="0" title="Click to view image & video">
-                                                                                                    <img src="./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg" alt="1 K" class="prod-thumb-img" loading="lazy" decoding="async" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+                                                                                                    <img src="./storage/settings/adhira-logo.jpg" alt="1 K" class="prod-thumb-img" loading="lazy" decoding="async" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
                                                     <div class="prod-thumb-fallback" style="display: none;">
                                                         <i class="fa-solid fa-sparkles"></i>
                                                     </div>
@@ -7544,14 +7619,14 @@ i.fa, i.fas, i.fab, i.far, i.fa-solid, i.fa-brands, i[class*="fa-"],
                                         data-name="2 k"
                                         data-display-name="2 K"
                                         data-desc="1 box"
-                                        data-img="./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg"
+                                        data-img="./storage/settings/adhira-logo.jpg"
                                         data-video=""
                                         data-out-of-stock="0">
 
                                         <!-- Image -->
                                         <td class="td-image">
                                             <div class="prod-thumb-wrap" role="button" tabindex="0" title="Click to view image & video">
-                                                                                                    <img src="./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg" alt="2 K" class="prod-thumb-img" loading="lazy" decoding="async" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+                                                                                                    <img src="./storage/settings/adhira-logo.jpg" alt="2 K" class="prod-thumb-img" loading="lazy" decoding="async" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
                                                     <div class="prod-thumb-fallback" style="display: none;">
                                                         <i class="fa-solid fa-sparkles"></i>
                                                     </div>
@@ -7596,14 +7671,14 @@ i.fa, i.fas, i.fab, i.far, i.fa-solid, i.fa-brands, i[class*="fa-"],
                                         data-name="5 k"
                                         data-display-name="5 K"
                                         data-desc="1 box"
-                                        data-img="./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg"
+                                        data-img="./storage/settings/adhira-logo.jpg"
                                         data-video=""
                                         data-out-of-stock="0">
 
                                         <!-- Image -->
                                         <td class="td-image">
                                             <div class="prod-thumb-wrap" role="button" tabindex="0" title="Click to view image & video">
-                                                                                                    <img src="./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg" alt="5 K" class="prod-thumb-img" loading="lazy" decoding="async" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+                                                                                                    <img src="./storage/settings/adhira-logo.jpg" alt="5 K" class="prod-thumb-img" loading="lazy" decoding="async" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
                                                     <div class="prod-thumb-fallback" style="display: none;">
                                                         <i class="fa-solid fa-sparkles"></i>
                                                     </div>
@@ -7648,14 +7723,14 @@ i.fa, i.fas, i.fab, i.far, i.fa-solid, i.fa-brands, i[class*="fa-"],
                                         data-name="10 k"
                                         data-display-name="10 K"
                                         data-desc="1 box"
-                                        data-img="./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg"
+                                        data-img="./storage/settings/adhira-logo.jpg"
                                         data-video=""
                                         data-out-of-stock="0">
 
                                         <!-- Image -->
                                         <td class="td-image">
                                             <div class="prod-thumb-wrap" role="button" tabindex="0" title="Click to view image & video">
-                                                                                                    <img src="./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg" alt="10 K" class="prod-thumb-img" loading="lazy" decoding="async" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+                                                                                                    <img src="./storage/settings/adhira-logo.jpg" alt="10 K" class="prod-thumb-img" loading="lazy" decoding="async" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
                                                     <div class="prod-thumb-fallback" style="display: none;">
                                                         <i class="fa-solid fa-sparkles"></i>
                                                     </div>
@@ -7700,14 +7775,14 @@ i.fa, i.fas, i.fab, i.far, i.fa-solid, i.fa-brands, i[class*="fa-"],
                                         data-name="100 wala"
                                         data-display-name="100 Wala"
                                         data-desc=""
-                                        data-img="./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg"
+                                        data-img="./storage/settings/adhira-logo.jpg"
                                         data-video=""
                                         data-out-of-stock="0">
 
                                         <!-- Image -->
                                         <td class="td-image">
                                             <div class="prod-thumb-wrap" role="button" tabindex="0" title="Click to view image & video">
-                                                                                                    <img src="./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg" alt="100 Wala" class="prod-thumb-img" loading="lazy" decoding="async" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+                                                                                                    <img src="./storage/settings/adhira-logo.jpg" alt="100 Wala" class="prod-thumb-img" loading="lazy" decoding="async" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
                                                     <div class="prod-thumb-fallback" style="display: none;">
                                                         <i class="fa-solid fa-sparkles"></i>
                                                     </div>
@@ -7751,14 +7826,14 @@ i.fa, i.fas, i.fab, i.far, i.fa-solid, i.fa-brands, i[class*="fa-"],
                                         data-name="king of king"
                                         data-display-name="King of king"
                                         data-desc="1 box"
-                                        data-img="./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg"
+                                        data-img="./storage/settings/adhira-logo.jpg"
                                         data-video=""
                                         data-out-of-stock="0">
 
                                         <!-- Image -->
                                         <td class="td-image">
                                             <div class="prod-thumb-wrap" role="button" tabindex="0" title="Click to view image & video">
-                                                                                                    <img src="./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg" alt="King of king" class="prod-thumb-img" loading="lazy" decoding="async" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+                                                                                                    <img src="./storage/settings/adhira-logo.jpg" alt="King of king" class="prod-thumb-img" loading="lazy" decoding="async" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
                                                     <div class="prod-thumb-fallback" style="display: none;">
                                                         <i class="fa-solid fa-sparkles"></i>
                                                     </div>
@@ -8287,14 +8362,14 @@ i.fa, i.fas, i.fab, i.far, i.fa-solid, i.fa-brands, i[class*="fa-"],
                                         data-name="binion fountain (5 pcs)"
                                         data-display-name="Binion Fountain (5 Pcs)"
                                         data-desc="1 box"
-                                        data-img="./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg"
+                                        data-img="./storage/settings/adhira-logo.jpg"
                                         data-video=""
                                         data-out-of-stock="0">
 
                                         <!-- Image -->
                                         <td class="td-image">
                                             <div class="prod-thumb-wrap" role="button" tabindex="0" title="Click to view image & video">
-                                                                                                    <img src="./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg" alt="Binion Fountain (5 Pcs)" class="prod-thumb-img" loading="lazy" decoding="async" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+                                                                                                    <img src="./storage/settings/adhira-logo.jpg" alt="Binion Fountain (5 Pcs)" class="prod-thumb-img" loading="lazy" decoding="async" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
                                                     <div class="prod-thumb-fallback" style="display: none;">
                                                         <i class="fa-solid fa-sparkles"></i>
                                                     </div>
@@ -8927,14 +9002,14 @@ i.fa, i.fas, i.fab, i.far, i.fa-solid, i.fa-brands, i[class*="fa-"],
                                         data-name="4&quot; single"
                                         data-display-name="4&quot; Single"
                                         data-desc="1 pce"
-                                        data-img="./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg"
+                                        data-img="./storage/settings/adhira-logo.jpg"
                                         data-video=""
                                         data-out-of-stock="0">
 
                                         <!-- Image -->
                                         <td class="td-image">
                                             <div class="prod-thumb-wrap" role="button" tabindex="0" title="Click to view image & video">
-                                                                                                    <img src="./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg" alt="4&quot; Single" class="prod-thumb-img" loading="lazy" decoding="async" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+                                                                                                    <img src="./storage/settings/adhira-logo.jpg" alt="4&quot; Single" class="prod-thumb-img" loading="lazy" decoding="async" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
                                                     <div class="prod-thumb-fallback" style="display: none;">
                                                         <i class="fa-solid fa-sparkles"></i>
                                                     </div>
@@ -10447,14 +10522,14 @@ i.fa, i.fas, i.fab, i.far, i.fa-solid, i.fa-brands, i[class*="fa-"],
                                         data-name="roalting sparklers mixing"
                                         data-display-name="Roalting Sparklers Mixing"
                                         data-desc="1 box"
-                                        data-img="./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg"
+                                        data-img="./storage/settings/adhira-logo.jpg"
                                         data-video=""
                                         data-out-of-stock="0">
 
                                         <!-- Image -->
                                         <td class="td-image">
                                             <div class="prod-thumb-wrap" role="button" tabindex="0" title="Click to view image & video">
-                                                                                                    <img src="./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg" alt="Roalting Sparklers Mixing" class="prod-thumb-img" loading="lazy" decoding="async" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+                                                                                                    <img src="./storage/settings/adhira-logo.jpg" alt="Roalting Sparklers Mixing" class="prod-thumb-img" loading="lazy" decoding="async" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
                                                     <div class="prod-thumb-fallback" style="display: none;">
                                                         <i class="fa-solid fa-sparkles"></i>
                                                     </div>
@@ -10505,7 +10580,7 @@ i.fa, i.fas, i.fab, i.far, i.fa-solid, i.fa-brands, i[class*="fa-"],
         
         <div class="robo-footer-col robo-footer-brand">
             <a href="https://adhirapyrotech.com" class="robo-footer-logo-link">
-                                    <img src="./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg" alt="ATHIRA CRACKERS &amp; ADHIRA PYROTECH" class="robo-footer-logo-img">
+                                    <img src="./storage/settings/adhira-logo.jpg" alt="ATHIRA CRACKERS &amp; ADHIRA PYROTECH" class="robo-footer-logo-img" id="roboFooterLogoImg">
                                 <div>
                     <span class="robo-footer-brand-title">ATHIRA CRACKERS &amp; ADHIRA PYROTECH</span>
                                             <small class="robo-footer-brand-sub">Garland Traders</small>
@@ -10547,21 +10622,21 @@ i.fa, i.fas, i.fab, i.far, i.fa-solid, i.fa-brands, i[class*="fa-"],
         <div class="robo-footer-col">
             <h4 class="robo-footer-col-title">Reach Us</h4>
             <div class="robo-footer-contact-block">
-                                    <div class="robo-footer-contact-line">
+                                    <div class="robo-footer-contact-line" id="roboFooterPhonesWrap">
                         <i class="fa-solid fa-phone"></i>
-                        <div class="robo-footer-contact-content">
+                        <div class="robo-footer-contact-content" id="roboFooterPhones">
                                                             <a href="tel:+918940855376">+918940855376</a>,                                                             <a href="tel:+919443959680">+919443959680</a>,                                                             <a href="tel:8973320741">8973320741</a>                                                    </div>
                     </div>
                 
-                                    <div class="robo-footer-contact-line">
+                                    <div class="robo-footer-contact-line" id="roboFooterEmailWrap">
                         <i class="fa-solid fa-envelope"></i>
-                        <div class="robo-footer-contact-content">
+                        <div class="robo-footer-contact-content" id="roboFooterEmail">
                                                             <a href="mailto:motherskaruppasamy@gmail.com">motherskaruppasamy@gmail.com</a>                                                    </div>
                     </div>
                 
                                     <div class="robo-footer-contact-line">
                         <i class="fa-solid fa-location-dot"></i>
-                        <div class="robo-footer-contact-content">MOTHERS PYROTECH SIVAKASI
+                        <div class="robo-footer-contact-content" id="roboFooterAddress">MOTHERS PYROTECH SIVAKASI
 OLD RTO OFFICE, opposite SIVAKASI, Parapatti, Sivakasi, Tamil Nadu 626123</div>
                     </div>
                 
@@ -10573,7 +10648,8 @@ OLD RTO OFFICE, opposite SIVAKASI, Parapatti, Sivakasi, Tamil Nadu 626123</div>
                 
                 <div class="robo-footer-map-wrap">
                     <iframe
-                        src="https://maps.google.com/maps?q=MOTHERS+PYROTECH+SIVAKASI%0D%0AOLD+RTO+OFFICE%2C+opposite+SIVAKASI%2C+Parapatti%2C+Sivakasi%2C+Tamil+Nadu+626123&t=&z=14&ie=UTF8&iwloc=&output=embed"
+                        id="roboFooterMapIframe"
+                        src="https://maps.google.com/maps?q=MOTHERS+PYROTECH+SIVAKASI%2C+Parapatti%2C+Sivakasi%2C+Tamil+Nadu+626123&t=&z=14&ie=UTF8&iwloc=&output=embed"
                         width="100%"
                         height="140"
                         style="border:0; border-radius:8px; display:block;"
@@ -13344,6 +13420,82 @@ document.addEventListener('keydown', function(e) {
             var addrEl = document.querySelector('.wp-mid-info-val');
             if (addrEl) addrEl.textContent = data.settings.address;
           }
+
+          // ── Dynamic Discount on ALL Product Rows (Static and Dynamic) ──
+          var disc = parseFloat(data.settings.discount_percent || 0);
+          window.__storeDiscount = disc;
+          if (disc > 0) {
+            var discNote = document.getElementById('storeDiscountNoteText');
+            if (discNote) discNote.textContent = disc + '% Discount on MRP (Factory Price)';
+            // Update any inline discount badge text
+            document.querySelectorAll('.store-discount-badge').forEach(function(el) {
+              el.textContent = disc + '% OFF';
+            });
+
+            // Recalculate prices across ALL product rows in the catalog based on discount
+            document.querySelectorAll('tr[data-product-id]').forEach(function(r) {
+              var rOrig = parseFloat(r.getAttribute('data-orig-price') || 0);
+              if (rOrig > 0) {
+                var rSale = Math.round(rOrig * (1 - disc / 100));
+                r.setAttribute('data-sale-price', rSale);
+                r.querySelectorAll('.price-current').forEach(function(el) { el.textContent = '₹' + rSale; });
+                r.querySelectorAll('.sale-price').forEach(function(el) { el.textContent = '₹' + rSale.toFixed(2); });
+                r.querySelectorAll('.price-original').forEach(function(el) { el.textContent = '₹' + Math.round(rOrig); });
+              }
+            });
+            if (typeof window.calculateSummary === 'function') {
+              window.calculateSummary();
+            }
+          }
+
+          // ── Dynamic Store Logo (Header & Footer) ──
+          if (data.settings.logo) {
+            var footerLogo = document.getElementById('roboFooterLogoImg');
+            if (footerLogo) footerLogo.src = data.settings.logo;
+            var headerLogo = document.querySelector('.wp-brand-logo');
+            if (headerLogo) headerLogo.src = data.settings.logo;
+          }
+
+          // ── Dynamic Minimum Order ──
+          var minOrder = parseFloat(data.settings.min_order_amount || 0);
+          window.__minOrderAmount = minOrder;
+          if (minOrder > 0) {
+            var minEl = document.getElementById('minOrderAmt');
+            if (minEl) minEl.textContent = '₹' + Math.round(minOrder).toLocaleString('en-IN');
+          }
+
+          // ── Dynamic Footer: Phones ──
+          var footerPhonesEl = document.getElementById('roboFooterPhones');
+          if (footerPhonesEl && window.__wpStorePhones && window.__wpStorePhones.length > 0) {
+            footerPhonesEl.innerHTML = window.__wpStorePhones.map(function(ph) {
+              var clean = ph.replace(/[^0-9+]/g, '');
+              return '<a href="tel:' + clean + '">' + ph + '</a>';
+            }).join(', ');
+          }
+
+          // ── Dynamic Footer: Email ──
+          var footerEmailEl = document.getElementById('roboFooterEmail');
+          if (footerEmailEl) {
+            var emails = data.settings.emails || (data.settings.email ? [data.settings.email] : null);
+            if (emails && emails.length > 0) {
+              footerEmailEl.innerHTML = emails.map(function(em) {
+                return '<a href="mailto:' + em + '">' + em + '</a>';
+              }).join(', ');
+              window.__wpStoreEmails = emails;
+            }
+          }
+
+          // ── Dynamic Footer: Address ──
+          if (data.settings.address) {
+            var footerAddrEl = document.getElementById('roboFooterAddress');
+            if (footerAddrEl) footerAddrEl.textContent = data.settings.address;
+          }
+
+          // ── Dynamic Footer: Google Map ──
+          if (data.settings.map_embed) {
+            var mapIframe = document.getElementById('roboFooterMapIframe');
+            if (mapIframe) mapIframe.src = data.settings.map_embed;
+          }
         }
 
         // 1. Sort Categories by position in DOM and in mobile menu
@@ -13367,36 +13519,122 @@ document.addEventListener('keydown', function(e) {
           }
         }
 
-        // 2. Apply updated product data and sort products by position inside category tables
+        // 2. Apply updated product data, add new rows, remove deleted rows, sort by position
         if (data.products && Array.isArray(data.products)) {
+          var disc2 = parseFloat((data.settings && data.settings.discount_percent) || window.__storeDiscount || 0);
           var sortedProds = [...data.products].sort(function(a, b) {
             return (Number(a.position !== undefined ? a.position : a.id) - Number(b.position !== undefined ? b.position : b.id));
           });
+          var dbIds = sortedProds.map(function(p) { return String(p.id); });
+
+          // Remove rows for deleted products
+          document.querySelectorAll('tr[data-product-id]').forEach(function(row) {
+            var rid = row.getAttribute('data-product-id');
+            // Only remove numeric IDs (not combos c_X or giftboxes g_X)
+            if (/^\d+$/.test(rid) && !dbIds.includes(rid)) {
+              row.remove();
+            }
+          });
+
           sortedProds.forEach(function(p) {
             var row = document.querySelector('tr[data-product-id="' + p.id + '"]');
+            var catEl = document.getElementById('cat-section-' + p.cat_id);
+            var tbody = catEl ? catEl.querySelector('tbody') : null;
+
+            // Compute prices
+            var origPrice = parseFloat(p.orig_price || 0);
+            var salePrice = parseFloat(p.sale_price || 0);
+            if (disc2 > 0 && origPrice > 0 && (!salePrice || salePrice === origPrice)) {
+              salePrice = parseFloat((origPrice * (1 - disc2 / 100)).toFixed(2));
+            }
+
             if (row) {
+              // Update existing row
               if (p.video) row.setAttribute('data-video', p.video);
               if (p.img) {
                 row.setAttribute('data-img', p.img);
                 var imgEl = row.querySelector('.prod-thumb-img');
                 if (imgEl) imgEl.src = p.img;
               }
-              if (p.sale_price) {
-                row.setAttribute('data-sale-price', p.sale_price);
-                var sp = row.querySelector('.sale-price');
-                if (sp) sp.textContent = '₹' + Number(p.sale_price).toFixed(2);
-                var pc = row.querySelector('.price-current');
-                if (pc) pc.textContent = '₹' + Math.round(Number(p.sale_price));
+              if (salePrice > 0) {
+                row.setAttribute('data-sale-price', salePrice);
+                row.querySelectorAll('.sale-price').forEach(function(el) { el.textContent = '₹' + salePrice.toFixed(2); });
+                row.querySelectorAll('.price-current').forEach(function(el) { el.textContent = '₹' + Math.round(salePrice); });
               }
-              if (p.orig_price) {
-                row.setAttribute('data-orig-price', p.orig_price);
-                var op = row.querySelector('.orig-price');
-                if (op) op.textContent = '₹' + Number(p.orig_price).toFixed(2);
-                var po = row.querySelector('.price-original');
-                if (po) po.textContent = '₹' + Math.round(Number(p.orig_price));
+              if (origPrice > 0) {
+                row.setAttribute('data-orig-price', origPrice);
+                row.querySelectorAll('.orig-price').forEach(function(el) { el.textContent = '₹' + origPrice.toFixed(2); });
+                row.querySelectorAll('.price-original').forEach(function(el) { el.textContent = '₹' + Math.round(origPrice); });
               }
-              if (row.parentElement) {
-                row.parentElement.appendChild(row);
+              // Move to correct position in tbody
+              if (tbody) tbody.appendChild(row);
+            } else if (tbody) {
+              // Create new row for a newly added product
+              var img = p.img || './storage/settings/adhira-logo.jpg';
+              var displayName = p.display_name || p.name || 'Product';
+              var desc = p.desc || p.description || '';
+              var video = p.video || '';
+              var newRow = document.createElement('tr');
+              newRow.className = 'product-row anim-right-to-left is-visible';
+              newRow.style.cssText = 'opacity:1 !important; transform:none !important; visibility:visible !important;';
+              newRow.setAttribute('data-product-id', p.id);
+              newRow.setAttribute('data-cat-id', p.cat_id || '');
+              newRow.setAttribute('data-sale-price', salePrice);
+              newRow.setAttribute('data-orig-price', origPrice);
+              newRow.setAttribute('data-name', (displayName).toLowerCase());
+              newRow.setAttribute('data-display-name', displayName);
+              newRow.setAttribute('data-desc', desc);
+              newRow.setAttribute('data-img', img);
+              newRow.setAttribute('data-video', video);
+              newRow.setAttribute('data-out-of-stock', '0');
+              newRow.innerHTML = `
+                <td class="td-image">
+                  <div class="prod-thumb-wrap" role="button" tabindex="0" title="Click to view image & video">
+                    <img src="${img}" alt="${displayName}" class="prod-thumb-img" loading="lazy" decoding="async" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+                    <div class="prod-thumb-fallback" style="display:none;"><i class="fa-solid fa-sparkles"></i></div>
+                  </div>
+                </td>
+                <td class="td-name">
+                  <div class="prod-name">${displayName}</div>
+                  ${desc ? '<div class="prod-desc">' + desc + '</div>' : ''}
+                  <div class="prod-price-inline">
+                    <span class="price-current">₹${Math.round(salePrice)}</span>
+                    ${origPrice > salePrice ? '<span class="price-original">₹' + Math.round(origPrice) + '</span>' : ''}
+                  </div>
+                </td>
+                <td class="td-price">
+                  <span class="price-current">₹${Math.round(salePrice)}</span>
+                  ${origPrice > salePrice ? '<span class="price-original">₹' + Math.round(origPrice) + '</span>' : ''}
+                </td>
+                <td class="td-qty">
+                  <div class="qty-stepper">
+                    <button type="button" class="btn-qty btn-minus" aria-label="Decrease quantity">-</button>
+                    <input type="number" name="qty_${p.id}" class="input-qty" value="0" min="0" max="9999" aria-label="Product quantity">
+                    <button type="button" class="btn-qty btn-plus" aria-label="Increase quantity">+</button>
+                  </div>
+                </td>
+                <td class="td-subtotal"><span class="subtotal-box">0</span></td>
+              `;
+              tbody.appendChild(newRow);
+              // Bind steppers for new row
+              if (window.bindDynamicRowSteppers) {
+                window.bindDynamicRowSteppers(newRow.closest('.robo-category-block') || tbody);
+              } else {
+                newRow.querySelectorAll('.btn-minus, .btn-plus').forEach(function(btn) {
+                  btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    var inp = newRow.querySelector('.input-qty');
+                    if (!inp) return;
+                    var v = parseInt(inp.value, 10) || 0;
+                    if (btn.classList.contains('btn-plus')) inp.value = v + 1;
+                    else if (v > 0) inp.value = v - 1;
+                    if (window.calculateSummary) window.calculateSummary();
+                  });
+                });
+                newRow.querySelector('.input-qty') && newRow.querySelector('.input-qty').addEventListener('input', function() {
+                  var v = parseInt(this.value, 10); if (isNaN(v) || v < 0) v = 0; this.value = v;
+                  if (window.calculateSummary) window.calculateSummary();
+                });
               }
             }
           });
@@ -13504,7 +13742,7 @@ document.addEventListener('keydown', function(e) {
       var rowsHtml = combos.map(function(c) {
         var salePrice = Number(c.sale_price || c.rate || 0);
         var origPrice = Number(c.orig_price || (salePrice * 2.5));
-        var img = c.img || './storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg';
+        var img = c.img || './storage/settings/adhira-logo.jpg';
         var video = c.video || '';
         var id = 'c_' + c.id;
 
@@ -13621,7 +13859,7 @@ document.addEventListener('keydown', function(e) {
       var rowsHtml = giftboxes.map(function(g) {
         var salePrice = Number(g.sale_price || g.rate || 0);
         var origPrice = Number(g.orig_price || (salePrice * 2.5));
-        var img = g.img || './storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg';
+        var img = g.img || './storage/settings/adhira-logo.jpg';
         var video = g.video || '';
         var id = 'g_' + g.id;
 
@@ -13951,6 +14189,11 @@ document.addEventListener('keydown', function(e) {
         var total = (window.__cartItems || []).reduce(function(acc, item) { return acc + item.lineTotal; }, 0);
         if (total <= 0) {
           alert('Please add at least 1 cracker product to your cart.');
+          return;
+        }
+        var minReq = window.__minOrderAmount || 0;
+        if (minReq > 0 && total < minReq) {
+          alert('Minimum order amount is ₹' + Math.round(minReq).toLocaleString('en-IN') + '. Please add more items to proceed.');
           return;
         }
         window.openCheckoutModal();

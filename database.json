@@ -10,7 +10,7 @@
     ],
     "whatsapp": "+91 63841 97583",
     "address": "Sivakasi, Tamil Nadu - 626123",
-    "email": "sales@adhirapyrotech.com",
+    "email": "admin",
     "min_order_amount": 1000,
     "discount_percent": 90,
     "notice_text": "💥 DIWALI 2026 MEGA SALE IS LIVE! ENJOY UP TO 90% DISCOUNT ON FACTORY RATES! 💥",
@@ -21,7 +21,7 @@
     "ifsc": "SBIN0001234",
     "branch": "Sivakasi Town Branch",
     "bank_details": "Account Name: Athira Crackers / Adhira Pyrotech\nBank: State Bank of India\nA/C No: 38920192837\nIFSC: SBIN0001234\nBranch: Sivakasi Town Branch",
-    "map_embed": "https://maps.google.com/maps?q=Sivakasi%2C+Tamil+Nadu+626123&t=&z=14&ie=UTF8&iwloc=&output=embed",
+    "map_embed": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3935.7335768855946!2d77.77056147535298!3d9.444745890634119!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3b06cf142d7882e5%3A0x82287c67bc24775a!2sAnaiyur%2C%20Tamil%20Nadu%20626123%2C%20India!5e0!3m2!1sen!2sus!4v1790835368579!5m2!1sen!2sus\" width=\"600\" height=\"450\" style=\"border:0;\" allowfullscreen=\"\" loading=\"lazy\" referrerpolicy=\"strict-origin-when-cross-origin",
     "admin_username": "admin",
     "admin_password": "admin"
   },
@@ -55,17 +55,17 @@
     {
       "id": 1,
       "name": "SOUND CRACKERS",
-      "position": 1
+      "position": 2
     },
     {
       "id": 2,
       "name": "GROUND CHAKKARS",
-      "position": 2
+      "position": 3
     },
     {
       "id": 3,
       "name": "FLOWER POTS",
-      "position": 3
+      "position": 1
     },
     {
       "id": 4,
@@ -225,7 +225,7 @@
       "img": "./storage/products/Ground Chakkar Spl.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 9
+      "position": 1
     },
     {
       "id": 10,
@@ -237,7 +237,7 @@
       "img": "./storage/products/WhatsApp Image 2026-08-14 at 4.06.20 PM.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 10
+      "position": 2
     },
     {
       "id": 11,
@@ -249,7 +249,7 @@
       "img": "./storage/products/Ground Chakkar Ashola.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 11
+      "position": 3
     },
     {
       "id": 12,
@@ -261,7 +261,7 @@
       "img": "./storage/products/Spinnar Spl.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 12
+      "position": 4
     },
     {
       "id": 13,
@@ -273,7 +273,7 @@
       "img": "./storage/products/Spinnar Super Dlx.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 13
+      "position": 5
     },
     {
       "id": 14,
@@ -285,7 +285,7 @@
       "img": "./storage/products/Ground Chakkar Big.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 14
+      "position": 6
     },
     {
       "id": 15,
@@ -297,7 +297,7 @@
       "img": "./storage/products/Flowerpot Big.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 15
+      "position": 1
     },
     {
       "id": 16,
@@ -309,7 +309,7 @@
       "img": "./storage/products/Flowerpot Special.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 16
+      "position": 2
     },
     {
       "id": 17,
@@ -321,7 +321,7 @@
       "img": "./storage/products/Flowerpot Ashoka.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 17
+      "position": 3
     },
     {
       "id": 18,
@@ -333,7 +333,7 @@
       "img": "./storage/products/WhatsApp Image 2026-08-14 at 4.04.34 PM.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 18
+      "position": 4
     },
     {
       "id": 19,
@@ -345,7 +345,7 @@
       "img": "./storage/products/Flower Pot 2 Pce.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 19
+      "position": 5
     },
     {
       "id": 20,
@@ -357,7 +357,7 @@
       "img": "./storage/products/WhatsApp Image 2026-08-14 at 4.03.50 PM.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 20
+      "position": 6
     },
     {
       "id": 21,
@@ -369,7 +369,7 @@
       "img": "./storage/products/Lucky.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 21
+      "position": 7
     },
     {
       "id": 22,
@@ -381,7 +381,7 @@
       "img": "./storage/products/Rangela.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 22
+      "position": 8
     },
     {
       "id": 23,
@@ -393,7 +393,7 @@
       "img": "./storage/products/Colorkoti.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 23
+      "position": 9
     },
     {
       "id": 24,
@@ -405,7 +405,7 @@
       "img": "./storage/products/Stripped Bijili.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 24
+      "position": 1
     },
     {
       "id": 25,
@@ -417,7 +417,7 @@
       "img": "./storage/products/Red Bijili.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 25
+      "position": 2
     },
     {
       "id": 26,
@@ -429,7 +429,7 @@
       "img": "./storage/products/1.5 Twinkling Star.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 26
+      "position": 1
     },
     {
       "id": 27,
@@ -441,7 +441,7 @@
       "img": "./storage/products/4 Twinkling Star.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 27
+      "position": 2
     },
     {
       "id": 29,
@@ -453,7 +453,7 @@
       "img": "./storage/products/4x4 Wheel.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 29
+      "position": 1
     },
     {
       "id": 30,
@@ -465,7 +465,7 @@
       "img": "./storage/products/Emu Egg.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 30
+      "position": 2
     },
     {
       "id": 31,
@@ -477,7 +477,7 @@
       "img": "./storage/products/ABVKleWyw8A8X7cW7sjQYQrklXMECVUBsu3JQ04l.jpg",
       "video": "",
       "out_of_stock": false,
-      "position": 31
+      "position": 3
     },
     {
       "id": 32,
@@ -489,7 +489,7 @@
       "img": "./storage/products/Wire Chakkar.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 32
+      "position": 4
     },
     {
       "id": 33,
@@ -501,7 +501,7 @@
       "img": "./storage/products/Mini Siren.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 33
+      "position": 5
     },
     {
       "id": 34,
@@ -513,7 +513,7 @@
       "img": "./storage/products/Hxf14FzA5fVwcPmDyvzYGI5agpJvdysTw0Ymmt0j.jpg",
       "video": "",
       "out_of_stock": false,
-      "position": 34
+      "position": 6
     },
     {
       "id": 35,
@@ -525,7 +525,7 @@
       "img": "./storage/products/900 cc.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 35
+      "position": 7
     },
     {
       "id": 36,
@@ -537,7 +537,7 @@
       "img": "./storage/products/Tricolor Fountain.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 36
+      "position": 8
     },
     {
       "id": 37,
@@ -549,7 +549,7 @@
       "img": "./storage/products/Color Smoke.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 37
+      "position": 9
     },
     {
       "id": 38,
@@ -561,7 +561,7 @@
       "img": "./storage/products/Madhurai Malli.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 38
+      "position": 10
     },
     {
       "id": 39,
@@ -573,7 +573,7 @@
       "img": "./storage/products/Smoke Cylinder Bom.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 39
+      "position": 11
     },
     {
       "id": 40,
@@ -585,7 +585,7 @@
       "img": "./storage/products/Helicopter.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 40
+      "position": 12
     },
     {
       "id": 41,
@@ -597,7 +597,7 @@
       "img": "./storage/products/Drone.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 41
+      "position": 13
     },
     {
       "id": 42,
@@ -609,7 +609,7 @@
       "img": "./storage/products/Photo Flash.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 42
+      "position": 14
     },
     {
       "id": 43,
@@ -621,7 +621,7 @@
       "img": "./storage/products/q4gH5pAB2GiNFw73hs7SjwKjuIcDsYlpHzLKzprE.jpg",
       "video": "",
       "out_of_stock": false,
-      "position": 43
+      "position": 15
     },
     {
       "id": 44,
@@ -633,7 +633,7 @@
       "img": "./storage/products/WhatsApp Image 2026-08-14 at 4.05.15 PM.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 44
+      "position": 16
     },
     {
       "id": 45,
@@ -645,7 +645,7 @@
       "img": "./storage/products/Pyro Dance.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 45
+      "position": 17
     },
     {
       "id": 46,
@@ -657,7 +657,7 @@
       "img": "./storage/products/Dancing Butterfly.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 46
+      "position": 18
     },
     {
       "id": 47,
@@ -669,7 +669,7 @@
       "img": "./storage/products/cdTft92Fk2jK9Vsm2SDam07IznTVQwGJaBHykdq3.jpg",
       "video": "",
       "out_of_stock": false,
-      "position": 47
+      "position": 19
     },
     {
       "id": 48,
@@ -681,7 +681,7 @@
       "img": "./storage/products/Star King.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 48
+      "position": 20
     },
     {
       "id": 49,
@@ -693,7 +693,7 @@
       "img": "./storage/products/High Voldage.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 49
+      "position": 21
     },
     {
       "id": 50,
@@ -705,7 +705,7 @@
       "img": "./storage/products/90 Watts.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 50
+      "position": 22
     },
     {
       "id": 51,
@@ -717,7 +717,7 @@
       "img": "./storage/products/Old Is Gold.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 51
+      "position": 23
     },
     {
       "id": 52,
@@ -729,7 +729,7 @@
       "img": "./storage/products/Black Money.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 52
+      "position": 24
     },
     {
       "id": 53,
@@ -741,7 +741,7 @@
       "img": "./storage/products/Money in The Bank.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 53
+      "position": 25
     },
     {
       "id": 54,
@@ -753,7 +753,7 @@
       "img": "./storage/products/King Star.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 54
+      "position": 26
     },
     {
       "id": 55,
@@ -765,7 +765,7 @@
       "img": "./storage/products/Beer Tin.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 55
+      "position": 27
     },
     {
       "id": 56,
@@ -777,7 +777,7 @@
       "img": "./storage/products/Penta Magic.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 56
+      "position": 28
     },
     {
       "id": 120,
@@ -789,7 +789,7 @@
       "img": "./storage/products/Q00phR5r1yAwxqv2MOUTCeEPuC3IqPqL0137Iyku.jpg",
       "video": "",
       "out_of_stock": false,
-      "position": 57
+      "position": 29
     },
     {
       "id": 121,
@@ -801,7 +801,7 @@
       "img": "./storage/products/lElGtGWtdFDMzRP5iyUsiay0u4G9Ec58doZgxF4m.jpg",
       "video": "",
       "out_of_stock": false,
-      "position": 58
+      "position": 30
     },
     {
       "id": 122,
@@ -813,7 +813,7 @@
       "img": "./storage/products/xBT8jkE2zNsGS2CxZtAsGUtbN4mu65RSingaWm4M.jpg",
       "video": "",
       "out_of_stock": false,
-      "position": 59
+      "position": 31
     },
     {
       "id": 124,
@@ -825,7 +825,7 @@
       "img": "./storage/products/w5x1lfYsT5poYtlRqRBd8fJK8Xci8SxBt1XCgSgQ.jpg",
       "video": "",
       "out_of_stock": false,
-      "position": 60
+      "position": 32
     },
     {
       "id": 125,
@@ -837,7 +837,7 @@
       "img": "./storage/products/41NmutcFyzslWEvAe7vCB7E7XS8rAzQpU4RVpe9h.jpg",
       "video": "",
       "out_of_stock": false,
-      "position": 61
+      "position": 33
     },
     {
       "id": 126,
@@ -849,7 +849,7 @@
       "img": "./storage/products/1eEsMSYVU7vdbcE5eqdjG7mWiQezcmpHtc5H8QZm.jpg",
       "video": "",
       "out_of_stock": false,
-      "position": 62
+      "position": 34
     },
     {
       "id": 127,
@@ -861,7 +861,7 @@
       "img": "./storage/products/hADSB6t5vA5HyJpn8cWnMmcNSMcb9DkPcaeoCXX1.jpg",
       "video": "",
       "out_of_stock": false,
-      "position": 63
+      "position": 35
     },
     {
       "id": 57,
@@ -873,7 +873,7 @@
       "img": "./storage/products/GMHJ43MJKx7w9DlQx13kfJxkWFxuWoT0O7IAHdOG.jpg",
       "video": "",
       "out_of_stock": false,
-      "position": 64
+      "position": 1
     },
     {
       "id": 58,
@@ -885,7 +885,7 @@
       "img": "./storage/products/Digital Bomb.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 65
+      "position": 2
     },
     {
       "id": 59,
@@ -894,10 +894,10 @@
       "desc": "1 box",
       "orig_price": 1400,
       "sale_price": 140,
-      "img": "./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg",
+      "img": "./storage/settings/adhira-logo.jpg",
       "video": "",
       "out_of_stock": false,
-      "position": 66
+      "position": 3
     },
     {
       "id": 60,
@@ -909,7 +909,7 @@
       "img": "./storage/products/Agni Bom.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 67
+      "position": 4
     },
     {
       "id": 61,
@@ -921,7 +921,7 @@
       "img": "./storage/products/Mini Bullet.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 68
+      "position": 5
     },
     {
       "id": 62,
@@ -930,10 +930,10 @@
       "desc": "1 box",
       "orig_price": 400,
       "sale_price": 40,
-      "img": "./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg",
+      "img": "./storage/settings/adhira-logo.jpg",
       "video": "",
       "out_of_stock": false,
-      "position": 69
+      "position": 6
     },
     {
       "id": 63,
@@ -942,10 +942,10 @@
       "desc": "1 box",
       "orig_price": 800,
       "sale_price": 80,
-      "img": "./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg",
+      "img": "./storage/settings/adhira-logo.jpg",
       "video": "",
       "out_of_stock": false,
-      "position": 70
+      "position": 7
     },
     {
       "id": 64,
@@ -954,10 +954,10 @@
       "desc": "1 box",
       "orig_price": 1600,
       "sale_price": 160,
-      "img": "./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg",
+      "img": "./storage/settings/adhira-logo.jpg",
       "video": "",
       "out_of_stock": false,
-      "position": 71
+      "position": 8
     },
     {
       "id": 116,
@@ -966,10 +966,10 @@
       "desc": "1 box",
       "orig_price": 1600,
       "sale_price": 160,
-      "img": "./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg",
+      "img": "./storage/settings/adhira-logo.jpg",
       "video": "",
       "out_of_stock": false,
-      "position": 72
+      "position": 9
     },
     {
       "id": 117,
@@ -978,10 +978,10 @@
       "desc": "1 box",
       "orig_price": 3200,
       "sale_price": 320,
-      "img": "./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg",
+      "img": "./storage/settings/adhira-logo.jpg",
       "video": "",
       "out_of_stock": false,
-      "position": 73
+      "position": 10
     },
     {
       "id": 118,
@@ -990,10 +990,10 @@
       "desc": "1 box",
       "orig_price": 8000,
       "sale_price": 800,
-      "img": "./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg",
+      "img": "./storage/settings/adhira-logo.jpg",
       "video": "",
       "out_of_stock": false,
-      "position": 74
+      "position": 11
     },
     {
       "id": 119,
@@ -1002,10 +1002,10 @@
       "desc": "1 box",
       "orig_price": 16000,
       "sale_price": 1600,
-      "img": "./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg",
+      "img": "./storage/settings/adhira-logo.jpg",
       "video": "",
       "out_of_stock": false,
-      "position": 75
+      "position": 12
     },
     {
       "id": 123,
@@ -1014,10 +1014,10 @@
       "desc": "",
       "orig_price": 400,
       "sale_price": 40,
-      "img": "./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg",
+      "img": "./storage/settings/adhira-logo.jpg",
       "video": "",
       "out_of_stock": false,
-      "position": 76
+      "position": 13
     },
     {
       "id": 130,
@@ -1026,10 +1026,10 @@
       "desc": "1 box",
       "orig_price": 1200,
       "sale_price": 120,
-      "img": "./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg",
+      "img": "./storage/settings/adhira-logo.jpg",
       "video": "",
       "out_of_stock": false,
-      "position": 77
+      "position": 14
     },
     {
       "id": 65,
@@ -1041,7 +1041,7 @@
       "img": "./storage/products/Feathers.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 78
+      "position": 1
     },
     {
       "id": 66,
@@ -1053,7 +1053,7 @@
       "img": "./storage/products/Feathers.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 79
+      "position": 2
     },
     {
       "id": 67,
@@ -1065,7 +1065,7 @@
       "img": "./storage/products/Pink Rain.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 80
+      "position": 3
     },
     {
       "id": 68,
@@ -1077,7 +1077,7 @@
       "img": "./storage/products/Pop Corn.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 81
+      "position": 4
     },
     {
       "id": 69,
@@ -1089,7 +1089,7 @@
       "img": "./storage/products/Crackling Rain.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 82
+      "position": 5
     },
     {
       "id": 70,
@@ -1101,7 +1101,7 @@
       "img": "./storage/products/Silver Rain.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 83
+      "position": 6
     },
     {
       "id": 71,
@@ -1113,7 +1113,7 @@
       "img": "./storage/products/Star Light.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 84
+      "position": 7
     },
     {
       "id": 72,
@@ -1125,7 +1125,7 @@
       "img": "./storage/products/Moon Light.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 85
+      "position": 8
     },
     {
       "id": 73,
@@ -1137,7 +1137,7 @@
       "img": "./storage/products/Sun Light.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 86
+      "position": 9
     },
     {
       "id": 74,
@@ -1146,10 +1146,10 @@
       "desc": "1 box",
       "orig_price": 1500,
       "sale_price": 150,
-      "img": "./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg",
+      "img": "./storage/settings/adhira-logo.jpg",
       "video": "",
       "out_of_stock": false,
-      "position": 87
+      "position": 10
     },
     {
       "id": 75,
@@ -1161,7 +1161,7 @@
       "img": "./storage/products/Dora Singer.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 88
+      "position": 11
     },
     {
       "id": 76,
@@ -1173,7 +1173,7 @@
       "img": "./storage/products/Avengers.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 89
+      "position": 12
     },
     {
       "id": 77,
@@ -1185,7 +1185,7 @@
       "img": "./storage/products/1 Chotta Fancy.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 90
+      "position": 1
     },
     {
       "id": 78,
@@ -1197,7 +1197,7 @@
       "img": "./storage/products/EPMzaWzo54fgTOKuY8MduzlpwSsoAn7pmCH7CLIo.jpg",
       "video": "",
       "out_of_stock": false,
-      "position": 91
+      "position": 2
     },
     {
       "id": 79,
@@ -1209,7 +1209,7 @@
       "img": "./storage/products/Yt5fcTNOSV7ag4Llc7Zctl3OtATQ8jGslODzC1nX.jpg",
       "video": "",
       "out_of_stock": false,
-      "position": 92
+      "position": 3
     },
     {
       "id": 80,
@@ -1221,7 +1221,7 @@
       "img": "./storage/products/Starvel 3 Step 3 Pce.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 93
+      "position": 4
     },
     {
       "id": 81,
@@ -1233,7 +1233,7 @@
       "img": "./storage/products/3 Inch Pipe.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 94
+      "position": 5
     },
     {
       "id": 82,
@@ -1245,7 +1245,7 @@
       "img": "./storage/products/RR 3 .5 Pipe.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 95
+      "position": 6
     },
     {
       "id": 83,
@@ -1257,7 +1257,7 @@
       "img": "./storage/products/RR 3.5 (2 Pce) Pipe.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 96
+      "position": 7
     },
     {
       "id": 84,
@@ -1269,7 +1269,7 @@
       "img": "./storage/products/3.5 Inch Pipe.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 97
+      "position": 8
     },
     {
       "id": 85,
@@ -1281,7 +1281,7 @@
       "img": "./storage/products/4-7Step.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 98
+      "position": 9
     },
     {
       "id": 86,
@@ -1290,10 +1290,10 @@
       "desc": "1 pce",
       "orig_price": 3500,
       "sale_price": 350,
-      "img": "./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg",
+      "img": "./storage/settings/adhira-logo.jpg",
       "video": "",
       "out_of_stock": false,
-      "position": 99
+      "position": 10
     },
     {
       "id": 87,
@@ -1305,7 +1305,7 @@
       "img": "./storage/products/LRD9KkxePB7ZQEc6wtgYqLSqjEWyl64UwnOGAW9J.jpg",
       "video": "",
       "out_of_stock": false,
-      "position": 100
+      "position": 11
     },
     {
       "id": 88,
@@ -1317,7 +1317,7 @@
       "img": "./storage/products/RR 6 Pipe.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 101
+      "position": 12
     },
     {
       "id": 90,
@@ -1329,7 +1329,7 @@
       "img": "./storage/products/Bada Peacock.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 102
+      "position": 1
     },
     {
       "id": 91,
@@ -1341,7 +1341,7 @@
       "img": "./storage/products/Peacock.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 103
+      "position": 2
     },
     {
       "id": 92,
@@ -1353,7 +1353,7 @@
       "img": "./storage/products/WhatsApp Image 2026-08-14 at 4.03.21 PM.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 104
+      "position": 1
     },
     {
       "id": 93,
@@ -1365,7 +1365,7 @@
       "img": "./storage/products/WhatsApp Image 2026-08-14 at 4.02.56 PM.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 105
+      "position": 2
     },
     {
       "id": 94,
@@ -1377,7 +1377,7 @@
       "img": "./storage/products/WhatsApp Image 2026-08-14 at 4.02.42 PM.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 106
+      "position": 3
     },
     {
       "id": 95,
@@ -1389,7 +1389,7 @@
       "img": "./storage/products/fDh7KYng85MZIgnjFF5n12LqZOSrcjTRnZcqrA8G.jpg",
       "video": "",
       "out_of_stock": false,
-      "position": 107
+      "position": 1
     },
     {
       "id": 96,
@@ -1401,7 +1401,7 @@
       "img": "./storage/products/15 Shot.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 108
+      "position": 2
     },
     {
       "id": 97,
@@ -1413,7 +1413,7 @@
       "img": "./storage/products/Xt4twpoCRMR1HHCPi5UVmIe16ZmQfyAm0gZflsy2.jpg",
       "video": "",
       "out_of_stock": false,
-      "position": 109
+      "position": 3
     },
     {
       "id": 98,
@@ -1425,7 +1425,7 @@
       "img": "./storage/products/Q9IUbbAmrBNLUyfQyYPILPJPebg0jdY6F4jj1FJS.jpg",
       "video": "",
       "out_of_stock": false,
-      "position": 110
+      "position": 4
     },
     {
       "id": 99,
@@ -1437,7 +1437,7 @@
       "img": "./storage/products/30 Shot Doolve.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 111
+      "position": 5
     },
     {
       "id": 100,
@@ -1449,7 +1449,7 @@
       "img": "./storage/products/Seeti Mar 36 Shot.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 112
+      "position": 6
     },
     {
       "id": 101,
@@ -1461,7 +1461,7 @@
       "img": "./storage/products/Fqs9kYhjW9azR1WCUAbiVE1HDhWm2E85xXxemN4n.jpg",
       "video": "",
       "out_of_stock": false,
-      "position": 113
+      "position": 7
     },
     {
       "id": 102,
@@ -1473,7 +1473,7 @@
       "img": "./storage/products/60 Shot Doolve.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 114
+      "position": 8
     },
     {
       "id": 103,
@@ -1485,7 +1485,7 @@
       "img": "./storage/products/100 Shot.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 115
+      "position": 9
     },
     {
       "id": 104,
@@ -1497,7 +1497,7 @@
       "img": "./storage/products/120 Shot Isha.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 116
+      "position": 10
     },
     {
       "id": 105,
@@ -1509,7 +1509,7 @@
       "img": "./storage/products/120 Shot.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 117
+      "position": 11
     },
     {
       "id": 106,
@@ -1521,7 +1521,7 @@
       "img": "./storage/products/150 Shot Crackling.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 118
+      "position": 12
     },
     {
       "id": 107,
@@ -1533,7 +1533,7 @@
       "img": "./storage/products/240 Shot.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 119
+      "position": 13
     },
     {
       "id": 108,
@@ -1545,7 +1545,7 @@
       "img": "./storage/products/7 CM Sparklers.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 120
+      "position": 1
     },
     {
       "id": 109,
@@ -1557,7 +1557,7 @@
       "img": "./storage/products/eonItJDiickzfqA1zyMvmou1bxRh1PZcShNED0mG.jpg",
       "video": "",
       "out_of_stock": false,
-      "position": 121
+      "position": 2
     },
     {
       "id": 110,
@@ -1569,7 +1569,7 @@
       "img": "./storage/products/12 CM Sparklers.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 122
+      "position": 3
     },
     {
       "id": 111,
@@ -1581,7 +1581,7 @@
       "img": "./storage/products/15 CM Sparklers.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 123
+      "position": 4
     },
     {
       "id": 112,
@@ -1593,7 +1593,7 @@
       "img": "./storage/products/30 CM Sparklers.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 124
+      "position": 5
     },
     {
       "id": 113,
@@ -1605,7 +1605,7 @@
       "img": "./storage/products/50 Cm Sparklers.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 125
+      "position": 6
     },
     {
       "id": 114,
@@ -1617,7 +1617,7 @@
       "img": "./storage/products/50 Cm Sparklers.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 126
+      "position": 7
     },
     {
       "id": 115,
@@ -1626,10 +1626,10 @@
       "desc": "1 box",
       "orig_price": 1800,
       "sale_price": 180,
-      "img": "./storage/settings/1dVKPAvNvSAiZk8gzzVIfDTufU4ro55lzQZUxS2n.jpg",
+      "img": "./storage/settings/adhira-logo.jpg",
       "video": "",
       "out_of_stock": false,
-      "position": 127
+      "position": 8
     },
     {
       "id": 131,
@@ -1640,7 +1640,19 @@
       "sale_price": 10,
       "img": "./storage/products/adhira-logo.jpg",
       "video": "",
-      "position": 27,
+      "position": 9,
+      "out_of_stock": false
+    },
+    {
+      "id": 132,
+      "cat_id": 9,
+      "name": "5\" Lakshmi / Gorilla / Lady/Jallikattu",
+      "desc": "",
+      "orig_price": 1000,
+      "sale_price": 100,
+      "img": "./storage/products/adhira-logo.jpg",
+      "video": "",
+      "position": 13,
       "out_of_stock": false
     }
   ],
