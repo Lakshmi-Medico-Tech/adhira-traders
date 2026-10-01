@@ -3502,12 +3502,6 @@
               <span>Sign In to Billing</span>
             </button>
 
-            <div class="auth-footer-links">
-              <span style="color:#94a3b8;font-size:12px;">Forgot credentials? </span>
-              <span class="auth-link" onclick="window.adhiraApp.openChangeCredentialsModal()">
-                
-              </span>
-            </div>
           </div>
         </div>
 
