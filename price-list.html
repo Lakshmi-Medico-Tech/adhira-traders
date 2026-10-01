@@ -1122,8 +1122,8 @@
     };
 
     // Detect API Base
-    const isPhp = window.location.pathname.endsWith('.php') || window.location.search.includes('backend=php');
-    const apiEndpoint = isPhp ? 'api.php?action=site-data' : '/api/site-data';
+    const isCloudflare = window.location.hostname.includes('workers.dev') || window.location.hostname.includes('pages.dev');
+    const apiEndpoint = 'api.php?action=site-data';
 
     function showToast(msg, isError = false) {
       const toast = document.getElementById('toast');
@@ -1193,46 +1193,49 @@
 
     // Load Live Site Data
     async function loadPriceListData() {
+      // 1. Prioritize api.php on cPanel / Apache / PHP hosts (reads live MySQL database)
       try {
-        // 1. Try window.SupabaseAPI first
-        if (window.SupabaseAPI) {
-          const data = await window.SupabaseAPI.getSiteData();
+        const res = await fetch('api.php?action=site-data');
+        if (res.ok) {
+          const data = await res.json();
           if (data && data.success && data.products && data.products.length > 0) {
             siteData = data;
             renderPriceList();
             return;
           }
         }
-      } catch (err1) {
-        console.warn('SupabaseAPI attempt:', err1);
+      } catch (errPhp) {
+        console.warn('api.php fetch:', errPhp);
       }
 
-      // 2. Direct native REST fetch to Supabase (100% reliable on Cloudflare Pages)
-      try {
-        const directData = await fetchSupabaseDirect();
-        if (directData && directData.success && directData.products && directData.products.length > 0) {
-          siteData = directData;
-          renderPriceList();
-          return;
+      // 2. On Cloudflare Pages/Workers, use SupabaseAPI or Direct REST
+      if (isCloudflare || (window.SupabaseAPI && window.SupabaseAPI.isSupabaseMode && window.SupabaseAPI.isSupabaseMode())) {
+        try {
+          if (window.SupabaseAPI) {
+            const data = await window.SupabaseAPI.getSiteData();
+            if (data && data.success && data.products && data.products.length > 0) {
+              siteData = data;
+              renderPriceList();
+              return;
+            }
+          }
+        } catch (err1) {
+          console.warn('SupabaseAPI attempt:', err1);
         }
-      } catch (err2) {
-        console.warn('Direct Supabase fetch:', err2);
-      }
 
-      // 3. Fallback: try local API server (port 4000)
-      try {
-        const res = await fetch(apiEndpoint);
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.success) {
-            siteData = data;
+        try {
+          const directData = await fetchSupabaseDirect();
+          if (directData && directData.success && directData.products && directData.products.length > 0) {
+            siteData = directData;
             renderPriceList();
             return;
           }
+        } catch (err2) {
+          console.warn('Direct Supabase fetch:', err2);
         }
-      } catch (err3) {}
+      }
 
-      // 4. Fallback: try local database.json
+      // 3. Fallback: try local database.json
       fallbackLoadJson();
     }
 

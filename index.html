@@ -13750,54 +13750,73 @@ document.addEventListener('keydown', function(e) {
 
     async function initSiteData() {
       var data = null;
-      // 1. Supabase API
-      if (window.SupabaseAPI) {
+      var isCloudflare = window.location.hostname.includes('workers.dev') || window.location.hostname.includes('pages.dev');
+
+      // 1. On cPanel / Apache / PHP hosts: Fetch directly from api.php (MySQL database)
+      if (!isCloudflare) {
         try {
-          var sData = await window.SupabaseAPI.getSiteData();
-          if (sData && sData.success && sData.products && sData.products.length > 0) data = sData;
-        } catch (e1) {}
+          var resPhp = await fetch('api.php?action=site-data');
+          if (resPhp.ok) {
+            var pData = await resPhp.json();
+            if (pData && pData.success && pData.products && pData.products.length > 0) {
+              data = pData;
+            }
+          }
+        } catch (ePhp) {}
       }
-      // 2. Direct REST fetch to Supabase (Zero dependency fallback)
+
+      // 2. On Cloudflare: Supabase API
+      if (!data && (isCloudflare || (window.SupabaseAPI && window.SupabaseAPI.isSupabaseMode && window.SupabaseAPI.isSupabaseMode()))) {
+        if (window.SupabaseAPI) {
+          try {
+            var sData = await window.SupabaseAPI.getSiteData();
+            if (sData && sData.success && sData.products && sData.products.length > 0) data = sData;
+          } catch (e1) {}
+        }
+        // Direct REST fetch to Supabase
+        if (!data || !data.success) {
+          try {
+            var SUPABASE_URL = 'https://ucbxdisznepjproeylos.supabase.co';
+            var SUPABASE_ANON_KEY = 'sb_publishable_zmSNWU5n5vDmggSj32C44g_-GbubGeo';
+            var headers = { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'Accept': 'application/json' };
+            var [sRes, bRes, cRes, pRes, coRes, gRes] = await Promise.all([
+              fetch(SUPABASE_URL + '/rest/v1/settings?select=*', { headers }).then(r => r.json()).catch(() => []),
+              fetch(SUPABASE_URL + '/rest/v1/banners?select=*&order=sort_order.asc', { headers }).then(r => r.json()).catch(() => []),
+              fetch(SUPABASE_URL + '/rest/v1/categories?select=*&order=position.asc', { headers }).then(r => r.json()).catch(() => []),
+              fetch(SUPABASE_URL + '/rest/v1/products?select=*&order=position.asc', { headers }).then(r => r.json()).catch(() => []),
+              fetch(SUPABASE_URL + '/rest/v1/combos?select=*&order=position.asc', { headers }).then(r => r.json()).catch(() => []),
+              fetch(SUPABASE_URL + '/rest/v1/giftboxes?select=*&order=position.asc', { headers }).then(r => r.json()).catch(() => [])
+            ]);
+            var settings = {};
+            if (Array.isArray(sRes)) {
+              sRes.forEach(function(r) {
+                try { settings[r.setting_key] = JSON.parse(r.setting_value); }
+                catch(e) { settings[r.setting_key] = r.setting_value; }
+              });
+            }
+            if (Array.isArray(cRes) && cRes.length > 0) {
+              data = {
+                success: true,
+                settings: settings,
+                banners: bRes || [],
+                categories: cRes || [],
+                products: pRes || [],
+                combos: coRes || [],
+                giftboxes: gRes || []
+              };
+            }
+          } catch (e2) {}
+        }
+      }
+
+      // 3. Fallback: try api.php
       if (!data || !data.success) {
         try {
-          var SUPABASE_URL = 'https://ucbxdisznepjproeylos.supabase.co';
-          var SUPABASE_ANON_KEY = 'sb_publishable_zmSNWU5n5vDmggSj32C44g_-GbubGeo';
-          var headers = { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'Accept': 'application/json' };
-          var [sRes, bRes, cRes, pRes, coRes, gRes] = await Promise.all([
-            fetch(SUPABASE_URL + '/rest/v1/settings?select=*', { headers }).then(r => r.json()).catch(() => []),
-            fetch(SUPABASE_URL + '/rest/v1/banners?select=*&order=sort_order.asc', { headers }).then(r => r.json()).catch(() => []),
-            fetch(SUPABASE_URL + '/rest/v1/categories?select=*&order=position.asc', { headers }).then(r => r.json()).catch(() => []),
-            fetch(SUPABASE_URL + '/rest/v1/products?select=*&order=position.asc', { headers }).then(r => r.json()).catch(() => []),
-            fetch(SUPABASE_URL + '/rest/v1/combos?select=*&order=position.asc', { headers }).then(r => r.json()).catch(() => []),
-            fetch(SUPABASE_URL + '/rest/v1/giftboxes?select=*&order=position.asc', { headers }).then(r => r.json()).catch(() => [])
-          ]);
-          var settings = {};
-          if (Array.isArray(sRes)) {
-            sRes.forEach(function(r) {
-              try { settings[r.setting_key] = JSON.parse(r.setting_value); }
-              catch(e) { settings[r.setting_key] = r.setting_value; }
-            });
-          }
-          if (Array.isArray(cRes) && cRes.length > 0) {
-            data = {
-              success: true,
-              settings: settings,
-              banners: bRes || [],
-              categories: cRes || [],
-              products: pRes || [],
-              combos: coRes || [],
-              giftboxes: gRes || []
-            };
-          }
-        } catch (e2) {}
-      }
-      // 3. Fallback: try local apiEndpoint
-      if (!data || !data.success) {
-        try {
-          var res = await fetch(apiEndpoint);
+          var res = await fetch('api.php?action=site-data');
           if (res.ok) data = await res.json();
         } catch (e3) {}
       }
+
       // 4. Fallback: try database.json
       if (!data || !data.success) {
         try {

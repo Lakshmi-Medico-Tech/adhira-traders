@@ -26,9 +26,9 @@ if (file_exists(__DIR__ . '/config.php')) {
 }
 
 if (!defined('DB_HOST')) define('DB_HOST', 'localhost');
-if (!defined('DB_NAME')) define('DB_NAME', 'athira_crackers_db');
-if (!defined('DB_USER')) define('DB_USER', 'root');
-if (!defined('DB_PASS')) define('DB_PASS', '');
+if (!defined('DB_NAME')) define('DB_NAME', 'digitechmarvels_adhiratraders_shop');
+if (!defined('DB_USER')) define('DB_USER', 'digitechmarvels_adhiratraders_shop');
+if (!defined('DB_PASS')) define('DB_PASS', 'Vishnulakshmi2515@');
 if (!defined('DB_CHARSET')) define('DB_CHARSET', 'utf8mb4');
 
 define('ADMIN_USER', 'admin');

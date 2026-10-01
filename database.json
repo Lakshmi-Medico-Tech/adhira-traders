@@ -1811,7 +1811,30 @@
       "notes": ""
     }
   ],
-  "combos": [],
+  "combos": [
+    {
+      "id": 1,
+      "name": "Family Mega Dhamaka Combo",
+      "items": "10 Pcs Sky Shot, 20 Pcs Sound Crackers, 5 Flower Pots, 5 Chakkars, 1 Box Sparklers",
+      "rate": 750,
+      "orig_price": 3500,
+      "sale_price": 750,
+      "img": "./storage/banners/pZ3e8v8nQjytrS9gaWDEShVXHrzVr3Alz9fjciWZ.png",
+      "video": "https://youtube.com/shorts/lkzDSvMvhek?si=pb4FfJ5ZN-bnsvSN",
+      "position": 1
+    },
+    {
+      "id": 2,
+      "name": "Kids Special Color Combo",
+      "items": "10 Twinkling Stars, 2 Cartoon Fountains, 5 Color Matches, 5 Flower Pots",
+      "rate": 490,
+      "orig_price": 2200,
+      "sale_price": 490,
+      "img": "./storage/products/Mottu Pottlu.jpeg",
+      "video": "",
+      "position": 2
+    }
+  ],
   "giftboxes": [
     {
       "id": 1,
