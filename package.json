@@ -9,7 +9,10 @@
     "live": "npx --yes localtunnel --port 3000"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.117.2",
     "express": "^4.22.3",
+    "nodemailer": "^10.0.10",
     "pg": "^8.23.0"
   },
   "engines": {

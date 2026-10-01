@@ -1,0 +1,17 @@
+# Cloudflare Pages — Adhira Pyrotech Billing System
+# Static site deployment (no build step needed)
+# See: https://developers.cloudflare.com/pages/
+
+name = "adhira-pyrotech-billing"
+
+[site]
+bucket = "./"          # serve from project root
+
+[build]
+# No build command needed — plain HTML/CSS/JS static site
+command = ""
+output_dir = "./"
+
+# Environment variables are set inside Cloudflare Pages Dashboard
+# Settings → Environment Variables → Production
+# Do NOT commit secret keys to wrangler.toml

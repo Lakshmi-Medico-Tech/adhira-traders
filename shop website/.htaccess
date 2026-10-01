@@ -1,0 +1,77 @@
+# ==============================================================================
+# ATHIRA CRACKERS & ADHIRA PYROTECH - cPanel Apache Configuration
+# ==============================================================================
+
+# 1. Enable Rewrite Engine
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # Ensure HTTPS Redirect (Uncomment lines below if SSL is installed)
+    # RewriteCond %{HTTPS} off
+    # RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # Clean URL: /admin -> admin.html
+    RewriteRule ^admin/?$ admin.html [L,QSA]
+
+    # Clean URL: /price-list -> price-list.html
+    RewriteRule ^price-list/?$ price-list.html [L,QSA]
+    RewriteRule ^download-price-list/?$ price-list.html [L,QSA]
+
+    # Clean API Routing: /api/<endpoint> -> api.php?action=<endpoint>
+    RewriteRule ^api/([^/]+)/?$ api.php?action=$1 [L,QSA]
+    RewriteRule ^api/([^/]+)/([^/]+)/?$ api.php?action=$1&id=$2 [L,QSA]
+</IfModule>
+
+# 2. Default Index Files Priority
+DirectoryIndex index.html index.php
+
+# 3. Security: Block Direct Access to Sensitive Files
+<FilesMatch "^(config\.php|database\.json|db_schema\.sql|package\.json|local-server\.js|START_SHOP_WEBSITE\.bat|\.git.*|\.env.*)">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# 4. Disable Directory Browsing
+Options -Indexes
+
+# 5. MIME Types & Encodings
+<IfModule mod_mime.c>
+    AddType text/html .html
+    AddType text/css .css
+    AddType application/javascript .js
+    AddType application/json .json
+    AddType application/pdf .pdf
+    AddType image/svg+xml .svg
+    AddType image/webp .webp
+    AddType font/woff2 .woff2
+    AddType font/woff .woff
+    AddType video/mp4 .mp4
+    AddType video/webm .webm
+</IfModule>
+
+# 6. GZIP Compression (mod_deflate) for Faster Loading
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/plain text/html text/xml text/css application/xml application/xhtml+xml application/rss+xml application/javascript application/x-javascript application/json image/svg+xml
+</IfModule>
+
+# 7. Browser Caching
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/jpg "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/gif "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/webp "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 1 year"
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+    ExpiresByType application/pdf "access plus 1 month"
+    ExpiresByType font/woff2 "access plus 1 year"
+    ExpiresByType font/woff "access plus 1 year"
+</IfModule>

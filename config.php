@@ -16,7 +16,7 @@
 return [
     'db_host' => 'localhost',     // usually 'localhost' on cPanel
     'db_port' => '3306',          // standard MySQL port
-    'db_name' => '',              // e.g. 'cpaneluser_adhira_db'
-    'db_user' => '',              // e.g. 'cpaneluser_adhira_usr'
-    'db_pass' => '',              // your MySQL user password
+    'db_name' => 'damsagri_adhira-billing',              // e.g. 'cpaneluser_adhira_db'
+    'db_user' => 'damsagri_adhira-billing',              // e.g. 'cpaneluser_adhira_usr'
+    'db_pass' => 'Vishnulakshmi2515@',              // your MySQL user password
 ];

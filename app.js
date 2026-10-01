@@ -79,19 +79,55 @@
         'All disputes are subject to Sivakasi / Virudhunagar jurisdiction only.'
       ]
     },
+    auth: {
+      username: 'admin',
+      password: 'admin',
+      adminEmail: 'lakshmimedicotech25@gmail.com',
+      lastUpdated: new Date().toISOString()
+    },
     settings: {
       quotePrefix: 'QT',
       invoicePrefix: 'INV',
       nextQuote: 2,
       nextInvoice: 2,
+      nextSimpleBill: 220,
       fyStartMonth: 4, // April
       watermarkEnabled: true,
-      watermarkOpacity: 0.18,
+      watermarkOpacity: 0.25,
       showBankDetails: true,
       showSignatory: true,
       showTerms: true,
       showDeclaration: true,
       showProductImagesInPdf: false
+    },
+    transporters: [
+      {
+        id: 'TRANS-001',
+        name: 'VRL Logistics Sivakasi',
+        gstin: '33AABCV1234F1Z1',
+        phone: '9443100001',
+        mode: 'ROAD',
+        vehicleNumber: 'TN-67-AB-1234'
+      }
+    ],
+    simpleBills: [],
+    ewayBills: [],
+    einvoices: [],
+    auditLogs: [
+      {
+        id: 'LOG-001',
+        timestamp: new Date().toISOString(),
+        user: 'admin',
+        action: 'SYSTEM_BOOT',
+        details: 'Adhira Pyrotech Commercial GST Billing System Initialized'
+      }
+    ],
+    gstConfig: {
+      ewbProvider: 'NIC',
+      ewbEnv: 'SANDBOX',
+      einvProvider: 'NIC',
+      einvEnv: 'SANDBOX',
+      configured: false
     },
     sellers: [
       {
@@ -2966,43 +3002,46 @@
     }
     merged.customers = Array.from(custMap.values());
 
-    // 4. PRODUCTS: Always guarantee ALL INITIAL_DB products (P001-P141) + user custom products
+    // 4. PRODUCTS: Merge catalog and custom products with full change tracking
     const prodMap = new Map();
-    if (Array.isArray(INITIAL_DB.products)) {
-      for (const p of INITIAL_DB.products) {
-        if (p && p.id) prodMap.set(p.id, structuredClone(p));
-      }
-    }
     if (Array.isArray(remoteData.products)) {
       for (const p of remoteData.products) {
-        if (p && p.id) {
-          if (!prodMap.has(p.id)) {
-            prodMap.set(p.id, p);
-          } else {
-            // merge edits
-            const orig = prodMap.get(p.id);
-            prodMap.set(p.id, Object.assign({}, orig, p));
-          }
-        }
+        if (p && p.id) prodMap.set(p.id, p);
       }
     }
     if (Array.isArray(localData.products)) {
       for (const p of localData.products) {
-        if (p && p.id) {
-          if (!prodMap.has(p.id)) {
-            prodMap.set(p.id, p);
+        if (!p || !p.id) continue;
+        if (!prodMap.has(p.id)) {
+          prodMap.set(p.id, p);
+          hasLocalChanges = true;
+        } else {
+          const remoteP = prodMap.get(p.id);
+          const localTime = new Date(p.updatedAt || p.createdAt || 0).getTime();
+          const remoteTime = new Date(remoteP.updatedAt || remoteP.createdAt || 0).getTime();
+          if (localTime > remoteTime) {
+            prodMap.set(p.id, Object.assign({}, remoteP, p));
             hasLocalChanges = true;
+          } else if (remoteTime > localTime) {
+            hasRemoteChanges = true;
           } else {
-            const existing = prodMap.get(p.id);
-            prodMap.set(p.id, Object.assign({}, existing, p));
+            prodMap.set(p.id, Object.assign({}, remoteP, p));
           }
+        }
+      }
+    }
+    // Guarantee base catalog products from INITIAL_DB if missing from both
+    if (Array.isArray(INITIAL_DB.products)) {
+      for (const p of INITIAL_DB.products) {
+        if (p && p.id && !prodMap.has(p.id)) {
+          prodMap.set(p.id, structuredClone(p));
         }
       }
     }
     merged.products = Array.from(prodMap.values());
 
-    // 5. CATEGORIES: Union set of all unique categories
-    const catSet = new Set(INITIAL_DB.categories || []);
+    // 5. CATEGORIES: Union set of all unique categories with change tracking
+    const catSet = new Set();
     if (Array.isArray(remoteData.categories)) {
       for (const c of remoteData.categories) if (c) catSet.add(c);
     }
@@ -3014,14 +3053,95 @@
         }
       }
     }
+    if (catSet.size === 0 && Array.isArray(INITIAL_DB.categories)) {
+      for (const c of INITIAL_DB.categories) if (c) catSet.add(c);
+    }
     merged.categories = Array.from(catSet);
 
-    // 6. COMPANY & SETTINGS & SELLERS
-    merged.company = Object.assign({}, INITIAL_DB.company, remoteData.company || {}, localData.company || {});
+    // 6. COMPANY: Prefer newer updatedAt (or remoteData if updated on server)
+    const remoteCoTime = new Date(remoteData.company?.updatedAt || 0).getTime();
+    const localCoTime = new Date(localData.company?.updatedAt || 0).getTime();
+    if (remoteCoTime > localCoTime) {
+      merged.company = Object.assign({}, INITIAL_DB.company, localData.company || {}, remoteData.company || {});
+    } else {
+      merged.company = Object.assign({}, INITIAL_DB.company, remoteData.company || {}, localData.company || {});
+    }
+
+    // SETTINGS
     merged.settings = Object.assign({}, INITIAL_DB.settings, remoteData.settings || {}, localData.settings || {});
-    merged.sellers = (Array.isArray(localData.sellers) && localData.sellers.length)
-      ? localData.sellers
-      : ((Array.isArray(remoteData.sellers) && remoteData.sellers.length) ? remoteData.sellers : INITIAL_DB.sellers);
+
+    // AUTH: Prefer newer lastUpdated so credentials updated via OTP always win
+    const remoteAuthTime = new Date(remoteData.auth?.lastUpdated || 0).getTime();
+    const localAuthTime = new Date(localData.auth?.lastUpdated || 0).getTime();
+    if (remoteAuthTime > localAuthTime) {
+      merged.auth = Object.assign({}, INITIAL_DB.auth, localData.auth || {}, remoteData.auth || {});
+    } else {
+      merged.auth = Object.assign({}, INITIAL_DB.auth, remoteData.auth || {}, localData.auth || {});
+    }
+
+    // SELLERS: Union by ID & GSTIN so all factory profiles are preserved across devices
+    const sellerMap = new Map();
+    const seedSellers = Array.isArray(INITIAL_DB.sellers) ? INITIAL_DB.sellers : [];
+    for (const s of seedSellers) if (s && s.id) sellerMap.set(s.id, structuredClone(s));
+    if (Array.isArray(remoteData.sellers)) {
+      for (const s of remoteData.sellers) if (s && (s.id || s.gstin)) sellerMap.set(s.id || s.gstin, s);
+    }
+    if (Array.isArray(localData.sellers)) {
+      for (const s of localData.sellers) {
+        if (!s) continue;
+        const key = s.id || s.gstin;
+        if (!sellerMap.has(key)) {
+          sellerMap.set(key, s);
+          hasLocalChanges = true;
+        } else {
+          const remoteS = sellerMap.get(key);
+          const sLocalTime = new Date(s.updatedAt || 0).getTime();
+          const sRemoteTime = new Date(remoteS.updatedAt || 0).getTime();
+          if (sLocalTime >= sRemoteTime) {
+            sellerMap.set(key, Object.assign({}, remoteS, s));
+          }
+        }
+      }
+    }
+    merged.sellers = Array.from(sellerMap.values());
+    if (merged.sellers.length === 0 && INITIAL_DB.sellers) {
+      merged.sellers = structuredClone(INITIAL_DB.sellers);
+    }
+    merged.transporters = Array.isArray(remoteData.transporters) && remoteData.transporters.length
+      ? remoteData.transporters
+      : (Array.isArray(localData.transporters) ? localData.transporters : INITIAL_DB.transporters);
+    // SIMPLE BILLS: Union by ID & Number
+    const sbMap = new Map();
+    if (Array.isArray(remoteData.simpleBills)) {
+      for (const sb of remoteData.simpleBills) {
+        if (sb && (sb.id || sb.number)) sbMap.set(sb.id || sb.number, sb);
+      }
+    }
+    if (Array.isArray(localData.simpleBills)) {
+      for (const sb of localData.simpleBills) {
+        if (!sb) continue;
+        const key = sb.id || sb.number;
+        if (!sbMap.has(key)) {
+          sbMap.set(key, sb);
+          hasLocalChanges = true;
+        } else {
+          const remoteSb = sbMap.get(key);
+          const localTime = new Date(sb.updatedAt || sb.createdAt || 0).getTime();
+          const remoteTime = new Date(remoteSb.updatedAt || remoteSb.createdAt || 0).getTime();
+          if (localTime > remoteTime) {
+            sbMap.set(key, sb);
+            hasLocalChanges = true;
+          } else if (remoteTime > localTime) {
+            hasRemoteChanges = true;
+          }
+        }
+      }
+    }
+    merged.simpleBills = Array.from(sbMap.values());
+    merged.ewayBills = Array.isArray(remoteData.ewayBills) ? remoteData.ewayBills : (localData.ewayBills || []);
+    merged.einvoices = Array.isArray(remoteData.einvoices) ? remoteData.einvoices : (localData.einvoices || []);
+    merged.auditLogs = Array.isArray(remoteData.auditLogs) ? remoteData.auditLogs : (localData.auditLogs || INITIAL_DB.auditLogs);
+    merged.gstConfig = Object.assign({}, INITIAL_DB.gstConfig, remoteData.gstConfig || {}, localData.gstConfig || {});
 
     // Auto-advance counters
     if (merged.settings) {
@@ -3038,6 +3158,13 @@
       }, 0);
       if (maxI >= (merged.settings.nextInvoice || 1)) {
         merged.settings.nextInvoice = maxI + 1;
+      }
+      const maxSB = (merged.simpleBills || []).reduce((max, sb) => {
+        const m = parseInt(sb.number, 10);
+        return !isNaN(m) ? Math.max(max, m) : max;
+      }, 0);
+      if (maxSB >= (merged.settings.nextSimpleBill || 220)) {
+        merged.settings.nextSimpleBill = maxSB + 1;
       }
     }
 
@@ -3061,8 +3188,35 @@
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        const { merged } = mergeDatabases(parsed, INITIAL_DB);
-        return merged;
+        if (parsed && typeof parsed === 'object') {
+          // Guarantee baseline arrays/objects — but NEVER re-add demo sample docs
+          if (!Array.isArray(parsed.quotations)) parsed.quotations = [];
+          if (!Array.isArray(parsed.invoices)) parsed.invoices = [];
+          if (!Array.isArray(parsed.simpleBills)) parsed.simpleBills = [];
+          if (!Array.isArray(parsed.customers)) parsed.customers = [];
+          if (!Array.isArray(parsed.sellers) || parsed.sellers.length === 0) {
+            parsed.sellers = structuredClone(INITIAL_DB.sellers);
+          }
+          if (!parsed.company || !parsed.company.gstin) {
+            parsed.company = structuredClone(INITIAL_DB.company);
+          }
+          if (!parsed.settings) parsed.settings = structuredClone(INITIAL_DB.settings);
+          // Merge product catalog without injecting demo sample records
+          if (!Array.isArray(parsed.products) || parsed.products.length === 0) {
+            parsed.products = structuredClone(INITIAL_DB.products);
+          } else {
+            const existingIds = new Set(parsed.products.map(p => p && p.id).filter(Boolean));
+            for (const baseP of (INITIAL_DB.products || [])) {
+              if (baseP && baseP.id && !existingIds.has(baseP.id)) {
+                parsed.products.push(structuredClone(baseP));
+              }
+            }
+          }
+          if (!Array.isArray(parsed.categories) || parsed.categories.length === 0) {
+            parsed.categories = structuredClone(INITIAL_DB.categories);
+          }
+          return parsed;
+        }
       }
     } catch (e) {
       console.error('Error loading DB from localStorage:', e);
@@ -3082,44 +3236,73 @@
     pushDbToServer(payload);
   }
 
-  // Universal API caller with automatic dual-engine fallback (Node /api/ and cPanel api.php?action=)
+  // Universal API caller: On cPanel (port 80/443) → api.php first. On local dev (port 3000) → Node first.
   let detectedApiMode = null; // 'node' or 'php'
 
   async function callApi(endpoint, options = {}) {
     const base = window.__adhiraApiBase || '';
-    
-    // If we already know PHP mode works, use api.php directly
-    if (detectedApiMode === 'php') {
-      return await fetch(`${base}api.php?action=${endpoint}`, options);
+    const port = window.location.port;
+    const isLocalNode = port === '3000' || port === '4000' || port === '8080';
+
+    // On cPanel hosting (standard ports 80/443, no custom port) → api.php is the backend.
+    // Skip the /api/ Node.js attempt completely on cPanel — it will 404 and waste a round-trip.
+    if (!isLocalNode || detectedApiMode === 'php') {
+      try {
+        const phpRes = await fetch(`${base}api.php?action=${endpoint}`, options);
+        const ct = phpRes.headers.get('content-type') || '';
+        if (ct.includes('application/json') || ct.includes('text/')) {
+          detectedApiMode = 'php';
+          return phpRes;
+        }
+      } catch (phpErr) {
+        // php call failed, fall through to node attempt
+      }
     }
-    
-    // Default try /api/ path
+
+    // Local Node.js dev server: try /api/ path first
     try {
       const res = await fetch(`${base}/api/${endpoint}`, options);
-      if (res.ok || (res.status !== 404 && res.status !== 405)) {
+      const ct = res.headers.get('content-type') || '';
+      if (res.ok && ct.includes('application/json')) {
+        detectedApiMode = 'node';
+        return res;
+      }
+      if (res.ok) {
         detectedApiMode = 'node';
         return res;
       }
     } catch (e) {
-      // network error or path not found, try fallback
+      // network error, try php fallback
     }
 
-    // Fallback: try api.php?action=
+    // Final fallback: api.php
     try {
-      const phpRes = await fetch(`${base}api.php?action=${endpoint}`, options);
-      if (phpRes.ok || phpRes.status === 200) {
-        detectedApiMode = 'php';
-        return phpRes;
-      }
-      return phpRes;
+      const phpFallback = await fetch(`${base}api.php?action=${endpoint}`, options);
+      detectedApiMode = 'php';
+      return phpFallback;
     } catch (err) {
       throw err;
     }
   }
 
+  // -------------------------------------------------------
+  // CLOUD SYNC — Supabase primary, Node/PHP as fallback
+  // -------------------------------------------------------
+
   async function pushDbToServer(payload) {
     try {
       updateSyncBadge('syncing', 'Saving...');
+
+      // 1. Try Supabase first (Cloudflare Pages / any static host)
+      if (window.AdhiraSupabase && window.AdhiraSupabase.isConfigured()) {
+        const ok = await window.AdhiraSupabase.saveDatabase(payload);
+        if (ok) {
+          updateSyncBadge('synced', 'Cloud Synced ☁');
+          return;
+        }
+      }
+
+      // 2. Fallback: Node.js or PHP backend (local dev / cPanel)
       const res = await callApi('db', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -3141,23 +3324,50 @@
     isSyncing = true;
     try {
       if (!silent) updateSyncBadge('syncing', 'Syncing...');
+
+      // 1. Try Supabase first
+      if (window.AdhiraSupabase && window.AdhiraSupabase.isConfigured()) {
+        const serverDb = await window.AdhiraSupabase.getDatabase();
+        if (serverDb && typeof serverDb === 'object') {
+          const { merged, hasLocalChanges, hasRemoteChanges } = mergeDatabases(db, serverDb);
+          db = merged;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+          saveToIndexedDb(db);
+          if (hasLocalChanges) {
+            console.log('[Supabase] Pushing local-only records to cloud...');
+            await pushDbToServer(db);
+          }
+          if (hasRemoteChanges) {
+            if (!state.activeModal && state.page !== 'newQuote' && state.page !== 'editQuote') {
+              renderCurrentPage();
+            }
+          }
+          updateSyncBadge('synced', 'Cloud Synced ☁');
+          isSyncing = false;
+          return;
+        } else {
+          // Supabase has no data yet — push current local DB to initialise it
+          await window.AdhiraSupabase.saveDatabase(db);
+          updateSyncBadge('synced', 'Cloud Synced ☁');
+          isSyncing = false;
+          return;
+        }
+      }
+
+      // 2. Fallback: Node.js or PHP backend
       const res = await callApi('db');
       if (res && res.ok) {
         const json = await res.json();
         if (json && json.initialized && json.data) {
           const serverDb = json.data;
           const { merged, hasLocalChanges, hasRemoteChanges } = mergeDatabases(db, serverDb);
-          
           db = merged;
           localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
           saveToIndexedDb(db);
-
-          // If local has newer or extra records that server was missing, restore the server!
           if (hasLocalChanges) {
             console.log('Restoring server database with local records...');
             await pushDbToServer(db);
           }
-
           if (hasRemoteChanges) {
             if (!state.activeModal && state.page !== 'newQuote' && state.page !== 'editQuote') {
               renderCurrentPage();
@@ -3165,7 +3375,6 @@
           }
           updateSyncBadge('synced', 'Realtime Synced');
         } else if (json && !json.initialized) {
-          // Server has no DB yet, push our local database to initialize it
           await pushDbToServer(db);
         }
       }
@@ -3177,8 +3386,38 @@
     }
   }
 
+  // Realtime Supabase subscription (fires when another browser/device saves)
+  function startSupabaseRealtime() {
+    if (!window.AdhiraSupabase || !window.AdhiraSupabase.isConfigured()) return;
+    window.AdhiraSupabase.subscribeRealtime(async (remoteData) => {
+      if (!remoteData || typeof remoteData !== 'object') return;
+      const { merged, hasRemoteChanges } = mergeDatabases(db, remoteData);
+      db = merged;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+      saveToIndexedDb(db);
+      if (hasRemoteChanges) {
+        updateSyncBadge('synced', 'Cloud Synced ☁');
+        if (!state.activeModal && state.page !== 'newQuote' && state.page !== 'editQuote') {
+          renderCurrentPage();
+        }
+      }
+    });
+    console.log('[Supabase Realtime] Multi-device live-sync activated.');
+  }
+
   async function fetchServerInfo() {
     try {
+      // Supabase connection test (shows in sync badge tooltip)
+      if (window.AdhiraSupabase && window.AdhiraSupabase.isConfigured()) {
+        const result = await window.AdhiraSupabase.testConnection();
+        serverInfo = {
+          dbStorageType: result.ok ? 'supabase_cloud' : 'local_json',
+          isPersistent: result.ok,
+          supabaseLatency: result.latencyMs || null
+        };
+        return;
+      }
+      // Fallback: ask Node/PHP server
       const res = await callApi('info');
       if (res && res.ok) {
         const data = await res.json();
@@ -3193,10 +3432,367 @@
 
   let db = loadDatabase();
 
+  // --- AUTHENTICATION SYSTEM ---
+  const AUTH_SESSION_KEY = 'adhira_auth_v1';
+
+  function isLoggedIn() {
+    try {
+      const sess = sessionStorage.getItem(AUTH_SESSION_KEY);
+      if (!sess) return false;
+      const parsed = JSON.parse(sess);
+      // Session expires after 8 hours
+      return parsed && parsed.username && (Date.now() - parsed.ts < 8 * 60 * 60 * 1000);
+    } catch (e) { return false; }
+  }
+
+  function getSessionUser() {
+    try {
+      return JSON.parse(sessionStorage.getItem(AUTH_SESSION_KEY));
+    } catch (e) { return null; }
+  }
+
+  function setSession(username) {
+    sessionStorage.setItem(AUTH_SESSION_KEY, JSON.stringify({
+      username,
+      name: username === 'admin' ? (db.company.signatoryName || 'Admin') : username,
+      role: 'Admin',
+      ts: Date.now()
+    }));
+  }
+
+  function clearSession() {
+    sessionStorage.removeItem(AUTH_SESSION_KEY);
+  }
+
+  function renderLoginPage() {
+    const app = document.getElementById('app');
+    if (!app) return;
+    app.innerHTML = `
+      <div class="auth-wrapper" id="authWrapper">
+        <div class="auth-card">
+          <div class="auth-card-header">
+            <div class="auth-logo-badge">
+              <img src="${LOGO_PATH}" alt="Adhira Pyrotech Logo" />
+            </div>
+            <h1 class="auth-card-title">ADHIRA PYROTECH</h1>
+            <p class="auth-card-subtitle">Commercial GST Billing System • Sivakasi</p>
+          </div>
+          <div class="auth-card-body">
+            <div id="loginErrorMsg" style="display:none;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;font-size:12.5px;color:#b91c1c;margin-bottom:14px;"></div>
+
+            <div class="form-group" style="margin-bottom:14px;">
+              <label class="form-label" style="font-size:12.5px;font-weight:600;">Username</label>
+              <input type="text" id="loginUsername" class="input" placeholder="Enter username" autocomplete="username"
+                value="" style="height:42px;font-size:14px;" />
+            </div>
+
+            <div class="form-group" style="margin-bottom:6px;">
+              <label class="form-label" style="font-size:12.5px;font-weight:600;">Password</label>
+              <div class="auth-input-wrapper">
+                <input type="password" id="loginPassword" class="input" placeholder="Enter password"
+                  autocomplete="current-password" style="height:42px;font-size:14px;"
+                  onkeydown="if(event.key==='Enter') window.adhiraApp.handleLogin()" />
+                <button type="button" class="auth-password-toggle" id="loginPwdToggle"
+                  onclick="window.adhiraApp.toggleLoginPwd()" title="Show/hide password">👁</button>
+              </div>
+            </div>
+
+            <button class="auth-submit-btn" id="loginBtn" onclick="window.adhiraApp.handleLogin()">
+              <span>🔐</span>
+              <span>Sign In to Billing</span>
+            </button>
+
+            <div class="auth-footer-links">
+              <span style="color:#94a3b8;font-size:12px;">Forgot credentials? </span>
+              <span class="auth-link" onclick="window.adhiraApp.openChangeCredentialsModal()">
+                🔑 Edit / View Credentials
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="auth-powered-by">
+          Powered by <strong>LAXORA Technologies</strong> | <a href="tel:+917094062522">+91 70940 62522</a>
+        </div>
+      </div>
+    `;
+
+    // Focus username field
+    setTimeout(() => document.getElementById('loginUsername')?.focus(), 80);
+  }
+
+  function toggleLoginPwd() {
+    const pwdInput = document.getElementById('loginPassword');
+    const toggleBtn = document.getElementById('loginPwdToggle');
+    if (!pwdInput) return;
+    if (pwdInput.type === 'password') {
+      pwdInput.type = 'text';
+      if (toggleBtn) toggleBtn.textContent = '🔒';
+    } else {
+      pwdInput.type = 'password';
+      if (toggleBtn) toggleBtn.textContent = '👁';
+    }
+  }
+
+  async function handleLogin() {
+    const userEl = document.getElementById('loginUsername');
+    const passEl = document.getElementById('loginPassword');
+    const errEl = document.getElementById('loginErrorMsg');
+    const btnEl = document.getElementById('loginBtn');
+
+    const username = (userEl ? userEl.value : '').trim();
+    const password = (passEl ? passEl.value : '').trim();
+
+    if (!username || !password) {
+      if (errEl) {
+        errEl.textContent = 'Please enter both username and password.';
+        errEl.style.display = 'block';
+      }
+      return;
+    }
+
+    if (btnEl) {
+      btnEl.disabled = true;
+      btnEl.innerHTML = `<span>⏳</span><span>Verifying...</span>`;
+    }
+
+    let authenticated = false;
+    let authUser = username;
+
+    // 1. Try server backend login API first
+    try {
+      const res = await callApi('auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      if (res && res.ok) {
+        const json = await res.json();
+        if (json && json.success) {
+          authenticated = true;
+          if (json.user && json.user.username) authUser = json.user.username;
+        }
+      }
+    } catch (e) {
+      console.warn('Backend login check failed, checking local credentials cache:', e);
+    }
+
+    // 2. Fallback to local db.auth
+    if (!authenticated) {
+      const expectedUser = (db.auth && db.auth.username) ? db.auth.username : 'admin';
+      const expectedPass = (db.auth && db.auth.password) ? db.auth.password : 'admin';
+
+      if (username === expectedUser && password === expectedPass) {
+        authenticated = true;
+        authUser = expectedUser;
+      }
+    }
+
+    if (authenticated) {
+      setSession(authUser);
+      currentUser.username = authUser;
+      currentUser.name = (db.company && db.company.signatoryName) ? db.company.signatoryName : 'Admin';
+      currentUser.role = 'Admin';
+
+      renderAppShell();
+      renderCurrentPage();
+      showToast(`Welcome, Administrator!`, 'success');
+
+      // Initialize background sync with server
+      fetchServerInfo();
+      syncFromServer(true);
+    } else {
+      if (btnEl) {
+        btnEl.disabled = false;
+        btnEl.innerHTML = `<span>🔐</span><span>Sign In to Billing</span>`;
+      }
+      if (errEl) {
+        errEl.textContent = 'Invalid username or password. (Default is admin / admin)';
+        errEl.style.display = 'block';
+      }
+      if (passEl) {
+        passEl.value = '';
+        passEl.focus();
+      }
+    }
+  }
+
+  function handleLogout() {
+    clearSession();
+    renderLoginPage();
+    showToast('Signed out successfully.', 'info');
+  }
+
+  function openChangeCredentialsModal() {
+    const currentUsername = (db.auth && db.auth.username) ? db.auth.username : 'admin';
+    const currentPassword = (db.auth && db.auth.password) ? db.auth.password : 'admin';
+    const currentEmail = (db.auth && db.auth.adminEmail) ? db.auth.adminEmail : 'lakshmimedicotech25@gmail.com';
+
+    const body = `
+      <div style="padding: 4px 0;">
+        <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1px solid #bbf7d0; border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px;">
+          <div style="font-size: 26px;">🛡️</div>
+          <div>
+            <div style="font-weight: 700; font-size: 13.5px; color: #166534;">Edit Administrator Credentials</div>
+            <div style="font-size: 12px; color: #15803d; line-height: 1.4;">
+              Your current admin credentials are shown below. You can edit and update them directly anytime — no OTP required!
+            </div>
+          </div>
+        </div>
+
+        <form id="directCredForm" onsubmit="event.preventDefault(); window.adhiraApp.saveAdminCredentialsDirectly();">
+          <div class="form-group" style="margin-bottom: 14px;">
+            <label class="form-label" style="font-size: 12.5px; font-weight: 600;">
+              Admin Username <span class="req">*</span>
+            </label>
+            <input type="text" id="changeNewUsername" class="input" placeholder="Enter username" 
+              value="${escapeHtml(currentUsername)}" required style="height: 42px; font-size: 13.5px;" />
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+              Current username: <b style="color: #111827;">${escapeHtml(currentUsername)}</b>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 14px;">
+            <label class="form-label" style="font-size: 12.5px; font-weight: 600;">
+              Admin Password <span class="req">*</span>
+            </label>
+            <div class="auth-input-wrapper">
+              <input type="text" id="changeNewPassword" class="input" placeholder="Enter password" 
+                value="${escapeHtml(currentPassword)}" required style="height: 42px; font-size: 13.5px; padding-right: 42px;" />
+              <button type="button" class="auth-password-toggle" id="toggleCredModalPwd" 
+                onclick="window.adhiraApp.toggleCredModalPwd()" title="Toggle show/hide password" style="height: 42px; width: 40px;">
+                👁
+              </button>
+            </div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+              Current password is visible above. You can edit it directly anytime.
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 16px;">
+            <label class="form-label" style="font-size: 12.5px; font-weight: 600;">
+              Registered Contact Email
+            </label>
+            <input type="email" id="changeAdminEmail" class="input" placeholder="admin@example.com" 
+              value="${escapeHtml(currentEmail)}" style="height: 40px; font-size: 13px;" />
+          </div>
+
+          <div id="changeCredError" style="display:none; padding: 10px 14px; border-radius: 8px; font-size: 12.5px; background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; margin-bottom: 14px;"></div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+            <button type="button" class="btn btn-secondary" onclick="window.adhiraApp.closeModal()">Cancel</button>
+            <button type="submit" class="btn btn-gold" id="saveCredBtn" style="min-width: 140px; font-weight: 700;">
+              <span>💾</span> Update Credentials
+            </button>
+          </div>
+        </form>
+      </div>
+    `;
+
+    openModal('🔑 Edit Administrator Credentials', body, '');
+    setTimeout(() => document.getElementById('changeNewUsername')?.focus(), 100);
+  }
+
+  function toggleCredModalPwd() {
+    const pwdInput = document.getElementById('changeNewPassword');
+    const toggleBtn = document.getElementById('toggleCredModalPwd');
+    if (!pwdInput) return;
+    if (pwdInput.type === 'password') {
+      pwdInput.type = 'text';
+      if (toggleBtn) toggleBtn.textContent = '🔒';
+    } else {
+      pwdInput.type = 'password';
+      if (toggleBtn) toggleBtn.textContent = '👁';
+    }
+  }
+
+  async function saveAdminCredentialsDirectly() {
+    const userInp = document.getElementById('changeNewUsername');
+    const passInp = document.getElementById('changeNewPassword');
+    const emailInp = document.getElementById('changeAdminEmail');
+    const errEl = document.getElementById('changeCredError');
+    const btnEl = document.getElementById('saveCredBtn');
+
+    const newUsername = (userInp?.value || '').trim();
+    const newPassword = (passInp?.value || '').trim();
+    const adminEmail = (emailInp?.value || '').trim();
+
+    if (!newUsername) {
+      if (errEl) {
+        errEl.textContent = 'Administrator username cannot be blank.';
+        errEl.style.display = 'block';
+      }
+      userInp?.focus();
+      return;
+    }
+
+    if (!newPassword || newPassword.length < 3) {
+      if (errEl) {
+        errEl.textContent = 'Password must be at least 3 characters long.';
+        errEl.style.display = 'block';
+      }
+      passInp?.focus();
+      return;
+    }
+
+    if (errEl) errEl.style.display = 'none';
+    if (btnEl) {
+      btnEl.disabled = true;
+      btnEl.innerHTML = `<span>⏳</span> Updating credentials...`;
+    }
+
+    try {
+      // 1. Call server backend API
+      try {
+        await callApi('auth/change-credentials', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ newUsername, newPassword, adminEmail })
+        });
+      } catch (e) {
+        console.warn('Backend credentials update warning:', e);
+      }
+
+      // 2. Update local state
+      if (!db.auth) db.auth = {};
+      db.auth.username = newUsername;
+      db.auth.password = newPassword;
+      if (adminEmail) db.auth.adminEmail = adminEmail;
+      db.auth.lastUpdated = new Date().toISOString();
+      saveDatabase();
+
+      closeModal();
+      showToast('Admin credentials updated successfully!', 'success');
+
+      // 3. If on login page, fill in the updated values
+      const loginUserInp = document.getElementById('loginUsername');
+      const loginPassInp = document.getElementById('loginPassword');
+      if (loginUserInp) loginUserInp.value = newUsername;
+      if (loginPassInp) loginPassInp.value = newPassword;
+
+      // 4. If logged in, update active session and refresh UI
+      if (isLoggedIn()) {
+        setSession(newUsername);
+        currentUser.username = newUsername;
+        renderAppShell();
+        renderCurrentPage();
+      }
+    } catch (err) {
+      if (errEl) {
+        errEl.textContent = 'Error updating credentials: ' + err.message;
+        errEl.style.display = 'block';
+      }
+      if (btnEl) {
+        btnEl.disabled = false;
+        btnEl.innerHTML = `<span>💾</span> Update Credentials`;
+      }
+    }
+  }
+
   // --- AUTH & ROLES ---
   let currentUser = {
     username: 'admin',
-    name: 'Murugan S.',
+    name: 'Admin',
     role: 'Admin'
   };
 
@@ -3221,8 +3817,22 @@
     globalSearchQuery: '',
     reportDateRange: 'all',
     autosaveTimer: null,
-    lastAutosaveTime: null
+    lastAutosaveTime: null,
+    simpleBillingTab: 'editor',
+    simpleBillSearch: '',
+    editingSimpleBillId: null,
+    simpleBillScale: 1.0,
+    sbMobileTab: 'form',
+    sbSelectedProdId: '',
+    sbPendingCases: 1,
+    sbPendingContents: 16,
+    sbPendingRate: 0,
+    sbPendingRatePer: '1 BOX',
+    sbPendingName: ''
   };
+
+  const SIMPLE_BILL_DRAFT_KEY = 'adhira_simple_bill_draft_v1';
+  let draftSimpleBill = null;
 
   // ==========================================================================
   // MATHEMATICS & TAX UTILITIES
@@ -3499,6 +4109,14 @@
               </div>
             </a>
 
+            <a href="#" class="nav-item ${state.page === 'simple-billing' ? 'active' : ''}" data-nav="simple-billing">
+              <div class="nav-item-content">
+                <span class="nav-icon">📄</span>
+                <span>Simple Bill (Estimate)</span>
+              </div>
+              <span class="nav-badge">${(db.simpleBills || []).length}</span>
+            </a>
+
             <a href="#" class="nav-item ${state.page === 'quotations' ? 'active' : ''}" data-nav="quotations">
               <div class="nav-item-content">
                 <span class="nav-icon">▤</span>
@@ -3564,6 +4182,10 @@
               <span>GSTIN: ${escapeHtml(db.company.gstin)}</span>
               <div style="font-size:9.5px;color:rgba(255,255,255,0.6);margin-top:2px">Ref: ${escapeHtml(db.company.regArnRef || '')}</div>
             </div>
+            <div class="sidebar-tech-credit">
+              <span>Powered by <strong>LAXORA Technologies</strong></span>
+              <a href="tel:+917094062522" class="sidebar-tech-phone">📞 +91 70940 62522</a>
+            </div>
           </div>
         </aside>
 
@@ -3594,14 +4216,27 @@
                 <span class="search-kbd">/</span>
               </div>
 
+              <button class="btn btn-secondary btn-sm" onclick="window.adhiraApp.openSimpleBilling()" title="Non-GST Estimate Billing" style="font-weight:600">
+                <span>📄</span>
+                <span>Simple Bill</span>
+              </button>
+
               <button class="btn btn-gold" onclick="window.adhiraApp.openNewQuotation()">
                 <span>+</span>
                 <span>New Quotation</span>
               </button>
 
-              <div class="role-badge-pill" title="Click to switch role" onclick="window.adhiraApp.toggleUserRole()" style="cursor:pointer">
-                <span class="role-indicator ${currentUser.role === 'Staff' ? 'staff' : ''}"></span>
-                <span>${currentUser.name} (${currentUser.role})</span>
+              <div class="topbar-auth-box">
+                <div class="role-badge-pill" title="Administrator" style="cursor:default">
+                  <span class="role-indicator"></span>
+                  <span>${escapeHtml(currentUser.name || 'Admin')} (Admin)</span>
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="window.adhiraApp.openChangeCredentialsModal()" title="Edit Administrator Credentials" style="padding:6px 10px;font-size:11.5px;">
+                  <span>🔑</span> Change Login
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="window.adhiraApp.handleLogout()" title="Sign Out of Billing" style="padding:6px 10px;font-size:11.5px;color:#ef4444;">
+                  <span>🚪</span> Logout
+                </button>
               </div>
             </div>
           </header>
@@ -3610,6 +4245,16 @@
           <section class="app-content" id="appContent">
             <!-- Dynamic page content renders here -->
           </section>
+
+          <!-- POWERED BY LAXORA TECHNOLOGIES BOTTOM FOOTER -->
+          <footer class="laxora-powered-footer">
+            <div class="laxora-footer-inner">
+              <span class="laxora-powered-label">Powered by</span>
+              <strong class="laxora-brand-name">LAXORA Technologies</strong>
+              <span class="laxora-divider">|</span>
+              <a href="tel:+917094062522" class="laxora-phone">📞 +91 70940 62522</a>
+            </div>
+          </footer>
         </main>
 
         <!-- MOBILE BOTTOM NAVIGATION -->
@@ -3618,21 +4263,21 @@
             <span class="icon">▦</span>
             <span>Home</span>
           </button>
-          <button class="mobile-nav-btn ${state.page === 'quotations' ? 'active' : ''}" data-nav="quotations">
-            <span class="icon">▤</span>
-            <span>Quotes</span>
+          <button class="mobile-nav-btn ${state.page === 'simple-billing' ? 'active' : ''}" data-nav="simple-billing">
+            <span class="icon">📄</span>
+            <span>Estimate</span>
           </button>
           <button class="mobile-nav-btn center-cta" onclick="window.adhiraApp.openNewQuotation()">
             <span class="icon">+</span>
             <span>Quote</span>
           </button>
+          <button class="mobile-nav-btn ${state.page === 'quotations' ? 'active' : ''}" data-nav="quotations">
+            <span class="icon">▤</span>
+            <span>Quotes</span>
+          </button>
           <button class="mobile-nav-btn ${state.page === 'products' ? 'active' : ''}" data-nav="products">
             <span class="icon">🎆</span>
             <span>Products</span>
-          </button>
-          <button class="mobile-nav-btn ${state.page === 'customers' ? 'active' : ''}" data-nav="customers">
-            <span class="icon">🏢</span>
-            <span>Shops</span>
           </button>
         </nav>
       </div>
@@ -3645,6 +4290,7 @@
   function getPageTitle() {
     switch (state.page) {
       case 'dashboard': return 'Business Overview';
+      case 'simple-billing': return 'Simple Billing (Estimate)';
       case 'quotations': return 'Quotations Management';
       case 'new-quotation': return state.editingQuoteId ? 'Edit Quotation' : 'Create GST Quotation';
       case 'invoices': return 'Tax Invoices';
@@ -3660,6 +4306,7 @@
   function getPageSubtitle() {
     switch (state.page) {
       case 'dashboard': return 'Real-time performance, recent documents, and rapid actions.';
+      case 'simple-billing': return 'Non-GST factory estimates, case packing rates & instant print.';
       case 'quotations': return 'Search, issue, duplicate, print and convert quotations.';
       case 'new-quotation': return 'Comprehensive GST billing calculator with live snapshot preservation.';
       case 'invoices': return 'Commercial tax invoices with transport & E-Way Bill fields.';
@@ -3735,6 +4382,10 @@
       case 'dashboard':
         container.innerHTML = renderDashboardPage();
         attachDashboardListeners();
+        break;
+      case 'simple-billing':
+        container.innerHTML = renderSimpleBillingPage();
+        attachSimpleBillingListeners();
         break;
       case 'quotations':
         container.innerHTML = renderQuotationsPage();
@@ -4820,6 +5471,1391 @@
   }
 
   // ==========================================================================
+  // MODULE 3b: SIMPLE BILLING & ESTIMATE ENGINE (NON-GST FACTORY ESTIMATES)
+  // Strict Specification Matching Sivakasi Fireworks Trade Estimate
+  // ==========================================================================
+
+  function formatSimpleDate(dStr) {
+    if (!dStr) return '';
+    const parts = String(dStr).split('-');
+    if (parts.length === 3 && parts[0].length === 4) {
+      return `${parts[2]}-${parts[1]}-${parts[0]}`;
+    }
+    return dStr;
+  }
+
+  function convertSimpleAmountToWords(num) {
+    num = Math.round(Number(num) || 0);
+    if (num <= 0) return 'Zero Rupees Only';
+
+    const a = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+      'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+    const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+    function convertTwoDigits(n) {
+      if (n < 20) return a[n];
+      return b[Math.floor(n / 10)] + (n % 10 ? ' ' + a[n % 10] : '');
+    }
+
+    function convertUnderThousand(n) {
+      let str = '';
+      if (n >= 100) {
+        str += a[Math.floor(n / 100)] + ' Hundred ';
+        n %= 100;
+      }
+      if (n > 0) {
+        if (str.length > 0) str += 'and ';
+        str += convertTwoDigits(n);
+      }
+      return str.trim();
+    }
+
+    let words = '';
+    if (num >= 10000000) {
+      const crores = Math.floor(num / 10000000);
+      words += convertUnderThousand(crores) + ' Crore ';
+      num %= 10000000;
+    }
+    if (num >= 100000) {
+      const lakhs = Math.floor(num / 100000);
+      words += convertUnderThousand(lakhs) + ' Lakh ';
+      num %= 100000;
+    }
+    if (num >= 1000) {
+      const thousands = Math.floor(num / 1000);
+      words += convertUnderThousand(thousands) + ' Thousand ';
+      num %= 1000;
+    }
+    if (num > 0) {
+      words += convertUnderThousand(num);
+    }
+
+    return `${words.trim()} Only`;
+  }
+
+  function initDraftSimpleBill(existingBill = null) {
+    if (existingBill) {
+      draftSimpleBill = structuredClone(existingBill);
+      return;
+    }
+
+    const maxNum = (db.simpleBills || []).reduce((max, b) => {
+      const n = parseInt(b.number, 10);
+      return !isNaN(n) ? Math.max(max, n) : max;
+    }, 219);
+    const nextId = db.settings?.nextSimpleBill || (maxNum + 1);
+
+    const defSeller = (db.sellers && db.sellers[0]) || db.company;
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    const factoryAddr = '8/444, Unnamed Road, Near Sri Jaishnavi Stores, Gandhinagar, Anaiyur, Sivakasi, Virudhunagar, Tamil nadu - 626124.';
+    const factoryPhone = (defSeller.phone || '+91 6384197583') + (defSeller.altPhone ? ', ' + defSeller.altPhone : '');
+
+    draftSimpleBill = {
+      id: 'SB-' + Date.now(),
+      number: String(nextId),
+      date: todayStr,
+      copyType: '(EXTRA COPY)',
+      hsnCode: '3604',
+      factory: {
+        name: defSeller.name || 'ADHIRA FIRE WORKS & PYROTECH',
+        address: factoryAddr,
+        phone: factoryPhone
+      },
+      customer: {
+        name: '',
+        addressLine1: '',
+        addressLine2: '',
+        cityPin: '',
+        gstin: '',
+        phone: ''
+      },
+      items: [],
+      packingChargePercent: 3,
+      terms: [
+        '1. Sales F.O.R. Sivakasi',
+        '2. Interest at 24% per annum charged on bills if not paid on date',
+        '3. Subject to Sivakasi Jurisdiction'
+      ],
+      preparedBy: '',
+      checkedBy: '',
+      forFactory: defSeller.name || 'ADHIRA FIRE WORKS & PYROTECH',
+      createdAt: new Date().toISOString()
+    };
+
+    // Reset pending dropdown state
+    state.sbSelectedProdId = '';
+    state.sbPendingName = '';
+    state.sbPendingCases = 1;
+    state.sbPendingContents = 16;
+    state.sbPendingRate = 0;
+    state.sbPendingRatePer = '1 BOX';
+  }
+
+  function calculateSimpleBillSummary(bill) {
+    if (!bill) {
+      return { totalCases: 0, subtotal: 0, packingCharge: 0, roundOff: 0, netAmount: 0, amountInWords: 'Zero Rupees Only' };
+    }
+
+    let totalCases = 0;
+    let subtotal = 0;
+
+    (bill.items || []).forEach((it, idx) => {
+      it.sno = idx + 1;
+      const cases = Number(it.cases) || 0;
+      const contents = Number(it.contents) || 0;
+      let qty = (it.qty !== undefined && it.qty !== '' && Number(it.qty) > 0) ? Number(it.qty) : (cases * contents);
+      it.qty = qty;
+      const rate = Number(it.rate) || 0;
+      const amount = round2(qty * rate);
+      it.amount = amount;
+      totalCases += cases;
+      subtotal += amount;
+    });
+
+    subtotal = round2(subtotal);
+    const packingPct = Number(bill.packingChargePercent !== undefined ? bill.packingChargePercent : 3) || 0;
+    const packingCharge = round2((subtotal * packingPct) / 100);
+    const unroundedNet = subtotal + packingCharge;
+    const netAmount = Math.round(unroundedNet);
+    const roundOff = round2(netAmount - unroundedNet);
+
+    return {
+      totalCases,
+      subtotal,
+      packingCharge,
+      roundOff,
+      netAmount,
+      amountInWords: convertSimpleAmountToWords(netAmount)
+    };
+  }
+
+  function generateSimpleBillA4Html(bill) {
+    if (!bill) return '';
+    const summary = calculateSimpleBillSummary(bill);
+
+    const items = bill.items || [];
+    let itemsRowsHtml = items.map((it, idx) => {
+      const sno = idx + 1;
+      const cases = Number(it.cases) || 0;
+      const contents = Number(it.contents) || 0;
+      const qty = Number(it.qty) || (cases * contents);
+      const rate = Number(it.rate) || 0;
+      const amount = round2(qty * rate);
+
+      return `
+        <tr>
+          <td class="col-sno">${sno}</td>
+          <td class="col-particulars">${escapeHtml(it.particulars || '')}</td>
+          <td class="col-cases">${cases ? cases : ''}</td>
+          <td class="col-contents">${contents ? contents : ''}</td>
+          <td class="col-qty">${qty ? qty : ''}</td>
+          <td class="col-rate">${rate ? rate.toFixed(2) : ''}</td>
+          <td class="col-rateper">${escapeHtml(it.ratePer || '1 BOX')}</td>
+          <td class="col-amount">${amount ? amount.toFixed(2) : ''}</td>
+        </tr>
+      `;
+    }).join('');
+
+    // If fewer than 7 items, insert empty filler rows with vertical grid borders to match traditional invoice look
+    let fillerRowsHtml = '';
+    const minRows = 7;
+    if (items.length < minRows) {
+      const needed = minRows - items.length;
+      for (let i = 0; i < needed; i++) {
+        fillerRowsHtml += `
+          <tr class="filler-row">
+            <td class="col-sno">&nbsp;</td>
+            <td class="col-particulars">&nbsp;</td>
+            <td class="col-cases">&nbsp;</td>
+            <td class="col-contents">&nbsp;</td>
+            <td class="col-qty">&nbsp;</td>
+            <td class="col-rate">&nbsp;</td>
+            <td class="col-rateper">&nbsp;</td>
+            <td class="col-amount">&nbsp;</td>
+          </tr>
+        `;
+      }
+    }
+
+    const c = bill.customer || {};
+    const f = bill.factory || {};
+
+    return `
+      <div class="simple-estimate-wrapper" id="printableSimpleEstimateRoot">
+        <!-- TOP TITLE & COPY TYPE -->
+        <div class="simple-estimate-topbar">
+          <div class="simple-estimate-top-spacer"></div>
+          <div class="simple-estimate-title">ESTIMATE</div>
+          <div class="simple-estimate-copy">${escapeHtml(bill.copyType || '(EXTRA COPY)')}</div>
+        </div>
+
+        <!-- MAIN DOCUMENT BOX -->
+        <div class="simple-estimate-box" id="printableSimpleEstimate">
+          
+          <!-- SUBTLE WATERMARK BEHIND DOCUMENT -->
+          <div class="simple-estimate-watermark">
+            <img src="${LOGO_PATH}" alt="ADHIRA Logo Watermark" />
+          </div>
+
+          <div class="simple-estimate-content">
+            
+            <!-- 1. FACTORY HEADER (WITHOUT GST) -->
+            <div class="sb-factory-header">
+              <div class="sb-factory-logo">
+                <img src="${LOGO_PATH}" alt="Adhira Logo" />
+              </div>
+              <div class="sb-factory-info">
+                <div class="sb-factory-name">${escapeHtml(f.name || 'ADHIRA FIRE WORKS & PYROTECH')}</div>
+                <div class="sb-factory-contact">
+                  <span class="sb-wa-icon">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="#25D366"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2M12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.58 20.15 12.04 20.15C10.56 20.15 9.11 19.76 7.85 19L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 14.99 3.8 13.47 3.8 11.91C3.81 7.37 7.5 3.67 12.05 3.67M9.11 7.44C8.95 7.44 8.68 7.5 8.46 7.74C8.24 7.98 7.62 8.56 7.62 9.74C7.62 10.92 8.48 12.06 8.6 12.22C8.72 12.38 10.29 14.81 12.7 15.85C13.29 16.1 13.75 16.26 14.11 16.37C14.7 16.56 15.24 16.53 15.67 16.47C16.14 16.4 17.13 15.87 17.34 15.28C17.55 14.69 17.55 14.19 17.48 14.08C17.42 13.97 17.26 13.91 17.02 13.79C16.78 13.67 15.6 13.09 15.38 13.01C15.16 12.93 15 12.89 14.84 13.13C14.68 13.37 14.22 13.91 14.08 14.07C13.94 14.23 13.8 14.25 13.56 14.13C13.32 14.01 12.55 13.76 11.64 12.95C10.93 12.32 10.45 11.54 10.31 11.3C10.17 11.06 10.3 10.93 10.42 10.81C10.53 10.7 10.66 10.52 10.78 10.38C10.9 10.24 10.94 10.14 11.02 9.98C11.1 9.82 11.06 9.68 11 9.56C10.94 9.44 10.48 8.31 10.29 7.84C10.1 7.39 9.91 7.45 9.77 7.44C9.64 7.44 9.49 7.44 9.33 7.44H9.11Z"/></svg>
+                  </span>
+                  <span>${escapeHtml(f.phone || '+91 6384197583, +91 94431 23456')}</span>
+                </div>
+                <div class="sb-factory-addr">
+                  <span class="sb-loc-pin">📍</span>
+                  <span>${escapeHtml(f.address || '8/444, Unnamed Road, Near Sri Jaishnavi Stores, Gandhinagar, Anaiyur, Sivakasi, Virudhunagar, Tamil nadu - 626124.')}</span>
+                </div>
+              </div>
+              <div class="sb-factory-art">
+                <svg width="68" height="68" viewBox="0 0 100 100" fill="none">
+                  <path d="M45 70 L55 70 L52 92 L48 92 Z" fill="#b91c1c" />
+                  <polygon points="50,45 42,70 58,70" fill="#f59e0b" stroke="#d97706" stroke-width="1.5" />
+                  <circle cx="50" cy="42" r="5" fill="#ef4444" />
+                  <path d="M50 35 L50 20 M40 32 L28 20 M60 32 L72 20 M35 42 L18 38 M65 42 L82 38" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round" />
+                  <circle cx="28" cy="18" r="3" fill="#ef4444" />
+                  <circle cx="50" cy="15" r="3.5" fill="#10b981" />
+                  <circle cx="72" cy="18" r="3" fill="#3b82f6" />
+                  <circle cx="16" cy="38" r="2.5" fill="#8b5cf6" />
+                  <circle cx="84" cy="38" r="2.5" fill="#ec4899" />
+                  <g transform="rotate(22 75 60)">
+                    <rect x="72" y="35" width="8" height="32" rx="1" fill="#0284c7" />
+                    <polygon points="76,22 69,35 83,35" fill="#ef4444" />
+                    <line x1="76" y1="67" x2="76" y2="88" stroke="#78350f" stroke-width="2" />
+                  </g>
+                  <g transform="rotate(-18 25 60)">
+                    <line x1="24" y1="35" x2="24" y2="88" stroke="#64748b" stroke-width="2.5" />
+                    <line x1="24" y1="35" x2="24" y2="58" stroke="#fcd34d" stroke-width="4" stroke-linecap="round" />
+                    <circle cx="24" cy="34" r="3" fill="#fbbf24" />
+                  </g>
+                </svg>
+              </div>
+            </div>
+
+            <!-- 2. CUSTOMER & METADATA GRID -->
+            <div class="sb-meta-grid">
+              <div class="sb-cust-box">
+                <div class="sb-cust-line"><strong>To : M/s. ${escapeHtml(c.name || '')}</strong></div>
+                ${c.addressLine1 ? `<div class="sb-cust-line">${escapeHtml(c.addressLine1)}</div>` : ''}
+                ${c.addressLine2 ? `<div class="sb-cust-line">${escapeHtml(c.addressLine2)}</div>` : ''}
+                ${c.cityPin ? `<div class="sb-cust-line">${escapeHtml(c.cityPin)}</div>` : ''}
+                ${c.gstin ? `<div class="sb-cust-line">GSTIN &nbsp;&nbsp;: ${escapeHtml(c.gstin)}</div>` : ''}
+              </div>
+              <div class="sb-id-date-box">
+                <table class="sb-id-tbl">
+                  <tr>
+                    <td class="lbl">ID</td>
+                    <td class="sep">:</td>
+                    <td class="val">${escapeHtml(bill.number || '220')}</td>
+                  </tr>
+                  <tr>
+                    <td class="lbl">Date</td>
+                    <td class="sep">:</td>
+                    <td class="val">${escapeHtml(formatSimpleDate(bill.date))}</td>
+                  </tr>
+                </table>
+                <div class="sb-hsn-badge-box">
+                  HSN Code &nbsp;: &nbsp;${escapeHtml(bill.hsnCode || '3604')}
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. ITEMS TABLE -->
+            <div class="sb-table-wrap">
+              <table class="sb-items-table">
+                <thead>
+                  <tr>
+                    <th style="width:6%">S.No</th>
+                    <th style="width:36%">Particulars</th>
+                    <th style="width:10%">No of<br>Cases</th>
+                    <th style="width:9%">Contents</th>
+                    <th style="width:9%">Quantity</th>
+                    <th style="width:10%">Rate</th>
+                    <th style="width:9%">Rate per</th>
+                    <th style="width:11%">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${itemsRowsHtml}
+                  ${fillerRowsHtml}
+                </tbody>
+              </table>
+            </div>
+
+            <!-- 4. TOTAL CASES & SUMMARY -->
+            <div class="sb-summary-grid">
+              <div class="sb-cases-left">
+                <div class="sb-cases-header">
+                  Total Number of cases : ${summary.totalCases}
+                </div>
+                <div class="sb-cases-empty-box"></div>
+              </div>
+              <div class="sb-summary-right">
+                <table class="sb-summary-tbl">
+                  <tr>
+                    <td class="s-lbl">Total</td>
+                    <td class="s-val">${summary.subtotal.toFixed(2)}</td>
+                  </tr>
+                  <tr>
+                    <td class="s-lbl">PACKING CHARGE ${bill.packingChargePercent !== undefined ? bill.packingChargePercent : 3} %</td>
+                    <td class="s-val">${summary.packingCharge.toFixed(2)}</td>
+                  </tr>
+                  <tr>
+                    <td class="s-lbl">Round off</td>
+                    <td class="s-val">${summary.roundOff >= 0 ? '+' : ''}${summary.roundOff.toFixed(2)}</td>
+                  </tr>
+                  <tr class="net-row">
+                    <td class="s-lbl">Net amount</td>
+                    <td class="s-val">${summary.netAmount.toFixed(2)}</td>
+                  </tr>
+                </table>
+              </div>
+            </div>
+
+            <!-- 5. AMOUNT IN WORDS -->
+            <div class="sb-words-box">
+              <strong>Amount in words : </strong>
+              <span>${escapeHtml(summary.amountInWords)}</span>
+            </div>
+
+            <!-- 6. TERMS & SIGNATURES -->
+            <div class="sb-terms-sign-grid">
+              <div class="sb-terms-box">
+                <div class="sb-terms-title">Terms and Conditions :</div>
+                <ol>
+                  ${(bill.terms || [
+                    'Sales F.O.R. Sivakasi',
+                    'Interest at 24% per annum charged on bills if not paid on date',
+                    'Subject to Sivakasi Jurisdiction'
+                  ]).map(t => `<li>${escapeHtml(t.replace(/^\d+\.\s*/, ''))}</li>`).join('')}
+                </ol>
+              </div>
+              <div class="sb-prep-box">
+                <div class="sb-prep-row">
+                  <strong>Prepared By</strong>
+                  <div class="sb-sign-line"></div>
+                </div>
+                <div class="sb-prep-row">
+                  <strong>Checked By</strong>
+                  <div class="sb-sign-line"></div>
+                </div>
+              </div>
+              <div class="sb-auth-box">
+                <div class="sb-auth-for">For ${escapeHtml(bill.forFactory || f.name || 'ADHIRA FIRE WORKS & PYROTECH')}</div>
+                <div class="sb-auth-spacer"></div>
+                <div class="sb-auth-sign">Authorized signatory</div>
+              </div>
+            </div>
+
+          </div><!-- /.simple-estimate-content -->
+        </div><!-- /.simple-estimate-box -->
+
+        <!-- OUTER FOOTER -->
+        <div class="simple-estimate-footer">
+          <div class="se-footer-spacer"></div>
+          <div class="se-center-thanks">Thankyou for Business with us!</div>
+          <div class="se-right-tech">Powered by <strong>LAXORA Technologies</strong> | +91 70940 62522</div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderSimpleBillingPage() {
+    if (!draftSimpleBill) {
+      initDraftSimpleBill();
+    }
+
+    const summary = calculateSimpleBillSummary(draftSimpleBill);
+    const b = draftSimpleBill;
+    const f = b.factory || {};
+    const c = b.customer || {};
+
+    let listHtml = '';
+    if (state.simpleBillingTab === 'list') {
+      let filtered = (db.simpleBills || []).slice();
+      if (state.simpleBillSearch && state.simpleBillSearch.trim()) {
+        const q = state.simpleBillSearch.toLowerCase().trim();
+        filtered = filtered.filter(item => {
+          return (
+            String(item.number || '').toLowerCase().includes(q) ||
+            (item.customer?.name || '').toLowerCase().includes(q) ||
+            (item.customer?.cityPin || '').toLowerCase().includes(q) ||
+            (item.date || '').includes(q)
+          );
+        });
+      }
+      filtered.sort((x, y) => (parseInt(y.number, 10) || 0) - (parseInt(x.number, 10) || 0));
+
+      listHtml = `
+        <div class="card">
+          <div class="toolbar" style="gap:12px;flex-wrap:wrap">
+            <div class="unified-search-bar" style="flex:1;min-width:300px">
+              <span class="search-icon">🔍</span>
+              <input type="text" class="search-input" id="sbSearchInput" placeholder="Search Estimate ID, customer or city..." value="${escapeHtml(state.simpleBillSearch || '')}" oninput="window.adhiraApp.filterSimpleBills(this.value)" />
+            </div>
+            <button class="btn btn-gold" onclick="window.adhiraApp.newSimpleBill()">
+              <span>+</span> Create New Estimate
+            </button>
+          </div>
+
+          ${filtered.length > 0 ? `
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Estimate ID</th>
+                    <th>Date</th>
+                    <th>Customer / Shop</th>
+                    <th class="num">Total Cases</th>
+                    <th class="num">Items</th>
+                    <th class="num">Net Amount</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${filtered.map(sb => {
+                    const sbSum = calculateSimpleBillSummary(sb);
+                    return `
+                      <tr>
+                        <td class="strong">#${escapeHtml(sb.number || '')}</td>
+                        <td>${formatSimpleDate(sb.date)}</td>
+                        <td>
+                          <b>${escapeHtml(sb.customer?.name || 'Customer')}</b>
+                          <div style="font-size:11px;color:var(--text-muted)">${escapeHtml(sb.customer?.cityPin || '')}</div>
+                        </td>
+                        <td class="num">${sbSum.totalCases}</td>
+                        <td class="num">${(sb.items || []).length}</td>
+                        <td class="num" style="font-weight:700;color:var(--navy-900)">₹${sbSum.netAmount.toFixed(2)}</td>
+                        <td>
+                          <div style="display:flex;gap:6px;align-items:center;">
+                            <button class="btn btn-secondary btn-sm" onclick="window.adhiraApp.printSimpleBillById('${sb.id}')" title="Print Estimate">🖨️ Print</button>
+                            <button class="btn btn-secondary btn-sm" onclick="window.adhiraApp.viewSimpleBillModal('${sb.id}')" title="Preview Estimate">👁️ View</button>
+                            <button class="btn btn-secondary btn-sm" onclick="window.adhiraApp.editSimpleBill('${sb.id}')" title="Edit Bill">✏️ Edit</button>
+                            <button class="btn btn-gold btn-sm" onclick="window.adhiraApp.downloadSimpleBillPdfById('${sb.id}')" title="Download PDF">📥 PDF</button>
+                            <button class="btn btn-danger btn-sm" onclick="window.adhiraApp.deleteSimpleBill('${sb.id}')" title="Delete">🗑️</button>
+                          </div>
+                        </td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          ` : `
+            <div class="empty-state">
+              <div class="empty-icon">📋</div>
+              <h3>No simple bills found</h3>
+              <p>Create your first non-GST estimate bill to get started.</p>
+              <button class="btn btn-gold" onclick="window.adhiraApp.newSimpleBill()">+ Create Simple Bill</button>
+            </div>
+          `}
+        </div>
+      `;
+    }
+
+    return `
+      <div class="simple-billing-view">
+        <!-- TOP TOOLBAR -->
+        <div class="card" style="margin-bottom:18px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <button class="btn ${state.simpleBillingTab === 'editor' ? 'btn-primary' : 'btn-secondary'}" onclick="window.adhiraApp.switchSimpleBillingTab('editor')">
+                <span>✏️</span> Create / Edit Estimate
+              </button>
+              <button class="btn ${state.simpleBillingTab === 'list' ? 'btn-primary' : 'btn-secondary'}" onclick="window.adhiraApp.switchSimpleBillingTab('list')">
+                <span>📋</span> Saved Estimates (${(db.simpleBills || []).length})
+              </button>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <button class="btn btn-secondary" onclick="window.adhiraApp.newSimpleBill()" title="Clear and create a fresh estimate">
+                <span>➕</span> New Bill
+              </button>
+              <button class="btn btn-gold" onclick="window.adhiraApp.saveSimpleBill()" title="Save bill to database & realtime sync">
+                <span>💾</span> Save Bill
+              </button>
+              <button class="btn btn-primary" onclick="window.adhiraApp.printCurrentSimpleBill()" title="Print A4 Estimate directly">
+                <span>🖨️</span> Print Bill
+              </button>
+              <button class="btn btn-secondary" onclick="window.adhiraApp.downloadCurrentSimpleBillPdf()" title="Download PDF copy">
+                <span>📥</span> PDF
+              </button>
+            </div>
+          </div>
+        </div>
+
+        ${state.simpleBillingTab === 'list' ? listHtml : `
+          <!-- MOBILE VIEW TOGGLE TABS (Visible on screens <= 860px) -->
+          <div class="sb-mobile-view-toggle">
+            <button type="button" class="sb-mobile-tab-btn ${state.sbMobileTab !== 'preview' ? 'active' : ''}" onclick="window.adhiraApp.setSbMobileTab('form')">
+              ✏️ Edit Bill Details
+            </button>
+            <button type="button" class="sb-mobile-tab-btn ${state.sbMobileTab === 'preview' ? 'active' : ''}" onclick="window.adhiraApp.setSbMobileTab('preview')">
+              👁️ View Bill Preview (${(b.items || []).length} items - ₹${summary.netAmount.toFixed(0)})
+            </button>
+          </div>
+
+          <!-- TWO-COLUMN WORKSPACE: FORM + LIVE A4 PREVIEW -->
+          <div class="sb-layout-grid ${state.sbMobileTab === 'preview' ? 'mobile-mode-preview' : 'mobile-mode-form'}">
+            
+            <!-- LEFT COLUMN: FORM CONTROLS -->
+            <div class="sb-form-col">
+              
+              <!-- 1. BILL METADATA & FACTORY CARD -->
+              <div class="card">
+                <div class="section-divider-title">
+                  <h4>1. Estimate & Factory Profile</h4>
+                  <span class="from-details-badge">Non-GST Simple Bill</span>
+                </div>
+
+                <div class="form-grid grid-4" style="margin-bottom:12px;">
+                  <div class="form-group">
+                    <label class="form-label">Estimate ID <span class="req">*</span></label>
+                    <input type="text" class="input" id="sbInpNumber" value="${escapeHtml(b.number || '220')}" oninput="window.adhiraApp.updateSimpleBillField('number', this.value)" style="font-weight:700" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Date <span class="req">*</span></label>
+                    <input type="date" class="input" id="sbInpDate" value="${escapeHtml(b.date || '')}" oninput="window.adhiraApp.updateSimpleBillField('date', this.value)" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Copy Type</label>
+                    <select class="select" id="sbInpCopyType" onchange="window.adhiraApp.updateSimpleBillField('copyType', this.value)">
+                      <option value="(EXTRA COPY)" ${b.copyType === '(EXTRA COPY)' ? 'selected' : ''}>(EXTRA COPY)</option>
+                      <option value="(ORIGINAL)" ${b.copyType === '(ORIGINAL)' ? 'selected' : ''}>(ORIGINAL)</option>
+                      <option value="(DUPLICATE)" ${b.copyType === '(DUPLICATE)' ? 'selected' : ''}>(DUPLICATE)</option>
+                      <option value="(OFFICE COPY)" ${b.copyType === '(OFFICE COPY)' ? 'selected' : ''}>(OFFICE COPY)</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">HSN Code</label>
+                    <input type="text" class="input" id="sbInpHsn" value="${escapeHtml(b.hsnCode || '3604')}" oninput="window.adhiraApp.updateSimpleBillField('hsnCode', this.value)" style="font-weight:700" />
+                  </div>
+                </div>
+
+                <div class="form-grid grid-3">
+                  <div class="form-group col-span-2">
+                    <label class="form-label">Factory / Sister Concern Profile</label>
+                    <select class="select" onchange="window.adhiraApp.handleSimpleBillFactorySelect(this.value)">
+                      ${(db.sellers || [db.company]).map(sel => `
+                        <option value="${sel.id || sel.name}" ${(f.name === sel.name) ? 'selected' : ''}>
+                          ${escapeHtml(sel.name)} — ${escapeHtml(sel.city || 'Sivakasi')}
+                        </option>
+                      `).join('')}
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Factory Phone / WhatsApp</label>
+                    <input type="text" class="input" id="sbInpFactoryPhone" value="${escapeHtml(f.phone || '')}" oninput="window.adhiraApp.updateSimpleBillField('factory.phone', this.value)" />
+                  </div>
+                  <div class="form-group col-span-3">
+                    <label class="form-label">Factory Address (Ex-Factory Sivakasi)</label>
+                    <input type="text" class="input" id="sbInpFactoryAddr" value="${escapeHtml(f.address || '')}" oninput="window.adhiraApp.updateSimpleBillField('factory.address', this.value)" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2. CUSTOMER / SHOP (TO DETAILS) -->
+              <div class="card">
+                <div class="section-divider-title">
+                  <h4>2. Customer / Shop Details (To : M/s.)</h4>
+                  <div style="display:flex;gap:8px;">
+                    <select class="select" style="max-width:240px;font-size:12px;padding:4px 8px;" onchange="window.adhiraApp.handleSimpleBillCustomerSelect(this.value)">
+                      <option value="">-- Load from Shop Master --</option>
+                      ${(db.customers || []).map(cust => `
+                        <option value="${cust.id}">${escapeHtml(cust.name)} (${escapeHtml(cust.city || 'Sivakasi')})</option>
+                      `).join('')}
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-grid grid-3">
+                  <div class="form-group col-span-2">
+                    <label class="form-label">Shop / Customer Name <span class="req">*</span></label>
+                    <input type="text" class="input" id="sbInpCustName" placeholder="M/s. Customer / Shop Name" value="${escapeHtml(c.name || '')}" oninput="window.adhiraApp.updateSimpleBillField('customer.name', this.value)" style="font-weight:700" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">GSTIN / Contact No (Optional)</label>
+                    <input type="text" class="input" id="sbInpCustGstin" placeholder="e.g. GSTIN or Phone No" value="${escapeHtml(c.gstin || '')}" oninput="window.adhiraApp.updateSimpleBillField('customer.gstin', this.value)" />
+                  </div>
+                  <div class="form-group col-span-3">
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1.2fr;gap:8px;">
+                      <div>
+                        <label class="form-label">Address Line 1</label>
+                        <input type="text" class="input" id="sbInpCustAddr1" placeholder="Building / Street Address" value="${escapeHtml(c.addressLine1 || '')}" oninput="window.adhiraApp.updateSimpleBillField('customer.addressLine1', this.value)" />
+                      </div>
+                      <div>
+                        <label class="form-label">Address Line 2 / Area</label>
+                        <input type="text" class="input" id="sbInpCustAddr2" placeholder="Area / Landmark" value="${escapeHtml(c.addressLine2 || '')}" oninput="window.adhiraApp.updateSimpleBillField('customer.addressLine2', this.value)" />
+                      </div>
+                      <div>
+                        <label class="form-label">City - Pincode</label>
+                        <input type="text" class="input" id="sbInpCustCityPin" placeholder="City - Pincode" value="${escapeHtml(c.cityPin || '')}" oninput="window.adhiraApp.updateSimpleBillField('customer.cityPin', this.value)" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 3. SELECT FIREWORKS PRODUCTS (DROPDOWN & ADD ONLY) -->
+              <div class="card" id="sbProductSectionCard">
+                <div class="section-divider-title">
+                  <h4>3. Select Products & Add to Bill</h4>
+                  <span class="from-details-badge">Dropdown & Add Only</span>
+                </div>
+
+                <!-- DROPDOWN & ADD PANEL -->
+                <div class="sb-dropdown-add-panel">
+                  <div class="form-group" style="margin-bottom:12px;">
+                    <label class="form-label" style="font-weight:700;color:var(--navy-900)">
+                      Select Fireworks Product <span class="req">*</span>
+                    </label>
+                    <select class="select" id="sbProductDropdown" style="font-size:13.5px;font-weight:600;padding:10px 12px;background:#ffffff;border:1.5px solid var(--border-color);border-radius:var(--radius-md);" onchange="window.adhiraApp.handleDropdownProductChange(this.value)">
+                      <option value="">-- Choose from ${(db.products || []).length} Fireworks Products --</option>
+                      ${(db.products || []).filter(p => p.active !== false).map(p => `
+                        <option value="${p.id}" ${state.sbSelectedProdId === p.id ? 'selected' : ''}>
+                          ${escapeHtml(p.name)} [Packing: ${escapeHtml(p.packing || '1 Box')}, Contents: ${p.pieces || 16}] — Rate: ₹${Number(p.rate || 0).toFixed(2)}
+                        </option>
+                      `).join('')}
+                    </select>
+                  </div>
+
+                  <!-- PRODUCT DETAILS & ADD ROW -->
+                  <div class="sb-add-controls-grid">
+                    <div class="form-group">
+                      <label class="form-label">No. of Cases <span class="req">*</span></label>
+                      <input type="number" min="1" class="input" id="sbInpCases" value="${state.sbPendingCases || 1}" oninput="window.adhiraApp.updateDropdownPendingCalc()" style="font-weight:700;text-align:center;" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Contents / Case</label>
+                      <input type="number" min="1" class="input" id="sbInpContents" value="${state.sbPendingContents || 16}" oninput="window.adhiraApp.updateDropdownPendingCalc()" style="text-align:center;" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Total Qty (Pcs)</label>
+                      <input type="text" class="input" id="sbInpQty" value="${(state.sbPendingCases || 1) * (state.sbPendingContents || 16)}" readonly style="background:#f1f5f9;font-weight:700;text-align:center;" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Rate (₹)</label>
+                      <input type="number" step="0.01" min="0" class="input" id="sbInpRate" value="${state.sbPendingRate || ''}" oninput="window.adhiraApp.updateDropdownPendingCalc()" style="font-weight:700;text-align:right;" placeholder="0.00" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Rate Per</label>
+                      <input type="text" class="input" id="sbInpRatePer" value="${escapeHtml(state.sbPendingRatePer || '1 BOX')}" style="text-align:center;font-weight:600;" />
+                    </div>
+                    <div class="form-group" style="display:flex;flex-direction:column;justify-content:flex-end;">
+                      <button type="button" class="btn btn-gold" id="sbBtnAddDropdownItem" onclick="window.adhiraApp.addCurrentDropdownItem()" style="padding:9px 18px;font-weight:800;font-size:13.5px;height:38px;display:flex;align-items:center;justify-content:center;gap:6px;">
+                        <span>➕</span> Add
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- AMOUNT PREVIEW HELPER -->
+                  <div id="sbPendingAmtSummary" style="margin-top:8px;font-size:12px;color:var(--text-secondary);display:flex;justify-content:space-between;align-items:center;background:#fff;padding:6px 10px;border-radius:6px;border:1px dashed var(--border-subtle);flex-wrap:wrap;gap:6px;">
+                    <span><b>Product:</b> <span id="sbPendingNameDisplay">${escapeHtml(state.sbPendingName || 'None selected')}</span></span>
+                    <span><b>Item Total:</b> <strong id="sbPendingAmtDisplay" style="color:var(--navy-900);font-size:13.5px;">₹${(((state.sbPendingCases || 1) * (state.sbPendingContents || 16)) * (Number(state.sbPendingRate) || 0)).toFixed(2)}</strong></span>
+                  </div>
+                </div>
+
+                <!-- ADDED ITEMS TABLE -->
+                <div style="margin-top:14px;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                    <span style="font-weight:700;font-size:13px;color:var(--navy-900)">
+                      Added Items in Bill (${(b.items || []).length})
+                    </span>
+                    ${(b.items || []).length > 0 ? `
+                      <span style="font-size:11.5px;color:var(--text-muted)">
+                        Total Cases: <b>${summary.totalCases}</b>
+                      </span>
+                    ` : ''}
+                  </div>
+
+                  ${(b.items || []).length > 0 ? `
+                    <div class="table-responsive" style="max-height:400px;overflow-y:auto;border:1px solid var(--border-subtle);border-radius:var(--radius-sm)">
+                      <table class="data-table" style="font-size:12px;">
+                        <thead>
+                          <tr>
+                            <th style="width:36px;text-align:center">#</th>
+                            <th>Particulars</th>
+                            <th style="width:70px;text-align:center">Cases</th>
+                            <th style="width:70px;text-align:center">Contents</th>
+                            <th style="width:75px;text-align:center">Qty</th>
+                            <th style="width:85px;text-align:right">Rate (₹)</th>
+                            <th style="width:75px;text-align:center">Rate Per</th>
+                            <th style="width:95px;text-align:right">Amount (₹)</th>
+                            <th style="width:40px;text-align:center"></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          ${(b.items || []).map((it, idx) => `
+                            <tr>
+                              <td style="text-align:center;font-weight:700">${idx + 1}</td>
+                              <td>
+                                <span style="font-weight:700;text-transform:uppercase;color:var(--navy-900)">${escapeHtml(it.particulars || '')}</span>
+                              </td>
+                              <td style="text-align:center">
+                                <input type="number" min="1" class="input" style="padding:3px 5px;font-size:11.5px;text-align:center;width:60px" value="${it.cases || ''}" oninput="window.adhiraApp.updateSimpleBillItem(${idx}, 'cases', this.value)" />
+                              </td>
+                              <td style="text-align:center">
+                                <input type="number" min="1" class="input" style="padding:3px 5px;font-size:11.5px;text-align:center;width:60px" value="${it.contents || ''}" oninput="window.adhiraApp.updateSimpleBillItem(${idx}, 'contents', this.value)" />
+                              </td>
+                              <td style="text-align:center;font-weight:700" id="sbItemQty_${idx}">${it.qty || (it.cases * it.contents)}</td>
+                              <td style="text-align:right">
+                                <input type="number" step="0.01" min="0" class="input" style="padding:3px 5px;font-size:11.5px;text-align:right;width:75px" value="${it.rate || ''}" oninput="window.adhiraApp.updateSimpleBillItem(${idx}, 'rate', this.value)" />
+                              </td>
+                              <td style="text-align:center;font-size:11px;font-weight:600">${escapeHtml(it.ratePer || '1 BOX')}</td>
+                              <td style="text-align:right;font-weight:800;color:var(--navy-900)" id="sbItemAmt_${idx}">₹${(it.amount || 0).toFixed(2)}</td>
+                              <td style="text-align:center">
+                                <button type="button" class="btn btn-danger btn-sm" onclick="window.adhiraApp.removeSimpleBillItem(${idx})" title="Remove item" style="padding:3px 8px;font-size:11px">🗑️</button>
+                              </td>
+                            </tr>
+                          `).join('')}
+                        </tbody>
+                      </table>
+                    </div>
+                  ` : `
+                    <div style="background:#f8fafc;border:1.5px dashed #cbd5e1;border-radius:var(--radius-md);padding:24px;text-align:center;color:var(--text-muted)">
+                      <div style="font-size:26px;margin-bottom:6px">📦</div>
+                      <div style="font-weight:700;font-size:13.5px;color:var(--navy-900)">No products added yet</div>
+                      <div style="font-size:12px;margin-top:4px">Choose a fireworks item from the dropdown above and click "+ Add" to add it to the bill.</div>
+                    </div>
+                  `}
+                </div>
+              </div>
+
+              <!-- 4. PACKING CHARGES & FINANCIAL SUMMARY -->
+              <div class="card">
+                <div class="section-divider-title">
+                  <h4>4. Packing Charges & Net Amount</h4>
+                </div>
+
+                <div class="form-grid grid-2" style="margin-bottom:12px;">
+                  <div class="form-group">
+                    <label class="form-label">PACKING CHARGE (%)</label>
+                    <div style="display:flex;gap:6px;align-items:center;">
+                      <input type="number" step="0.1" class="input" id="sbInpPackingPct" value="${b.packingChargePercent !== undefined ? b.packingChargePercent : 3}" oninput="window.adhiraApp.updateSimpleBillField('packingChargePercent', this.value)" style="font-weight:700;width:90px" />
+                      <span style="font-weight:700;font-size:14px">%</span>
+                      <span style="font-size:11.5px;color:var(--text-muted)">(Sivakasi standard is 3%)</span>
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Authorized Signatory Name</label>
+                    <input type="text" class="input" value="${escapeHtml(b.forFactory || f.name || '')}" oninput="window.adhiraApp.updateSimpleBillField('forFactory', this.value)" />
+                  </div>
+                </div>
+
+                <div style="background:var(--bg-subtle);border-radius:var(--radius-md);padding:14px;border:1px solid var(--border-subtle);display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;text-align:center;">
+                  <div>
+                    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;font-weight:600">Total Cases</div>
+                    <div style="font-size:17px;font-weight:800;color:var(--navy-900)" id="sbSummaryCases">${summary.totalCases}</div>
+                  </div>
+                  <div>
+                    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;font-weight:600">Subtotal</div>
+                    <div style="font-size:17px;font-weight:800;color:var(--navy-900)" id="sbSummarySubtotal">₹${summary.subtotal.toFixed(2)}</div>
+                  </div>
+                  <div>
+                    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;font-weight:600">Packing (${b.packingChargePercent || 3}%)</div>
+                    <div style="font-size:17px;font-weight:800;color:var(--navy-900)" id="sbSummaryPacking">₹${summary.packingCharge.toFixed(2)}</div>
+                  </div>
+                  <div>
+                    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;font-weight:600">Round off</div>
+                    <div style="font-size:17px;font-weight:800;color:var(--navy-900)" id="sbSummaryRound">${summary.roundOff >= 0 ? '+' : ''}${summary.roundOff.toFixed(2)}</div>
+                  </div>
+                  <div style="background:#fffbeb;border:1px solid #fef3c7;border-radius:8px;padding:4px 8px;">
+                    <div style="font-size:11px;color:#92400e;text-transform:uppercase;font-weight:700">Net Amount</div>
+                    <div style="font-size:19px;font-weight:900;color:#b45309" id="sbSummaryNet">₹${summary.netAmount.toFixed(2)}</div>
+                  </div>
+                </div>
+
+                <div style="margin-top:10px;font-size:12px;color:var(--text-secondary)">
+                  <b>Amount in words:</b> <span id="sbSummaryWords">${escapeHtml(summary.amountInWords)}</span>
+                </div>
+              </div>
+
+              <!-- ACTION BUTTONS -->
+              <div style="display:flex;gap:10px;justify-content:flex-end;margin-bottom:30px;flex-wrap:wrap;">
+                <button type="button" class="btn btn-secondary" onclick="window.adhiraApp.newSimpleBill()">
+                  <span>↺</span> Reset Form
+                </button>
+                <button type="button" class="btn btn-gold" onclick="window.adhiraApp.saveSimpleBill()">
+                  <span>💾</span> Save Estimate
+                </button>
+                <button type="button" class="btn btn-primary" onclick="window.adhiraApp.setSbMobileTab('preview')">
+                  <span>👁️</span> Preview Bill
+                </button>
+              </div>
+
+            </div><!-- /.sb-form-col -->
+
+            <!-- RIGHT COLUMN: LIVE A4 PREVIEW -->
+            <div class="sb-preview-col">
+              <div class="card" style="padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <button class="btn btn-secondary btn-sm" onclick="window.adhiraApp.setSbMobileTab('form')" title="Back to Edit Details">
+                    <span>✏️</span> Edit Details
+                  </button>
+                  <span style="font-weight:700;font-size:13px;color:var(--navy-900)">📄 Live A4 Estimate</span>
+                </div>
+                <div style="display:flex;gap:6px;align-items:center;">
+                  <button class="btn btn-secondary btn-sm" onclick="window.adhiraApp.autoFitSimpleBillPreview()" title="Auto fit to screen width">Fit Screen</button>
+                  <button class="btn btn-primary btn-sm" onclick="window.adhiraApp.printCurrentSimpleBill()">
+                    <span>🖨️</span> Print
+                  </button>
+                  <button class="btn btn-gold btn-sm" onclick="window.adhiraApp.downloadCurrentSimpleBillPdf()">
+                    <span>📥</span> PDF
+                  </button>
+                </div>
+              </div>
+
+              <div class="sb-preview-card">
+                <div id="sbLivePreviewContainer" style="transform-origin:top center;transition:transform 0.2s ease;">
+                  ${generateSimpleBillA4Html(draftSimpleBill)}
+                </div>
+              </div>
+            </div>
+
+          </div><!-- /.sb-layout-grid -->
+        `}
+      </div>
+    `;
+  }
+
+  function autoFitSimpleBillPreview() {
+    const wrap = document.getElementById('sbLivePreviewContainer');
+    const root = document.getElementById('printableSimpleEstimateRoot');
+    if (!wrap || !root) return;
+
+    const parent = wrap.closest('.sb-preview-card') || wrap.parentElement;
+    if (!parent) return;
+
+    const availW = parent.clientWidth - 16;
+    if (availW < 740) {
+      const scale = Math.max(0.32, Math.min(1.0, availW / 730));
+      state.simpleBillScale = scale;
+      wrap.style.transform = `scale(${scale})`;
+      wrap.style.transformOrigin = 'top center';
+      const naturalH = root.offsetHeight || 980;
+      const diff = naturalH * (1.0 - scale);
+      wrap.style.marginBottom = `-${diff}px`;
+    } else {
+      state.simpleBillScale = 1.0;
+      wrap.style.transform = 'none';
+      wrap.style.marginBottom = '0px';
+    }
+  }
+
+  function setSbMobileTab(tab) {
+    state.sbMobileTab = tab;
+    renderCurrentPage();
+    if (tab === 'preview') {
+      setTimeout(autoFitSimpleBillPreview, 50);
+    }
+  }
+
+  function attachSimpleBillingListeners() {
+    autoFitSimpleBillPreview();
+    window.removeEventListener('resize', autoFitSimpleBillPreview);
+    window.addEventListener('resize', autoFitSimpleBillPreview);
+  }
+
+  function refreshSimpleBillLivePreview() {
+    if (!draftSimpleBill) return;
+    const previewWrap = document.getElementById('sbLivePreviewContainer');
+    if (previewWrap) {
+      previewWrap.innerHTML = generateSimpleBillA4Html(draftSimpleBill);
+    }
+    const summary = calculateSimpleBillSummary(draftSimpleBill);
+    const elCases = document.getElementById('sbSummaryCases');
+    const elSubtotal = document.getElementById('sbSummarySubtotal');
+    const elPacking = document.getElementById('sbSummaryPacking');
+    const elRound = document.getElementById('sbSummaryRound');
+    const elNet = document.getElementById('sbSummaryNet');
+    const elWords = document.getElementById('sbSummaryWords');
+
+    if (elCases) elCases.textContent = summary.totalCases;
+    if (elSubtotal) elSubtotal.textContent = '₹' + summary.subtotal.toFixed(2);
+    if (elPacking) elPacking.textContent = '₹' + summary.packingCharge.toFixed(2);
+    if (elRound) elRound.textContent = (summary.roundOff >= 0 ? '+' : '') + summary.roundOff.toFixed(2);
+    if (elNet) elNet.textContent = '₹' + summary.netAmount.toFixed(2);
+    if (elWords) elWords.textContent = summary.amountInWords;
+  }
+
+  function updateSimpleBillField(path, val) {
+    if (!draftSimpleBill) initDraftSimpleBill();
+    if (path.includes('.')) {
+      const parts = path.split('.');
+      draftSimpleBill[parts[0]][parts[1]] = val;
+    } else {
+      draftSimpleBill[path] = val;
+    }
+    refreshSimpleBillLivePreview();
+  }
+
+  function updateSimpleBillItem(idx, field, val) {
+    if (!draftSimpleBill || !draftSimpleBill.items || !draftSimpleBill.items[idx]) return;
+    const it = draftSimpleBill.items[idx];
+
+    if (field === 'cases' || field === 'contents') {
+      it[field] = Number(val) || 0;
+      it.qty = (Number(it.cases) || 0) * (Number(it.contents) || 0);
+      it.amount = round2(it.qty * (Number(it.rate) || 0));
+      const qtyEl = document.getElementById(`sbItemQty_${idx}`);
+      const amtEl = document.getElementById(`sbItemAmt_${idx}`);
+      if (qtyEl) qtyEl.value = it.qty;
+      if (amtEl) amtEl.value = it.amount.toFixed(2);
+    } else if (field === 'qty') {
+      it.qty = Number(val) || 0;
+      it.amount = round2(it.qty * (Number(it.rate) || 0));
+      const amtEl = document.getElementById(`sbItemAmt_${idx}`);
+      if (amtEl) amtEl.value = it.amount.toFixed(2);
+    } else if (field === 'rate') {
+      it.rate = Number(val) || 0;
+      it.amount = round2((Number(it.qty) || 0) * it.rate);
+      const amtEl = document.getElementById(`sbItemAmt_${idx}`);
+      if (amtEl) amtEl.value = it.amount.toFixed(2);
+    } else {
+      it[field] = val;
+    }
+
+    refreshSimpleBillLivePreview();
+  }
+
+  function handleDropdownProductChange(productId) {
+    state.sbSelectedProdId = productId;
+    const p = (db.products || []).find(x => x.id === productId);
+    if (!p) {
+      state.sbPendingName = '';
+      state.sbPendingRate = 0;
+      state.sbPendingContents = 16;
+      state.sbPendingRatePer = '1 BOX';
+    } else {
+      state.sbPendingName = p.name;
+      state.sbPendingRate = p.rate || 0;
+      state.sbPendingContents = p.pieces || 16;
+      state.sbPendingRatePer = p.unit || '1 BOX';
+    }
+
+    const inpCases = document.getElementById('sbInpCases');
+    const inpContents = document.getElementById('sbInpContents');
+    const inpRate = document.getElementById('sbInpRate');
+    const inpRatePer = document.getElementById('sbInpRatePer');
+    const nameDisp = document.getElementById('sbPendingNameDisplay');
+
+    if (inpCases && (!inpCases.value || inpCases.value == 0)) inpCases.value = 1;
+    if (inpContents) inpContents.value = state.sbPendingContents;
+    if (inpRate) inpRate.value = state.sbPendingRate;
+    if (inpRatePer) inpRatePer.value = state.sbPendingRatePer;
+    if (nameDisp) nameDisp.textContent = state.sbPendingName || 'None selected';
+
+    updateDropdownPendingCalc();
+  }
+
+  function updateDropdownPendingCalc() {
+    const inpCases = document.getElementById('sbInpCases');
+    const inpContents = document.getElementById('sbInpContents');
+    const inpRate = document.getElementById('sbInpRate');
+    const inpQty = document.getElementById('sbInpQty');
+    const amtDisp = document.getElementById('sbPendingAmtDisplay');
+
+    const cases = Number(inpCases?.value) || 0;
+    const contents = Number(inpContents?.value) || 0;
+    const rate = Number(inpRate?.value) || 0;
+    const qty = cases * contents;
+    const amt = round2(qty * rate);
+
+    state.sbPendingCases = cases;
+    state.sbPendingContents = contents;
+    state.sbPendingRate = rate;
+
+    if (inpQty) inpQty.value = qty;
+    if (amtDisp) amtDisp.textContent = '₹' + amt.toFixed(2);
+  }
+
+  function addCurrentDropdownItem() {
+    if (!draftSimpleBill) initDraftSimpleBill();
+    const dropdown = document.getElementById('sbProductDropdown');
+    const prodId = dropdown ? dropdown.value : state.sbSelectedProdId;
+    if (!prodId) {
+      showToast('Please select a product from the dropdown first.', 'warning');
+      if (dropdown) dropdown.focus();
+      return;
+    }
+
+    const p = (db.products || []).find(x => x.id === prodId);
+    const prodName = p ? p.name : (state.sbPendingName || 'FIREWORKS ITEM');
+
+    const inpCases = document.getElementById('sbInpCases');
+    const inpContents = document.getElementById('sbInpContents');
+    const inpRate = document.getElementById('sbInpRate');
+    const inpRatePer = document.getElementById('sbInpRatePer');
+
+    const cases = Number(inpCases ? inpCases.value : state.sbPendingCases) || 1;
+    const contents = Number(inpContents ? inpContents.value : state.sbPendingContents) || 16;
+    const rate = Number(inpRate ? inpRate.value : state.sbPendingRate) || 0;
+    const ratePer = inpRatePer ? inpRatePer.value.trim() : (state.sbPendingRatePer || '1 BOX');
+    const qty = cases * contents;
+    const amount = round2(qty * rate);
+
+    if (!draftSimpleBill.items) draftSimpleBill.items = [];
+    draftSimpleBill.items.push({
+      id: 'SBITM-' + Date.now() + Math.random().toString(36).substring(2, 5),
+      sno: draftSimpleBill.items.length + 1,
+      particulars: prodName.toUpperCase(),
+      cases: cases,
+      contents: contents,
+      qty: qty,
+      rate: rate,
+      ratePer: ratePer || '1 BOX',
+      amount: amount
+    });
+
+    // Reset dropdown selection
+    state.sbSelectedProdId = '';
+    state.sbPendingName = '';
+    state.sbPendingCases = 1;
+    state.sbPendingRate = 0;
+
+    renderCurrentPage();
+    showToast(`Added "${prodName}" (${cases} case${cases > 1 ? 's' : ''}) to bill`, 'success');
+  }
+
+  function addSimpleBillItem() {
+    if (!draftSimpleBill) initDraftSimpleBill();
+    if (!draftSimpleBill.items) draftSimpleBill.items = [];
+    draftSimpleBill.items.push({
+      id: 'SBITM-' + Date.now() + Math.random().toString(36).substring(2, 5),
+      sno: draftSimpleBill.items.length + 1,
+      particulars: '',
+      cases: 1,
+      contents: 1,
+      qty: 1,
+      rate: 0,
+      ratePer: '1 BOX',
+      amount: 0
+    });
+    renderCurrentPage();
+  }
+
+  function removeSimpleBillItem(idx) {
+    if (!draftSimpleBill || !draftSimpleBill.items) return;
+    draftSimpleBill.items.splice(idx, 1);
+    renderCurrentPage();
+  }
+
+  function handleSimpleBillCustomerSelect(custId) {
+    if (!draftSimpleBill) initDraftSimpleBill();
+    const c = (db.customers || []).find(x => x.id === custId);
+    if (!c) return;
+
+    draftSimpleBill.customer = {
+      name: c.name || '',
+      addressLine1: c.billingAddress || c.address || '',
+      addressLine2: c.area || '',
+      cityPin: [c.city, c.pin].filter(Boolean).join(' - ') || (c.city || ''),
+      gstin: c.gstin || c.phone || ''
+    };
+
+    renderCurrentPage();
+    showToast(`Loaded details for customer "${c.name}"`, 'success');
+  }
+
+  function handleSimpleBillFactorySelect(selId) {
+    if (!draftSimpleBill) initDraftSimpleBill();
+    const sel = (db.sellers || []).find(s => s.id === selId || s.name === selId) || db.company;
+    if (!sel) return;
+
+    const factoryAddr = sel.address1 ? [
+      sel.address1,
+      sel.address2,
+      sel.area,
+      sel.city || 'Sivakasi',
+      sel.district ? sel.district : '',
+      sel.state ? `${sel.state} - ${sel.pin || '626124'}` : (sel.pin || '')
+    ].filter(Boolean).join(', ') : (sel.address || '8/444, Unnamed Road, Near Sri Jaishnavi Stores, Gandhinagar, Anaiyur, Sivakasi, Virudhunagar, Tamil nadu - 626124.');
+
+    draftSimpleBill.factory = {
+      name: sel.name || 'ADHIRA FIRE WORKS & PYROTECH',
+      address: factoryAddr,
+      phone: (sel.phone || '+91 6384197583') + (sel.altPhone ? ', ' + sel.altPhone : '')
+    };
+    draftSimpleBill.forFactory = sel.name || 'ADHIRA FIRE WORKS & PYROTECH';
+
+    renderCurrentPage();
+    showToast(`Loaded factory details for "${sel.name}"`, 'success');
+  }
+
+  function addSimpleBillProductFromPicker(productId) {
+    if (!draftSimpleBill) initDraftSimpleBill();
+    const p = (db.products || []).find(x => x.id === productId);
+    if (!p) return;
+
+    const contents = p.pieces || 16;
+    const cases = 1;
+    const qty = cases * contents;
+    const rate = p.rate || 100;
+    const amount = round2(qty * rate);
+
+    draftSimpleBill.items.push({
+      id: 'SBITM-' + Date.now() + Math.random().toString(36).substring(2, 5),
+      sno: draftSimpleBill.items.length + 1,
+      particulars: (p.name || '').toUpperCase(),
+      cases: cases,
+      contents: contents,
+      qty: qty,
+      rate: rate,
+      ratePer: p.unit || '1 BOX',
+      amount: amount
+    });
+
+    renderCurrentPage();
+    showToast(`Added "${p.name}" to estimate`, 'success');
+  }
+
+  function openSimpleBillProductPickerModal() {
+    const prods = (db.products || []).filter(p => p.active !== false);
+    const body = `
+      <div style="margin-bottom:12px;">
+        <input type="text" class="input" id="sbPickerSearchInp" placeholder="Search product name, category or HSN..." oninput="window.adhiraApp.filterPickerProducts(this.value)" />
+      </div>
+      <div style="max-height:460px;overflow-y:auto;border:1px solid var(--border-subtle);border-radius:var(--radius-md);">
+        <table class="data-table" style="font-size:12px;" id="sbPickerTable">
+          <thead>
+            <tr>
+              <th>Particulars</th>
+              <th>Packing</th>
+              <th>Contents</th>
+              <th class="num">Rate</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${prods.map(p => `
+              <tr class="sb-picker-row" data-search="${(p.name + ' ' + (p.category || '')).toLowerCase()}">
+                <td>
+                  <b>${escapeHtml(p.name)}</b>
+                  <div style="font-size:11px;color:var(--text-muted)">${escapeHtml(p.category || '')}</div>
+                </td>
+                <td>${escapeHtml(p.packing || '1 Box')}</td>
+                <td>${p.pieces || 16}</td>
+                <td class="num">₹${Number(p.rate || 0).toFixed(2)}</td>
+                <td>
+                  <button type="button" class="btn btn-gold btn-sm" onclick="window.adhiraApp.addSimpleBillProductFromPicker('${p.id}'); window.adhiraApp.closeModal();">
+                    + Add
+                  </button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    openModal('Select Products from Fireworks Master', body, `<button class="btn btn-secondary" onclick="window.adhiraApp.closeModal()">Close</button>`, 'modal-lg');
+  }
+
+  function saveCurrentSimpleBill() {
+    if (!draftSimpleBill) return;
+
+    if (!draftSimpleBill.items || draftSimpleBill.items.length === 0) {
+      showToast('Please add at least one line item to the bill.', 'error');
+      return;
+    }
+
+    const summary = calculateSimpleBillSummary(draftSimpleBill);
+    draftSimpleBill.totalCases = summary.totalCases;
+    draftSimpleBill.subtotal = summary.subtotal;
+    draftSimpleBill.packingChargeAmount = summary.packingCharge;
+    draftSimpleBill.roundOff = summary.roundOff;
+    draftSimpleBill.netAmount = summary.netAmount;
+    draftSimpleBill.amountInWords = summary.amountInWords;
+    draftSimpleBill.updatedAt = new Date().toISOString();
+
+    if (!db.simpleBills) db.simpleBills = [];
+
+    const existingIdx = db.simpleBills.findIndex(x => x.id === draftSimpleBill.id);
+    if (existingIdx >= 0) {
+      db.simpleBills[existingIdx] = structuredClone(draftSimpleBill);
+      showToast(`Simple Bill #${draftSimpleBill.number} updated successfully!`, 'success');
+    } else {
+      draftSimpleBill.createdAt = new Date().toISOString();
+      db.simpleBills.unshift(structuredClone(draftSimpleBill));
+
+      // Advance counter
+      const billNum = parseInt(draftSimpleBill.number, 10);
+      if (!isNaN(billNum)) {
+        if (!db.settings) db.settings = structuredClone(INITIAL_DB.settings);
+        db.settings.nextSimpleBill = Math.max(db.settings.nextSimpleBill || 220, billNum + 1);
+      }
+      showToast(`Simple Bill #${draftSimpleBill.number} saved successfully!`, 'success');
+    }
+
+    saveDatabase();
+    renderAppShell();
+  }
+
+  function editSimpleBillById(id) {
+    const b = (db.simpleBills || []).find(x => x.id === id);
+    if (!b) return;
+    draftSimpleBill = structuredClone(b);
+    state.editingSimpleBillId = id;
+    state.simpleBillingTab = 'editor';
+    closeModal();
+    navigateTo('simple-billing');
+  }
+
+  function deleteSimpleBillById(id) {
+    if (!confirm('Are you sure you want to delete this Simple Bill permanently?')) return;
+    const idx = (db.simpleBills || []).findIndex(x => x.id === id);
+    if (idx >= 0) {
+      const num = db.simpleBills[idx].number;
+      db.simpleBills.splice(idx, 1);
+      saveDatabase();
+      showToast(`Simple Bill #${num} deleted`, 'info');
+      renderAppShell();
+    }
+  }
+
+  function viewSimpleBillModalById(id) {
+    const b = (db.simpleBills || []).find(x => x.id === id);
+    if (!b) return;
+
+    const body = `
+      <div style="background:#e2e8f0;padding:16px;border-radius:12px;overflow-x:auto;display:flex;justify-content:center;">
+        ${generateSimpleBillA4Html(b)}
+      </div>
+    `;
+
+    const footer = `
+      <button class="btn btn-primary" onclick="window.adhiraApp.printSimpleBillById('${b.id}')">
+        <span>🖨️</span> Print Estimate
+      </button>
+      <button class="btn btn-gold" onclick="window.adhiraApp.downloadSimpleBillPdfById('${b.id}')">
+        <span>📥</span> Download PDF
+      </button>
+      <button class="btn btn-secondary" onclick="window.adhiraApp.editSimpleBill('${b.id}')">
+        <span>✏️</span> Edit Bill
+      </button>
+      <button class="btn btn-secondary" onclick="window.adhiraApp.closeModal()">Close</button>
+    `;
+
+    openModal(`Estimate #${b.number} — ${escapeHtml(b.customer?.name || '')}`, body, footer, 'modal-lg');
+  }
+
+  function printCurrentSimpleBill() {
+    if (!draftSimpleBill) return;
+    printSimpleBillDoc(draftSimpleBill);
+  }
+
+  function printSimpleBillById(id) {
+    const b = (db.simpleBills || []).find(x => x.id === id);
+    if (!b) return;
+    printSimpleBillDoc(b);
+  }
+
+  function printSimpleBillDoc(bill) {
+    const html = generateSimpleBillA4Html(bill);
+    const printFrame = document.createElement('iframe');
+    printFrame.style.cssText = 'position:fixed;top:0;left:0;width:0;height:0;border:none;opacity:0;visibility:hidden';
+    document.body.appendChild(printFrame);
+
+    const doc = printFrame.contentDocument || printFrame.contentWindow.document;
+    const styleLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"], style')).map(s => s.outerHTML).join('\n');
+
+    doc.open();
+    doc.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+      ${styleLinks}
+      <style>
+        @page { size: A4 portrait; margin: 6mm 8mm; }
+        html, body { margin: 0; padding: 0; background: #fff; }
+        .simple-estimate-wrapper {
+          width: 100% !important;
+          max-width: 100% !important;
+          padding: 0 !important;
+          box-shadow: none !important;
+          border-radius: 0 !important;
+          margin: 0 !important;
+        }
+      </style>
+    </head><body>${html}</body></html>`);
+    doc.close();
+
+    setTimeout(() => {
+      try {
+        printFrame.contentWindow.focus();
+        printFrame.contentWindow.print();
+      } catch (e) {
+        console.error('Print iframe error:', e);
+      }
+      setTimeout(() => printFrame.remove(), 2500);
+    }, 400);
+  }
+
+  function downloadCurrentSimpleBillPdf() {
+    if (!draftSimpleBill) return;
+    downloadSimpleBillPdfDoc(draftSimpleBill);
+  }
+
+  function downloadSimpleBillPdfById(id) {
+    const b = (db.simpleBills || []).find(x => x.id === id);
+    if (!b) return;
+    downloadSimpleBillPdfDoc(b);
+  }
+
+  function downloadSimpleBillPdfDoc(bill) {
+    if (typeof html2pdf === 'undefined') {
+      showToast('PDF generator library loading, please try again.', 'error');
+      return;
+    }
+
+    const container = document.createElement('div');
+    container.innerHTML = generateSimpleBillA4Html(bill);
+    const element = container.firstElementChild;
+    if (!element) {
+      showToast('Unable to prepare PDF document.', 'error');
+      return;
+    }
+
+    // Match exact 730px width and styling of preview in Image 2
+    element.style.width = '730px';
+    element.style.minWidth = '730px';
+    element.style.maxWidth = '730px';
+    element.style.boxSizing = 'border-box';
+    element.style.margin = '0 auto';
+    element.style.boxShadow = 'none';
+    element.style.borderRadius = '0';
+    element.style.transform = 'none';
+
+    document.body.appendChild(element);
+
+    const opt = {
+      margin: [8, 8.4, 8, 8.4],
+      filename: `Estimate_${bill.number || 'Bill'}_${(bill.customer?.name || 'Customer').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, logging: false },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    showToast('Generating Estimate PDF...', 'info');
+    html2pdf().set(opt).from(element).save().then(() => {
+      element.remove();
+      showToast('Estimate PDF downloaded successfully!', 'success');
+    }).catch(err => {
+      element.remove();
+      console.error('Estimate PDF export error:', err);
+      showToast('PDF export error. Try Print PDF instead.', 'error');
+    });
+  }
+
+  // ==========================================================================
   // MODULE 4: INVOICES
   // ==========================================================================
 
@@ -5784,6 +7820,40 @@
             </div>
           </div>
 
+          <!-- ADMIN SECURITY & CREDENTIALS -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Administrator Security &amp; Credentials</h3>
+                <p class="card-subtitle">View, edit and update administrator credentials anytime (No OTP required)</p>
+              </div>
+              <button type="button" class="btn btn-gold btn-sm" onclick="window.adhiraApp.openChangeCredentialsModal()">
+                ✏️ Edit Credentials
+              </button>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:12px;background:var(--bg-subtle);padding:14px;border-radius:var(--radius-md);border:1px solid var(--border-subtle);font-size:12.5px;">
+              <div>
+                <span style="color:var(--text-muted);display:block;font-size:11px;text-transform:uppercase;font-weight:600;">Active Admin Username</span>
+                <b style="font-size:14px;color:var(--navy-950);">${escapeHtml(db.auth?.username || 'admin')}</b>
+              </div>
+              <div>
+                <span style="color:var(--text-muted);display:block;font-size:11px;text-transform:uppercase;font-weight:600;">Current Password</span>
+                <b style="font-size:14px;color:#1e40af;font-family:monospace;letter-spacing:1px;">${escapeHtml(db.auth?.password || 'admin')}</b>
+              </div>
+              <div>
+                <span style="color:var(--text-muted);display:block;font-size:11px;text-transform:uppercase;font-weight:600;">Contact Email</span>
+                <b style="font-size:13px;color:var(--navy-950);">${escapeHtml(db.auth?.adminEmail || 'lakshmimedicotech25@gmail.com')}</b>
+              </div>
+              <div>
+                <span style="color:var(--text-muted);display:block;font-size:11px;text-transform:uppercase;font-weight:600;">Access Level</span>
+                <span class="role-badge-pill" style="display:inline-flex;padding:3px 10px;font-size:11.5px;background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;font-weight:700;">
+                  ● Super Administrator
+                </span>
+              </div>
+            </div>
+          </div>
+
           <div class="card">
             <div class="card-header">
               <div>
@@ -5825,7 +7895,17 @@
   // ==========================================================================
 
   function generateA4DocumentHtml(doc, isInvoice = false) {
-    const s = doc.seller || db.company;
+    let s = doc.seller || db.company;
+    if (s && db.company) {
+      const matchSeller = (db.sellers || []).find(sel => (s.id && sel.id === s.id) || (s.gstin && sel.gstin === s.gstin));
+      if (matchSeller) {
+        s = Object.assign({}, s, matchSeller, matchSeller.isDefault ? db.company : {});
+      } else {
+        s = Object.assign({}, s, db.company);
+      }
+    } else {
+      s = db.company;
+    }
     const c = doc.customer || {};
     const items = doc.items || [];
     const settings = db.settings;
@@ -5860,7 +7940,7 @@
       <div class="pdf-a4-sheet" id="printableA4Document">
         <!-- CIRCULAR BULL WATERMARK -->
         ${settings.watermarkEnabled ? `
-          <div class="pdf-watermark-overlay" style="opacity:${settings.watermarkOpacity !== undefined ? settings.watermarkOpacity : 0.18}">
+          <div class="pdf-watermark-overlay" style="opacity:${settings.watermarkOpacity !== undefined ? settings.watermarkOpacity : 0.25}">
             <img src="${LOGO_PATH}" alt="Watermark" />
           </div>
         ` : ''}
@@ -5871,16 +7951,16 @@
             <div class="pdf-header-brand">
               <img src="${LOGO_PATH}" alt="Logo" class="pdf-header-logo" />
               <div class="pdf-header-brand-info">
-                <h1>${escapeHtml(s.name || 'ADHIRA FIRE WORKS & PYROTECH')}</h1>
+                <h1>${escapeHtml(s.name || db.company.name || 'ADHIRA FIRE WORKS & PYROTECH')}</h1>
                 <div class="seller-addr-txt">
-                  ${escapeHtml(s.address1 || '8/444, Unnamed Road')}, ${escapeHtml(s.address2 || 'Near Sri Jaishnavi Stores')}<br>
-                  ${escapeHtml(s.area || 'Anaiyur')}, ${escapeHtml(s.city || 'Sivakasi')} - ${escapeHtml(s.pin || '626124')}, ${escapeHtml(s.state || 'Tamil Nadu')}<br>
-                  Phone: ${escapeHtml(s.phone || '+91 94431 23456')} ${s.altPhone ? ' • ' + escapeHtml(s.altPhone) : ''}<br>
-                  Email: ${escapeHtml(s.email || 'adhirapyrotech@gmail.com')}
+                  ${escapeHtml(s.address1 || db.company.address1 || '')}${s.address2 || db.company.address2 ? ', ' + escapeHtml(s.address2 || db.company.address2) : ''}<br>
+                  ${s.area || db.company.area ? escapeHtml(s.area || db.company.area) + ', ' : ''}${escapeHtml(s.city || db.company.city || 'Sivakasi')}${s.pin || db.company.pin ? ' - ' + escapeHtml(s.pin || db.company.pin) : ''}${s.state || db.company.state ? ', ' + escapeHtml(s.state || db.company.state) : ''}<br>
+                  ${s.phone || db.company.phone ? `Phone: ${escapeHtml(s.phone || db.company.phone)}${s.altPhone || db.company.altPhone ? ' • ' + escapeHtml(s.altPhone || db.company.altPhone) : ''}<br>` : ''}
+                  ${s.email || db.company.email ? `Email: ${escapeHtml(s.email || db.company.email)}` : ''}
                 </div>
                 <div class="seller-tax-pill">
-                  GSTIN: ${escapeHtml(s.gstin || '33QRQPS0659E1Z4')} • State: Tamil Nadu (33)<br>
-                  <span style="font-weight:400;color:#4b5563">Certificate / ARN Ref: ${escapeHtml(s.regArnRef || 'AA330426046300R_RC13042026')}</span>
+                  GSTIN: ${escapeHtml(s.gstin || db.company.gstin || '')} • State: ${escapeHtml(s.state || db.company.state || 'Tamil Nadu')} (${escapeHtml(s.stateCode || db.company.stateCode || '33')})<br>
+                  ${s.regArnRef || db.company.regArnRef ? `<span style="font-weight:400;color:#4b5563">Certificate / ARN Ref: ${escapeHtml(s.regArnRef || db.company.regArnRef)}</span>` : ''}
                 </div>
               </div>
             </div>
@@ -6105,10 +8185,10 @@
                   </div>
                   <div class="pdf-upi-info">
                     <b>Company's Bank & UPI Details</b><br>
-                    Bank Name: <b>${escapeHtml(s.bankName || 'State Bank of India')}</b><br>
-                    A/c No: <b>${escapeHtml(s.accountNumber || '39485712093')}</b><br>
-                    Branch & IFSC: <b>${escapeHtml(s.branch || 'Sivakasi')} • ${escapeHtml(s.ifsc || 'SBIN0000918')}</b><br>
-                    UPI ID: <b>${escapeHtml(s.upi || 'adhirapyro@sbi')}</b><br>
+                    Bank Name: <b>${escapeHtml(s.bankName || db.company.bankName || '')}</b><br>
+                    A/c No: <b>${escapeHtml(s.accountNumber || db.company.accountNumber || '')}</b><br>
+                    Branch & IFSC: <b>${escapeHtml(s.branch || db.company.branch || '')}${s.ifsc || db.company.ifsc ? ' • ' + escapeHtml(s.ifsc || db.company.ifsc) : ''}</b><br>
+                    UPI ID: <b>${escapeHtml(s.upi || db.company.upi || '')}</b><br>
                     <span style="font-size:7px;color:#059669">Scan via PhonePe / GPay / Paytm to pay instantly</span>
                   </div>
                 </div>
@@ -6181,11 +8261,11 @@
 
             ${settings.showSignatory ? `
               <div class="pdf-sign-box">
-                <div class="sign-company">For ${escapeHtml(s.name || 'ADHIRA FIRE WORKS & PYROTECH')}</div>
+                <div class="sign-company">For ${escapeHtml(s.name || db.company.name || 'ADHIRA FIRE WORKS & PYROTECH')}</div>
                 <div style="height:32px"></div>
                 <div>
-                  <b>${escapeHtml(s.signatoryName || 'Murugan Selvaraj')}</b><br>
-                  <span style="font-size:7.5px;color:#6b7280">${escapeHtml(s.signatoryDesignation || 'Authorised Signatory')}</span>
+                  <b>${escapeHtml(s.signatoryName || db.company.signatoryName || 'Murugan Selvaraj')}</b><br>
+                  <span style="font-size:7.5px;color:#6b7280">${escapeHtml(s.signatoryDesignation || db.company.signatoryDesignation || 'Authorised Signatory')}</span>
                 </div>
               </div>
             ` : ''}
@@ -6193,9 +8273,14 @@
 
           <!-- 8. FOOTER NOTE -->
           <div class="pdf-footer-note">
-            <span>ADHIRA FIRE WORKS & PYROTECH • SIVAKASI, TAMIL NADU</span>
+            <span>ADHIRA FIRE WORKS &amp; PYROTECH • SIVAKASI, TAMIL NADU</span>
             <span>This is a Computer Generated Commercial GST Document</span>
             <span>Page 1 of 1</span>
+          </div>
+
+          <!-- POWERED BY LAXORA TECHNOLOGIES -->
+          <div class="pdf-laxora-credit">
+            Powered by <strong>LAXORA Technologies</strong> | +91 70940 62522
           </div>
         </div>
       </div>
@@ -6235,7 +8320,9 @@
   // --- PDF PREVIEW MODAL ---
   function openPdfPreviewModal(doc, isInvoice = false) {
     state.viewingDoc = { doc, isInvoice };
-    state.zoomScale = 1.0;
+    const isMobile = window.innerWidth <= 768;
+    const autoScale = isMobile ? Math.min(1.0, Math.max(0.35, (window.innerWidth - 16) / 800)) : 1.0;
+    state.zoomScale = autoScale;
 
     const modalTitle = `${isInvoice ? 'Tax Invoice' : 'Quotation'} ${doc.number}`;
     const docHtml = generateA4DocumentHtml(doc, isInvoice);
@@ -6243,12 +8330,16 @@
     const body = `
       <div class="pdf-preview-backdrop">
         <div class="pdf-preview-toolbar">
-          <button class="btn btn-secondary btn-sm" onclick="window.adhiraApp.zoomPdf(-0.1)" title="Zoom Out">🔍 -</button>
-          <span id="zoomScaleLabel" style="font-size:12px;font-weight:700">100%</span>
-          <button class="btn btn-secondary btn-sm" onclick="window.adhiraApp.zoomPdf(0.1)" title="Zoom In">🔍 +</button>
-          <button class="btn btn-secondary btn-sm" onclick="window.adhiraApp.resetPdfZoom()" title="Reset Zoom">Fit</button>
+          <button class="btn btn-secondary btn-sm" onclick="window.adhiraApp.setPdfScale(1.0)" title="100% Full View (Crisp Standard Size)">🔍 100%</button>
+          <button class="btn btn-secondary btn-sm" onclick="window.adhiraApp.fitPdfToScreen()" title="Fit Document to Screen Width">📱 Fit Screen</button>
           
-          <div style="height:20px;width:1px;background:var(--border-subtle)"></div>
+          <div style="height:18px;width:1px;background:var(--border-subtle);margin:0 2px;"></div>
+
+          <button class="btn btn-secondary btn-sm" onclick="window.adhiraApp.zoomPdf(-0.1)" title="Zoom Out">➖</button>
+          <span id="zoomScaleLabel" style="font-size:12px;font-weight:700;min-width:38px;text-align:center;">${Math.round(autoScale * 100)}%</span>
+          <button class="btn btn-secondary btn-sm" onclick="window.adhiraApp.zoomPdf(0.1)" title="Zoom In">➕</button>
+          
+          <div style="height:18px;width:1px;background:var(--border-subtle);margin:0 2px;"></div>
 
           <button class="btn btn-gold btn-sm" onclick="window.adhiraApp.downloadPdfFile('${doc.number}')">
             <span>📥</span> Download PDF
@@ -6267,13 +8358,20 @@
           </button>
         </div>
 
-        <div id="pdfZoomContainer" style="display:flex;justify-content:center;width:100%">
+        <div id="pdfZoomContainer" style="display:flex;justify-content:center;width:100%;overflow-x:auto;">
           ${docHtml}
         </div>
       </div>
     `;
 
     openModal(modalTitle, body, `<button class="btn btn-secondary" onclick="window.adhiraApp.closeModal()">Close</button>`, 'modal-lg');
+
+    // Apply scale to the sheet for mobile auto-fit
+    setTimeout(() => {
+      if (window.adhiraApp && window.adhiraApp.setPdfScale) {
+        window.adhiraApp.setPdfScale(state.zoomScale);
+      }
+    }, 40);
 
     // Render Scannable UPI QR Code in canvas
     setTimeout(() => {
@@ -7226,12 +9324,13 @@
 
       const title = isInvoice ? 'Tax Invoice' : 'Quotation';
       const phone = (doc.customer.phone || '').replace(/\D/g, '');
+      const comp = doc.seller || db.company;
 
       // Step 1: Download the PDF first so user has it, then open WhatsApp
       const element = document.getElementById('printableA4Document');
       const doWhatsApp = () => {
         const text = [
-          `*ADHIRA FIRE WORKS & PYROTECH, SIVAKASI*`,
+          `*${comp.name || 'ADHIRA FIRE WORKS & PYROTECH'}*`,
           `${title} No: *${doc.number}*`,
           `Customer: ${doc.customer.name}`,
           `Date: ${doc.date}`,
@@ -7241,7 +9340,7 @@
           ``,
           `📄 PDF has been downloaded to your device. Please attach it to this chat.`,
           ``,
-          `Thank you for choosing Adhira Pyrotech Sivakasi! 🎆`
+          `Thank you for choosing ${comp.name || 'Adhira Pyrotech Sivakasi'}! 🎆`
         ].join('\n');
         const url = phone
           ? `https://wa.me/91${phone}?text=${encodeURIComponent(text)}`
@@ -7271,7 +9370,8 @@
       const doc = isInvoice ? db.invoices.find(i => i.id === docId) : db.quotations.find(q => q.id === docId);
       if (!doc) return;
 
-      const subject = `Adhira Pyrotech Sivakasi - ${isInvoice ? 'Tax Invoice' : 'Quotation'} ${doc.number}`;
+      const comp = doc.seller || db.company;
+      const subject = `${comp.name || 'Adhira Pyrotech Sivakasi'} - ${isInvoice ? 'Tax Invoice' : 'Quotation'} ${doc.number}`;
       const bodyText = [
         `Dear ${doc.customer.name},`,
         ``,
@@ -7286,11 +9386,11 @@
         `The PDF document has been downloaded to your device. Please attach it to this email before sending.`,
         ``,
         `Warm regards,`,
-        `ADHIRA FIRE WORKS & PYROTECH`,
-        `Sivakasi, Tamil Nadu`,
-        `Phone: +91 94431 23456`,
-        `Email: adhirapyrotech@gmail.com`
-      ].join('\n');
+        `${comp.name || 'ADHIRA FIRE WORKS & PYROTECH'}`,
+        `${comp.city || 'Sivakasi'}, ${comp.state || 'Tamil Nadu'}`,
+        comp.phone ? `Phone: ${comp.phone}` : '',
+        comp.email ? `Email: ${comp.email}` : ''
+      ].filter(Boolean).join('\n');
 
       const element = document.getElementById('printableA4Document');
       const doEmail = () => {
@@ -7595,7 +9695,8 @@
         accountNumber: db.company.accountNumber || '',
         ifsc: db.company.ifsc || '',
         upi: db.company.upi || '',
-        isDefault: false
+        isDefault: false,
+        updatedAt: new Date().toISOString()
       };
       db.sellers.push(newSeller);
       saveDatabase();
@@ -7688,10 +9789,15 @@
     },
 
     setDefaultSeller: (id) => {
-      (db.sellers || []).forEach(s => { s.isDefault = (s.id === id); });
+      const nowIso = new Date().toISOString();
+      (db.sellers || []).forEach(s => { s.isDefault = (s.id === id); s.updatedAt = nowIso; });
       const chosen = (db.sellers || []).find(s => s.id === id);
       if (chosen) {
-        Object.assign(db.company, chosen);
+        Object.assign(db.company, chosen, { updatedAt: nowIso });
+      }
+      if (draftQuote) {
+        draftQuote.seller = structuredClone(chosen || db.company);
+        try { localStorage.setItem(DRAFT_KEY, JSON.stringify(draftQuote)); } catch (e) {}
       }
       saveDatabase();
       showToast('Default factory profile updated', 'success');
@@ -8275,7 +10381,8 @@
         caseRate: Number(document.getElementById('mProdCaseRate').value) || 0,
         gst: Number(document.getElementById('mProdGst').value) || 18,
         image: tempProductImage || '',
-        active: true
+        active: true,
+        updatedAt: new Date().toISOString()
       };
 
       if (!id) {
@@ -8330,6 +10437,7 @@
         return;
       }
 
+      const nowIso = new Date().toISOString();
       Object.assign(db.company, {
         name: document.getElementById('setTradeName').value.trim(),
         legalName: document.getElementById('setLegalName').value.trim(),
@@ -8356,12 +10464,25 @@
         upi: document.getElementById('setUpi').value.trim(),
         signatoryName: document.getElementById('setSignatory').value.trim(),
         signatoryDesignation: document.getElementById('setSignatoryDesig').value.trim(),
-        declaration: document.getElementById('setDeclaration').value.trim()
+        declaration: document.getElementById('setDeclaration').value.trim(),
+        updatedAt: nowIso
       });
 
+      // Synchronously update the default seller profile so newly created quotations immediately inherit the updated details
+      if (!db.sellers) db.sellers = [];
+      const defaultSeller = db.sellers.find(s => s.isDefault) || db.sellers[0];
+      if (defaultSeller) {
+        Object.assign(defaultSeller, db.company, { updatedAt: nowIso });
+      }
+      if (draftQuote) {
+        draftQuote.seller = structuredClone(db.company);
+        try { localStorage.setItem(DRAFT_KEY, JSON.stringify(draftQuote)); } catch (e) {}
+      }
+
       saveDatabase();
-      showToast('Factory profile updated successfully!', 'success');
+      showToast('Factory profile updated and synchronized across all forms & PDFs!', 'success');
       renderAppShell();
+      renderCurrentPage();
     },
 
     saveNumberingSettings: () => {
@@ -8548,7 +10669,96 @@
     },
     showToast: (msg, type) => showToast(msg, type),
     closeModal: () => closeModal(),
-    getDatabase: () => db
+    getDatabase: () => db,
+
+    // --- AUTHENTICATION & CREDENTIALS ---
+    toggleLoginPwd: () => toggleLoginPwd(),
+    handleLogin: () => handleLogin(),
+    handleLogout: () => handleLogout(),
+    openChangeCredentialsModal: () => openChangeCredentialsModal(),
+    saveAdminCredentialsDirectly: () => saveAdminCredentialsDirectly(),
+    toggleCredModalPwd: () => toggleCredModalPwd(),
+    sendOtpForCredentials: () => saveAdminCredentialsDirectly(),
+    verifyOtpAndChangeCredentials: () => saveAdminCredentialsDirectly(),
+
+    // --- PDF MOBILE ZOOM HELPERS ---
+    setPdfScale: (scale) => {
+      state.zoomScale = Math.max(0.3, Math.min(2.0, scale));
+      const sheet = document.getElementById('printableA4Document');
+      const label = document.getElementById('zoomScaleLabel');
+      if (sheet) {
+        sheet.style.transform = `scale(${state.zoomScale})`;
+        // Tighten container height on mobile so there is no dead blank space below sheet
+        if (state.zoomScale < 1.0) {
+          const naturalH = sheet.offsetHeight || 1123;
+          const diff = naturalH * (1.0 - state.zoomScale);
+          sheet.style.marginBottom = `-${diff}px`;
+        } else {
+          sheet.style.marginBottom = '0px';
+        }
+      }
+      if (label) label.textContent = `${Math.round(state.zoomScale * 100)}%`;
+    },
+    fitPdfToScreen: () => {
+      const isMobile = window.innerWidth <= 768;
+      const fitScale = isMobile ? Math.min(1.0, Math.max(0.35, (window.innerWidth - 16) / 800)) : 1.0;
+      window.adhiraApp.setPdfScale(fitScale);
+    },
+
+    // --- SIMPLE BILLING & ESTIMATE (NON-GST) METHODS ---
+    openSimpleBilling: () => {
+      state.simpleBillingTab = 'editor';
+      navigateTo('simple-billing');
+    },
+    switchSimpleBillingTab: (tab) => {
+      state.simpleBillingTab = tab;
+      renderCurrentPage();
+    },
+    newSimpleBill: () => {
+      initDraftSimpleBill();
+      state.editingSimpleBillId = null;
+      state.simpleBillingTab = 'editor';
+      renderCurrentPage();
+      showToast('Ready for new Simple Bill', 'info');
+    },
+    saveSimpleBill: () => saveCurrentSimpleBill(),
+    printCurrentSimpleBill: () => printCurrentSimpleBill(),
+    downloadCurrentSimpleBillPdf: () => downloadCurrentSimpleBillPdf(),
+    editSimpleBill: (id) => editSimpleBillById(id),
+    viewSimpleBillModal: (id) => viewSimpleBillModalById(id),
+    printSimpleBillById: (id) => printSimpleBillById(id),
+    downloadSimpleBillPdfById: (id) => downloadSimpleBillPdfById(id),
+    deleteSimpleBill: (id) => deleteSimpleBillById(id),
+    addSimpleBillItem: () => addSimpleBillItem(),
+    removeSimpleBillItem: (idx) => removeSimpleBillItem(idx),
+    updateSimpleBillItem: (idx, field, val) => updateSimpleBillItem(idx, field, val),
+    updateSimpleBillField: (path, val) => updateSimpleBillField(path, val),
+    handleSimpleBillCustomerSelect: (custId) => handleSimpleBillCustomerSelect(custId),
+    handleSimpleBillFactorySelect: (selId) => handleSimpleBillFactorySelect(selId),
+    openSimpleBillProductPickerModal: () => openSimpleBillProductPickerModal(),
+    addSimpleBillProductFromPicker: (productId) => addSimpleBillProductFromPicker(productId),
+    filterSimpleBills: (q) => {
+      state.simpleBillSearch = q;
+      renderCurrentPage();
+    },
+    filterPickerProducts: (q) => {
+      const query = (q || '').toLowerCase().trim();
+      const rows = document.querySelectorAll('.sb-picker-row');
+      rows.forEach(r => {
+        const s = r.getAttribute('data-search') || '';
+        r.style.display = (!query || s.includes(query)) ? '' : 'none';
+      });
+    },
+    setSimpleBillScale: (scale) => {
+      state.simpleBillScale = Math.max(0.4, Math.min(2.0, scale));
+      const wrap = document.getElementById('sbLivePreviewContainer');
+      if (wrap) wrap.style.transform = `scale(${state.simpleBillScale})`;
+    },
+    setSbMobileTab: (tab) => setSbMobileTab(tab),
+    handleDropdownProductChange: (prodId) => handleDropdownProductChange(prodId),
+    updateDropdownPendingCalc: () => updateDropdownPendingCalc(),
+    addCurrentDropdownItem: () => addCurrentDropdownItem(),
+    autoFitSimpleBillPreview: () => autoFitSimpleBillPreview()
   };
 
   // Helper to inspect database in browser console
@@ -8676,16 +10886,33 @@
   async function bootApp() {
     if (initialized) return;
     initialized = true;
+
+    // Check if user is authenticated
+    if (!isLoggedIn()) {
+      renderLoginPage();
+      return;
+    }
+
+    const sess = getSessionUser();
+    if (sess) {
+      currentUser.username = sess.username || 'admin';
+      currentUser.name = sess.name || 'Admin';
+      currentUser.role = 'Admin';
+    }
+
     renderAppShell();
 
     // Initial background sync with central server
     await fetchServerInfo();
     await syncFromServer(true);
 
-    // Auto-sync polling every 6 seconds so any change from any device appears immediately
+    // Start Supabase Realtime subscription for instant multi-device sync
+    startSupabaseRealtime();
+
+    // Polling fallback every 30 s (Realtime handles live updates; polling is a safety net)
     setInterval(() => {
       syncFromServer(true);
-    }, 6000);
+    }, 30000);
 
     // Auto-sync on window focus
     window.addEventListener('focus', () => {

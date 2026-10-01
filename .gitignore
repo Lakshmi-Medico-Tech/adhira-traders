@@ -1,3 +1,19 @@
 node_modules/
 .DS_Store
 *.log
+
+# Environment variable files — NEVER commit keys to Git
+.env
+.env.local
+.env.production
+
+# Local data / backups — stay on your machine only
+data/db.json
+data/*.json
+backups/
+*.tmp
+
+# OS / editor
+Thumbs.db
+.idea/
+.vscode/settings.json

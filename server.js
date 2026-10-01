@@ -4,9 +4,23 @@ const path = require('path');
 const os = require('os');
 const http = require('http');
 const https = require('https');
+const nodemailer = require('nodemailer');
 
+// --- GMAIL SMTP & AUTH CONFIGURATION ---
+const SMTP_CONFIG = {
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true,
+  auth: {
+    user: process.env.SMTP_USER || 'lakshmimedicotech25@gmail.com',
+    pass: process.env.SMTP_PASS || 'tlzn yihv pnex igaq'
+  }
+};
+const mailTransporter = nodemailer.createTransport(SMTP_CONFIG);
+const activeOtps = new Map(); // key: email, value: { otp: string, expiresAt: number }
+
+const DATABASE_URL = process.env.DATABASE_URL || null;
 let pgPool = null;
-const DATABASE_URL = process.env.DATABASE_URL;
 
 // Initialize PostgreSQL if DATABASE_URL is configured (e.g. Supabase, Neon, Render PostgreSQL)
 if (DATABASE_URL) {
@@ -230,6 +244,188 @@ app.post('/api/backup', async (req, res) => {
     console.error('Error creating backup:', err);
     res.status(500).json({ error: 'Failed to create backup', details: err.message });
   }
+});
+
+// --- AUTHENTICATION & GMAIL OTP API ---
+
+// 1. Send OTP to Admin Gmail
+app.post('/api/auth/send-otp', async (req, res) => {
+  try {
+    const targetEmail = 'lakshmimedicotech25@gmail.com';
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+    activeOtps.set(targetEmail, { otp, expiresAt });
+
+    const mailOptions = {
+      from: `"ADHIRA PYROTECH Security" <${SMTP_CONFIG.auth.user}>`,
+      to: targetEmail,
+      subject: `Your ADHIRA PYROTECH Admin Verification Code: ${otp}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 540px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff;">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <h2 style="color: #0c1033; margin: 0 0 6px;">ADHIRA FIRE WORKS & PYROTECH</h2>
+            <p style="color: #64748b; font-size: 13px; margin: 0;">Sivakasi, Tamil Nadu — Billing Admin Portal</p>
+          </div>
+          <div style="background: #f8fafc; border-radius: 8px; padding: 18px; text-align: center; border: 1px dashed #cbd5e1; margin-bottom: 20px;">
+            <p style="font-size: 13px; color: #475569; margin: 0 0 10px;">Your One-Time Security Passcode (OTP) to update Admin credentials is:</p>
+            <div style="font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #1e2978; font-family: monospace;">${otp}</div>
+            <p style="font-size: 12px; color: #94a3b8; margin: 10px 0 0;">This OTP is valid for 10 minutes. Do not share it with anyone.</p>
+          </div>
+          <p style="font-size: 12px; color: #64748b; line-height: 1.5;">
+            If you did not request to change your credentials, please ensure your system is secure.
+          </p>
+          <hr style="border: none; border-top: 1px solid #f1f5f9; margin: 20px 0;" />
+          <div style="font-size: 11px; color: #94a3b8; text-align: center;">
+            ADHIRA PYROTECH Commercial Billing System • Sivakasi, Tamil Nadu
+          </div>
+        </div>
+      `
+    };
+
+    await mailTransporter.sendMail(mailOptions);
+    console.log(`[Auth] OTP ${otp} successfully sent to ${targetEmail}`);
+
+    res.json({
+      success: true,
+      message: `Verification OTP sent to ${targetEmail}`,
+      expiresInMinutes: 10
+    });
+  } catch (err) {
+    console.error('[Auth] Failed to send OTP email:', err);
+    res.status(500).json({ error: 'Failed to send OTP email: ' + err.message });
+  }
+});
+
+// 2. Verify OTP
+app.post('/api/auth/verify-otp', (req, res) => {
+  const { otp } = req.body || {};
+  const targetEmail = 'lakshmimedicotech25@gmail.com';
+  const record = activeOtps.get(targetEmail);
+
+  if (!record) {
+    return res.status(400).json({ valid: false, message: 'No OTP requested or OTP has expired.' });
+  }
+
+  if (Date.now() > record.expiresAt) {
+    activeOtps.delete(targetEmail);
+    return res.status(400).json({ valid: false, message: 'OTP has expired. Please request a new one.' });
+  }
+
+  if (record.otp !== String(otp).trim()) {
+    return res.status(400).json({ valid: false, message: 'Incorrect OTP entered. Please try again.' });
+  }
+
+  res.json({ valid: true, message: 'OTP verified successfully.' });
+});
+
+// 3. Change Admin Credentials
+app.post('/api/auth/change-credentials', async (req, res) => {
+  try {
+    const { newUsername, newPassword, adminEmail } = req.body || {};
+
+    if (!newUsername || !newPassword) {
+      return res.status(400).json({ success: false, message: 'New username and password are required.' });
+    }
+
+    // Read current DB and update auth
+    let currentData = null;
+    if (fs.existsSync(DB_FILE)) {
+      currentData = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+    }
+    if (!currentData && pgPool) {
+      const q = await pgPool.query("SELECT data FROM adhira_store WHERE key = 'main_db'");
+      if (q.rowCount > 0) currentData = q.rows[0].data;
+    }
+
+    if (currentData) {
+      if (!currentData.auth) currentData.auth = {};
+      currentData.auth.username = String(newUsername).trim();
+      currentData.auth.password = String(newPassword).trim();
+      if (adminEmail) currentData.auth.adminEmail = String(adminEmail).trim();
+      currentData.auth.lastUpdated = new Date().toISOString();
+
+      // Save to file
+      const tempFile = DB_FILE + '.tmp';
+      fs.writeFileSync(tempFile, JSON.stringify(currentData, null, 2), 'utf8');
+      fs.renameSync(tempFile, DB_FILE);
+
+      // Save to PostgreSQL if connected
+      if (pgPool) {
+        await pgPool.query(
+          "INSERT INTO adhira_store (key, data, updated_at) VALUES ('main_db', $1, NOW()) ON CONFLICT (key) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()",
+          [currentData]
+        );
+      }
+    }
+
+    console.log(`[Auth] Admin credentials updated: Username changed to "${newUsername}".`);
+
+    res.json({
+      success: true,
+      message: 'Admin credentials updated successfully! Please login with your new credentials.'
+    });
+  } catch (err) {
+    console.error('[Auth] Error updating credentials:', err);
+    res.status(500).json({ error: 'Failed to update credentials: ' + err.message });
+  }
+});
+
+// 4. Admin Login Verification
+app.post('/api/auth/login', (req, res) => {
+  const { username, password } = req.body || {};
+  let currentAuth = { username: 'admin', password: 'admin' };
+  try {
+    if (fs.existsSync(DB_FILE)) {
+      const data = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+      if (data && data.auth) currentAuth = data.auth;
+    }
+  } catch (e) {}
+
+  const inputUser = String(username || '').trim();
+  const inputPass = String(password || '').trim();
+
+  if (inputUser === currentAuth.username && inputPass === currentAuth.password) {
+    res.json({
+      success: true,
+      message: 'Login successful',
+      user: { username: currentAuth.username, role: 'Admin' }
+    });
+  } else {
+    res.status(401).json({ success: false, message: 'Invalid username or password.' });
+  }
+});
+
+// --- OFFICIAL GOVERNMENT GST / E-WAY BILL & E-INVOICE ARCHITECTURE ENDPOINTS ---
+
+// E-Way Bill Generation (Strict: Returns unconfigured error if no live credentials)
+app.post('/api/eway-bills/generate', (req, res) => {
+  const isLiveConfigured = Boolean(process.env.EWB_CLIENT_ID && process.env.EWB_CLIENT_SECRET && process.env.EWB_USERNAME);
+  if (!isLiveConfigured) {
+    return res.status(400).json({
+      success: false,
+      status: 'UNCONFIGURED',
+      error: 'Government E-Way Bill integration is not configured.',
+      message: 'Official NIC/GSP API credentials must be configured in Settings to generate official government E-Way Bills. No fake EWB numbers are generated.',
+      officialResponse: null
+    });
+  }
+  res.status(501).json({ error: 'Provider connected but live credentials pending activation.' });
+});
+
+// E-Invoice Generation (Strict: Returns unconfigured error if no live credentials)
+app.post('/api/einvoices/generate', (req, res) => {
+  const isLiveConfigured = Boolean(process.env.EINV_CLIENT_ID && process.env.EINV_CLIENT_SECRET && process.env.EINV_USERNAME);
+  if (!isLiveConfigured) {
+    return res.status(400).json({
+      success: false,
+      status: 'UNCONFIGURED',
+      error: 'Government E-Invoice integration is not configured.',
+      message: 'Official IRP / GSP API credentials must be configured in Settings to generate official government IRN. No fake IRNs are generated.',
+      officialResponse: null
+    });
+  }
+  res.status(501).json({ error: 'Provider connected but live credentials pending activation.' });
 });
 
 // Serve static frontend files with no-cache for fresh edits
