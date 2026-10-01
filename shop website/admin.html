@@ -2081,6 +2081,59 @@
                 </div>
               </div>
 
+              <!-- ========================================================= -->
+              <!-- CLOUDINARY MEDIA STORAGE (25 GB FREE CDN)                 -->
+              <!-- ========================================================= -->
+              <div style="margin-top: 24px; background: rgba(59, 130, 246, 0.06); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 12px; padding: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 12px;">
+                  <div style="font-weight: 800; font-size: 16px; color: #60a5fa; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-cloud-arrow-up" style="font-size: 18px;"></i>
+                    Cloudinary Media CDN (25 GB Free Storage &amp; Bandwidth)
+                  </div>
+                  <span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); padding: 4px 10px; font-weight: 700;">
+                    <i class="fa-solid fa-images"></i> High-Res Photos &amp; Video CDN
+                  </span>
+                </div>
+                <p style="font-size: 13px; color: #94a3b8; margin-bottom: 14px; line-height: 1.6;">
+                  Use Cloudinary to store hundreds of cracker photos and demo videos with <strong>25 GB Free monthly allowance</strong> and automatic WebP/video optimization.
+                </p>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 16px;">
+                  <div class="form-group">
+                    <label style="font-size: 12px; color: var(--text-muted); font-weight: 700;">Cloudinary Cloud Name</label>
+                    <input type="text" id="cfg_cloudinary_cloud_name" class="form-control no-icon" placeholder="e.g. adhiracrackers">
+                  </div>
+                  <div class="form-group">
+                    <label style="font-size: 12px; color: var(--text-muted); font-weight: 700;">Upload Preset (Unsigned)</label>
+                    <input type="text" id="cfg_cloudinary_upload_preset" class="form-control no-icon" placeholder="e.g. adhira_preset">
+                  </div>
+                </div>
+
+                <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                  <button type="button" class="btn btn-primary" onclick="saveCloudinaryConfig()" style="background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%); border: none;">
+                    <i class="fa-solid fa-floppy-disk"></i> Save Cloudinary Settings
+                  </button>
+                  <button type="button" class="btn btn-secondary" onclick="testCloudinaryConfig()">
+                    <i class="fa-solid fa-vial"></i> Test Cloudinary Connection
+                  </button>
+                  <a href="https://cloudinary.com/users/register_free" target="_blank" class="btn btn-secondary" style="text-decoration: none;">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i> Get Free Cloudinary Account
+                  </a>
+                </div>
+                <div id="cloudinaryTestFeedback" style="margin-top: 12px; font-size: 13px; font-weight: 600;"></div>
+
+                <!-- 30-Second Cloudinary Guide -->
+                <div style="margin-top: 16px; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 12px 16px; font-size: 12.5px; color: #cbd5e1; line-height: 1.7;">
+                  <strong style="color: #60a5fa;">⚡ How to set up Cloudinary in 1 minute (Free 25 GB):</strong>
+                  <ol style="margin-left: 20px; margin-top: 4px;">
+                    <li>Create a free account at <a href="https://cloudinary.com/users/register_free" target="_blank" style="color: #60a5fa;">cloudinary.com</a>.</li>
+                    <li>Copy your <strong>Cloud Name</strong> from the dashboard (shown at the top) and paste it above.</li>
+                    <li>In Cloudinary, click the <strong>Settings (gear icon)</strong> &rarr; <strong>Upload</strong> tab &rarr; scroll down to <strong>Upload presets</strong> &rarr; click <strong>Add upload preset</strong>.</li>
+                    <li>Set <strong>Signing Mode</strong> to <strong>Unsigned</strong> &rarr; click <strong>Save</strong>. Copy that preset name and paste it above!</li>
+                  </ol>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
@@ -3227,6 +3280,56 @@
         }
       } catch (err) {
         if (fb) fb.innerHTML = `<span style="color: #ef4444;"><i class="fa-solid fa-circle-xmark"></i> Error: ${err.message}</span>`;
+      }
+    }
+
+    async function saveCloudinaryConfig() {
+      const name = (document.getElementById('cfg_cloudinary_cloud_name')?.value || '').trim();
+      const preset = (document.getElementById('cfg_cloudinary_upload_preset')?.value || '').trim();
+      try {
+        localStorage.setItem('athira_c_name', name);
+        localStorage.setItem('athira_c_preset', preset);
+        if (window.SupabaseAPI) {
+          await window.SupabaseAPI.saveSettings({ cloudinary_cloud_name: name, cloudinary_upload_preset: preset });
+        }
+        showToast('Cloudinary settings saved successfully!');
+      } catch (e) {
+        showToast('Saved locally in browser', 'info');
+      }
+    }
+
+    async function testCloudinaryConfig() {
+      const fb = document.getElementById('cloudinaryTestFeedback');
+      const name = (document.getElementById('cfg_cloudinary_cloud_name')?.value || '').trim();
+      const preset = (document.getElementById('cfg_cloudinary_upload_preset')?.value || '').trim();
+
+      if (!name || !preset) {
+        if (fb) fb.innerHTML = '<span style="color: #ef4444;"><i class="fa-solid fa-circle-xmark"></i> Please enter both Cloud Name and Upload Preset first.</span>';
+        return;
+      }
+
+      if (fb) fb.innerHTML = '<span style="color: var(--primary);"><i class="fa-solid fa-spinner fa-spin"></i> Testing Cloudinary unsigned upload...</span>';
+
+      try {
+        const blob = new Blob([new Uint8Array([0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x01, 0x00, 0x01, 0x00, 0x80, 0x00, 0x00, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x21, 0xf9, 0x04, 0x01, 0x00, 0x00, 0x00, 0x00, 0x2c, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x02, 0x02, 0x44, 0x01, 0x00, 0x3b])], { type: 'image/gif' });
+        const fd = new FormData();
+        fd.append('file', blob, 'test.gif');
+        fd.append('upload_preset', preset);
+
+        const res = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(name)}/image/upload`, {
+          method: 'POST',
+          body: fd
+        });
+        const data = await res.json();
+        if (data.secure_url) {
+          if (fb) fb.innerHTML = `<span style="color: #10b981;"><i class="fa-solid fa-circle-check"></i> Cloudinary Connected Successfully! 25 GB Free CDN is active.</span>`;
+          showToast('Cloudinary connected successfully!');
+          saveCloudinaryConfig();
+        } else {
+          if (fb) fb.innerHTML = `<span style="color: #ef4444;"><i class="fa-solid fa-triangle-exclamation"></i> Error: ${data.error?.message || 'Check Cloud Name or make sure Signing Mode is set to Unsigned.'}</span>`;
+        }
+      } catch (err) {
+        if (fb) fb.innerHTML = `<span style="color: #ef4444;"><i class="fa-solid fa-circle-xmark"></i> Connection error: ${err.message}</span>`;
       }
     }
 
@@ -4468,6 +4571,12 @@ Wish you a Happy & Safe Diwali! 💥`;
       if (s.map_embed || s.address) {
         updateAdminMapPreview(s.map_embed || '');
       }
+
+      // Populate Cloudinary settings
+      const cNameInput = document.getElementById('cfg_cloudinary_cloud_name');
+      const cPresetInput = document.getElementById('cfg_cloudinary_upload_preset');
+      if (cNameInput) cNameInput.value = s.cloudinary_cloud_name || localStorage.getItem('athira_c_name') || '';
+      if (cPresetInput) cPresetInput.value = s.cloudinary_upload_preset || localStorage.getItem('athira_c_preset') || '';
     }
 
     async function saveSettingsForm() {
@@ -5025,46 +5134,48 @@ Wish you a Happy & Safe Diwali! 💥`;
 
       showToast(`Uploading ${file.name}...`, 'info');
 
-      // Convert to Base64
-      const reader = new FileReader();
-      reader.onload = async function(e) {
-        const base64Data = e.target.result;
-        try {
-          let resData;
-          if (isPhp) {
-            // PHP FormData
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('type', folderType);
-            const res = await fetch(`${apiBase}?action=upload`, { method: 'POST', body: formData });
-            resData = await res.json();
-          } else {
-            // Node Base64
-            const res = await fetch(`${apiBase}/upload`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                filename: file.name,
-                type: folderType,
-                base64: base64Data
-              })
-            });
-            resData = await res.json();
-          }
-
-          if (resData.success) {
-            document.getElementById(targetInputId).value = resData.url;
-            showToast('File uploaded successfully!');
-            if (callback) callback();
-          } else {
-            showToast(resData.error || 'Upload failed', 'error');
-          }
-        } catch (err) {
-          console.error(err);
-          showToast('Upload error', 'error');
+      // Upload using SupabaseAPI (with Cloudinary 25GB or Supabase Storage)
+      try {
+        let resData;
+        if (window.SupabaseAPI) {
+          resData = await window.SupabaseAPI.uploadFile(file, folderType);
+        } else if (isPhp) {
+          // PHP FormData fallback
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('type', folderType);
+          const res = await fetch(`${apiBase}?action=upload`, { method: 'POST', body: formData });
+          resData = await res.json();
+        } else {
+          // Node Base64 fallback
+          const reader = new FileReader();
+          resData = await new Promise((resolve, reject) => {
+            reader.onload = async function(e) {
+              try {
+                const res = await fetch(`${apiBase}/upload`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ filename: file.name, type: folderType, base64: e.target.result })
+                });
+                resolve(await res.json());
+              } catch(err) { reject(err); }
+            };
+            reader.readAsDataURL(file);
+          });
         }
-      };
-      reader.readAsDataURL(file);
+
+        if (resData && resData.success) {
+          document.getElementById(targetInputId).value = resData.url;
+          const prov = resData.provider === 'cloudinary' ? 'Cloudinary CDN (25GB)' : 'Supabase Storage';
+          showToast(`File uploaded successfully via ${prov}!`);
+          if (callback) callback();
+        } else {
+          showToast((resData && resData.error) || 'Upload failed', 'error');
+        }
+      } catch (err) {
+        console.error(err);
+        showToast('Upload error: ' + err.message, 'error');
+      }
     }
 
     // Video Player Modal

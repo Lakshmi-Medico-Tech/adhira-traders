@@ -563,15 +563,64 @@
     return { success: true };
   }
 
-  // ── FILE UPLOAD (Supabase Storage) ────────────────────────
+  // ── FILE UPLOAD (Cloudinary CDN 25GB or Supabase Storage) ──
   async function uploadFile(file, folderType) {
-    var sb = getClient();
-    if (!sb) return { success: false, error: 'Not initialised' };
     var ext = file.name.split('.').pop().toLowerCase();
-    var uName = 'media_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '.' + ext;
-    var filePath = (folderType || 'products') + '/' + uName;
     var isVid = ['mp4', 'webm', 'mov', 'ogg'].indexOf(ext) !== -1;
     var mime = isVid ? ('video/' + ext) : ('image/' + ext);
+
+    // 1. Check if Cloudinary is configured in settings or localStorage
+    var cName = '';
+    var cPreset = '';
+    try {
+      var sb = getClient();
+      if (sb) {
+        var { data: rows } = await sb.from('settings').select('setting_key,setting_value').in('setting_key', ['cloudinary_cloud_name', 'cloudinary_upload_preset']);
+        if (rows) {
+          rows.forEach(function(r) {
+            if (r.setting_key === 'cloudinary_cloud_name') cName = (r.setting_value || '').trim();
+            if (r.setting_key === 'cloudinary_upload_preset') cPreset = (r.setting_value || '').trim();
+          });
+        }
+      }
+    } catch (e) {}
+
+    if (!cName) {
+      try { cName = localStorage.getItem('athira_c_name') || ''; } catch (e) {}
+    }
+    if (!cPreset) {
+      try { cPreset = localStorage.getItem('athira_c_preset') || ''; } catch (e) {}
+    }
+
+    // If Cloudinary configured, upload to Cloudinary (25 GB Free)
+    if (cName && cPreset) {
+      try {
+        var resourceType = isVid ? 'video' : 'image';
+        var fd = new FormData();
+        fd.append('file', file);
+        fd.append('upload_preset', cPreset);
+
+        var cRes = await fetch('https://api.cloudinary.com/v1_1/' + encodeURIComponent(cName) + '/' + resourceType + '/upload', {
+          method: 'POST',
+          body: fd
+        });
+        var cData = await cRes.json();
+        if (cData && cData.secure_url) {
+          return { success: true, url: cData.secure_url, filename: file.name, is_video: isVid, provider: 'cloudinary' };
+        } else if (cData && cData.error) {
+          console.warn('[Cloudinary Error]:', cData.error.message);
+          // Fall through to Supabase fallback
+        }
+      } catch (cErr) {
+        console.warn('[Cloudinary Upload Exception]:', cErr);
+      }
+    }
+
+    // 2. Fallback to Supabase Storage
+    var sb = getClient();
+    if (!sb) return { success: false, error: 'Storage client not initialised' };
+    var uName = 'media_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '.' + ext;
+    var filePath = (folderType || 'products') + '/' + uName;
 
     var { error } = await sb.storage.from('media').upload(filePath, file, { contentType: mime, upsert: false });
     if (error) {
@@ -579,7 +628,7 @@
       return { success: false, error: error.message };
     }
     var pub = sb.storage.from('media').getPublicUrl(filePath);
-    return { success: true, url: pub.data.publicUrl, filename: uName, is_video: isVid };
+    return { success: true, url: pub.data.publicUrl, filename: uName, is_video: isVid, provider: 'supabase' };
   }
 
   // ── DB STATUS ─────────────────────────────────────────────
