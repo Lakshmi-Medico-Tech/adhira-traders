@@ -1,7 +1,0 @@
-/* Cloudflare Pages _redirects
-   All routes fall back to index.html (SPA behavior)
-   https://developers.cloudflare.com/pages/configuration/redirects/
-*/
-
-# SPA catch-all: serve index.html for every route
-/*    /index.html   200
