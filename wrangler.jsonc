@@ -1,0 +1,28 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "adhira-traders",
+  "compatibility_date": "2024-09-30",
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": ".",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "single-page-application",
+    "exclude": [
+      "node_modules/**",
+      "*.zip",
+      "*.tar.gz",
+      ".git/**",
+      "wrangler.jsonc",
+      "package.json",
+      "package-lock.json",
+      "api.php",
+      "config.php",
+      "index.php",
+      "admin.php",
+      "local-server.js"
+    ]
+  }
+}

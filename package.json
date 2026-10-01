@@ -1,15 +1,11 @@
 {
-  "name": "mothers-pyrotech-shop",
+  "name": "adhira-traders",
   "version": "1.0.0",
-  "description": "Mothers Pyrotech Sivakasi - Local Clone",
+  "description": "Athira Crackers / Adhira Traders - Sivakasi E-Commerce",
   "main": "server.js",
   "scripts": {
     "start": "node local-server.js",
-    "build": "echo \"Build ready\""
-  },
-  "dependencies": {
-    "@supabase/ssr": "^0.12.7",
-    "@supabase/supabase-js": "^2.117.2",
-    "express": "^4.18.2"
+    "build": "echo \"Static assets ready\"",
+    "deploy": "wrangler deploy"
   }
 }
