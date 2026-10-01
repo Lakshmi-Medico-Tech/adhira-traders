@@ -12,6 +12,10 @@ data/db.json
 data/*.json
 backups/
 *.tmp
+*.zip
+
+# Cloudflare
+.wrangler/
 
 # OS / editor
 Thumbs.db

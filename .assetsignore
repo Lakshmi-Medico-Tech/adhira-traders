@@ -1,0 +1,20 @@
+# Exclude non-web assets from Cloudflare Workers static upload
+node_modules/
+.git/
+.github/
+.wrangler/
+shop website/
+backups/
+data/
+*.zip
+*.sql
+*.md
+*.bat
+*.pdf
+server.js
+test_suite.js
+page.tsx
+utils/
+.env
+.env.local
+.env.production

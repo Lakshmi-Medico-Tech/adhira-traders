@@ -479,8 +479,9 @@
 
     /* Category Section */
     .category-section-block {
-      margin-bottom: 24px;
-      page-break-inside: avoid;
+      margin-bottom: 20px;
+      page-break-inside: auto;
+      break-inside: auto;
     }
     .category-header-ribbon {
       background: var(--theme-cat-bg);
@@ -496,6 +497,10 @@
       align-items: center;
       justify-content: space-between;
       gap: 10px;
+      page-break-inside: avoid;
+      break-inside: avoid;
+      page-break-after: avoid;
+      break-after: avoid;
     }
     .category-header-ribbon .cat-title-left {
       display: flex;
@@ -715,13 +720,19 @@
       font-style: italic;
     }
 
-    /* Print Specific Styles */
+    /* Print Specific Styles - Optimized for Zero Blank Gaps & Flawless A4 PDF Download */
     @media print {
+      @page {
+        size: A4 portrait;
+        margin: 6mm 6mm 6mm 6mm;
+      }
       body {
         background: #fff !important;
         color: #000 !important;
+        margin: 0 !important;
+        padding: 0 !important;
       }
-      .top-toolbar, .cat-jump-nav, #toastContainer {
+      .top-toolbar, .cat-jump-nav, #toastContainer, #toast {
         display: none !important;
       }
       .price-list-wrapper {
@@ -731,23 +742,94 @@
       }
       .price-list-sheet {
         box-shadow: none !important;
+        border: none !important;
         border-radius: 0 !important;
       }
-      .category-section-block {
-        page-break-inside: avoid;
-        margin-bottom: 16px;
-      }
       .sheet-header-banner {
+        padding: 12px 16px !important;
+        border-bottom: 2px solid var(--primary) !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
+      .sheet-header-banner .shop-logo-img {
+        width: 55px !important;
+        height: 55px !important;
+      }
+      .shop-title-area h1 {
+        font-size: 20px !important;
+      }
+      .sheet-contact-strip {
+        margin-top: 8px !important;
+        padding-top: 8px !important;
+        gap: 6px !important;
+        font-size: 10px !important;
+      }
+      .sheet-notice-banner {
+        padding: 6px 12px !important;
+        font-size: 10px !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+      .sheet-body {
+        padding: 10px 0 !important;
+      }
+      .stats-summary-grid {
+        gap: 6px !important;
+        margin-bottom: 12px !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+      .stat-box {
+        padding: 6px 8px !important;
+      }
+      .stat-box-val {
+        font-size: 14px !important;
+      }
+      .stat-box-lbl {
+        font-size: 9px !important;
+      }
+      .category-section-block {
+        page-break-inside: auto !important;
+        break-inside: auto !important;
+        margin-bottom: 10px !important;
+      }
       .category-header-ribbon {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+        padding: 5px 12px !important;
+        font-size: 11.5px !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
       .price-table {
+        page-break-inside: auto !important;
+        break-inside: auto !important;
+        border-collapse: collapse !important;
+        margin-bottom: 8px !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
+      }
+      .price-table tr {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+      .price-table th, .price-table td {
+        padding: 4px 6px !important;
+        font-size: 9.5px !important;
+      }
+      .col-img img, .thumb-mini {
+        width: 28px !important;
+        height: 28px !important;
+      }
+      .sheet-footer-section {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        margin-top: 14px !important;
+        padding-top: 10px !important;
       }
     }
 
@@ -952,15 +1034,23 @@
               <h4><i class="fa-solid fa-credit-card" style="color: #ea580c;"></i> Official Payment &amp; Bank Details</h4>
               <div class="pay-detail-row">
                 <span>Account Name:</span>
-                <strong id="bankAccName">Athira Crackers</strong>
+                <strong id="bankAccName">Athira Crackers / Adhira Pyrotech</strong>
               </div>
               <div class="pay-detail-row">
                 <span>Bank:</span>
                 <strong id="bankName">State Bank of India</strong>
               </div>
               <div class="pay-detail-row">
+                <span>Account No:</span>
+                <strong id="bankAccNo">38920192837</strong>
+              </div>
+              <div class="pay-detail-row">
                 <span>IFSC Code:</span>
                 <strong id="bankIfsc">SBIN0001234</strong>
+              </div>
+              <div class="pay-detail-row">
+                <span>Branch:</span>
+                <strong id="bankBranch">Sivakasi Town Branch</strong>
               </div>
               <div class="pay-detail-row">
                 <span>UPI ID:</span>
@@ -968,7 +1058,7 @@
               </div>
               <div class="pay-detail-row" style="border-bottom: none; margin-top: 10px;">
                 <span>WhatsApp Booking:</span>
-                <strong id="payWaText" style="color: #16a34a;">+91 89408 55376</strong>
+                <strong id="payWaText" style="color: #16a34a;">+91 63841 97583</strong>
               </div>
 
               <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 8px 10px; margin-top: 10px; font-size: 11px; color: #991b1b;">
@@ -1130,15 +1220,35 @@
       document.getElementById('stampBrandName').innerText = `For ${brandName} / ${companyName}`;
 
       // Bank Details
-      if (s.bank_details) {
-        const lines = s.bank_details.split('\n');
-        lines.forEach(l => {
-          if (l.toLowerCase().includes('account name:')) document.getElementById('bankAccName').innerText = l.split(':')[1].trim();
-          if (l.toLowerCase().includes('bank:')) document.getElementById('bankName').innerText = l.split(':')[1].trim();
-          if (l.toLowerCase().includes('ifsc:')) document.getElementById('bankIfsc').innerText = l.split(':')[1].trim();
-        });
+      if (s.bank_name) document.getElementById('bankName').innerText = s.bank_name;
+      if (s.account_name) document.getElementById('bankAccName').innerText = s.account_name;
+      if (s.account_no) {
+        const el = document.getElementById('bankAccNo');
+        if (el) el.innerText = s.account_no;
+      }
+      if (s.ifsc) document.getElementById('bankIfsc').innerText = s.ifsc;
+      if (s.branch) {
+        const el = document.getElementById('bankBranch');
+        if (el) el.innerText = s.branch;
       }
       if (s.upi_id) document.getElementById('bankUpi').innerText = s.upi_id;
+      if (s.bank_details && (!s.bank_name || !s.account_no)) {
+        const lines = s.bank_details.split('\n');
+        lines.forEach(l => {
+          const lower = l.toLowerCase();
+          if (lower.includes('account name:')) document.getElementById('bankAccName').innerText = l.split(':')[1].trim();
+          if (lower.includes('bank:')) document.getElementById('bankName').innerText = l.split(':')[1].trim();
+          if (lower.includes('a/c no:') || lower.includes('account no:')) {
+            const el = document.getElementById('bankAccNo');
+            if (el) el.innerText = l.split(':')[1].trim();
+          }
+          if (lower.includes('ifsc:')) document.getElementById('bankIfsc').innerText = l.split(':')[1].trim();
+          if (lower.includes('branch:')) {
+            const el = document.getElementById('bankBranch');
+            if (el) el.innerText = l.split(':')[1].trim();
+          }
+        });
+      }
       document.getElementById('payWaText').innerText = whatsapp;
 
       // Date
@@ -1247,8 +1357,12 @@
 
         let rowsHtml = catProducts.map(p => {
           const sno = globalSno++;
-          const sale = Number(p.sale_price || 0);
-          const orig = Number(p.orig_price || (sale > 0 ? Math.round(sale * 2.5) : 0));
+          const orig = Number(p.orig_price || 0);
+          // Dynamic calculation: if orig_price is present, Net Rate reflects active store discount %
+          let sale = Number(p.sale_price || 0);
+          if (orig > 0 && discount > 0) {
+            sale = Math.round(orig * (1 - discount / 100));
+          }
           const disPct = orig > sale ? Math.round(((orig - sale) / orig) * 100) : discount;
           const imgUrl = p.img || logo;
 
