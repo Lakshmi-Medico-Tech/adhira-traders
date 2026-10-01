@@ -1989,16 +1989,16 @@
                   </div>
                   <div class="form-group">
                     <label>MySQL Database Name <span style="color: var(--text-muted); font-size: 11px;">(from cPanel MySQL)</span></label>
-                    <input type="text" id="cfg_db_name" class="form-control no-icon" placeholder="e.g. cpaneluser_crackers" required>
+                    <input type="text" id="cfg_db_name" class="form-control no-icon" placeholder="digitechmarvels_adhiratraders_shop" value="digitechmarvels_adhiratraders_shop" required>
                   </div>
                   <div class="form-group">
                     <label>MySQL Username <span style="color: var(--text-muted); font-size: 11px;">(cPanel DB User)</span></label>
-                    <input type="text" id="cfg_db_user" class="form-control no-icon" placeholder="e.g. cpaneluser_admin" required>
+                    <input type="text" id="cfg_db_user" class="form-control no-icon" placeholder="digitechmarvels_adhiratraders_shop" value="digitechmarvels_adhiratraders_shop" required>
                   </div>
                   <div class="form-group">
                     <label>MySQL User Password</label>
                     <div style="position: relative;">
-                      <input type="password" id="cfg_db_pass" class="form-control no-icon" placeholder="Database User Password" style="padding-right: 40px;">
+                      <input type="password" id="cfg_db_pass" class="form-control no-icon" placeholder="Database User Password" value="Vishnulakshmi2515@" style="padding-right: 40px;">
                       <button type="button" onclick="togglePasswordVisibility('cfg_db_pass', this)" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer;">
                         <i class="fa-solid fa-eye"></i>
                       </button>
@@ -2845,6 +2845,7 @@
     const isNodeServer = (window.location.port === '4000') && !window.location.search.includes('backend=php');
     const isPhp = !isNodeServer || window.location.pathname.endsWith('.php') || window.location.search.includes('backend=php');
     const apiBase = isPhp ? 'api.php' : '/api';
+    const isSupabaseActive = () => !!(window.SupabaseAPI && typeof window.SupabaseAPI.isSupabaseMode === 'function' && window.SupabaseAPI.isSupabaseMode());
 
     // Show/Hide Toast
     function showToast(message, type = 'success') {
@@ -2890,8 +2891,8 @@
 
       try {
         let data;
-        // On Cloudflare / static hosting, use SupabaseAPI directly
-        if (window.SupabaseAPI && !isNodeServer) {
+        // On Cloudflare Pages/Workers, use SupabaseAPI directly; on cPanel / PHP, use api.php
+        if (isSupabaseActive()) {
           data = await window.SupabaseAPI.login(user, pass);
         } else {
           const url = isPhp ? `${apiBase}?action=login` : `${apiBase}/login`;
@@ -3054,8 +3055,8 @@
     async function loadSiteData() {
       try {
         let data;
-        // On Cloudflare / static hosting, use SupabaseAPI directly
-        if (window.SupabaseAPI && !isNodeServer) {
+        // On Cloudflare Pages/Workers, use SupabaseAPI directly; on cPanel / PHP, use api.php
+        if (isSupabaseActive()) {
           data = await window.SupabaseAPI.getSiteData();
           if (data.success) {
             currentData = data;
@@ -5155,13 +5156,13 @@ Wish you a Happy & Safe Diwali! 💥`;
 
       showToast(`Uploading ${file.name}...`, 'info');
 
-      // Upload using SupabaseAPI (with Cloudinary 25GB or Supabase Storage)
+      // Upload using SupabaseAPI on Cloudflare, or native cPanel PHP on cPanel
       try {
         let resData;
-        if (window.SupabaseAPI) {
+        if (isSupabaseActive()) {
           resData = await window.SupabaseAPI.uploadFile(file, folderType);
         } else if (isPhp) {
-          // PHP FormData fallback
+          // PHP FormData native cPanel upload
           const formData = new FormData();
           formData.append('file', file);
           formData.append('type', folderType);
