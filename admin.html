@@ -1820,6 +1820,56 @@
                 <textarea id="setting_address" class="form-control no-icon"></textarea>
               </div>
 
+              <!-- ===== GOOGLE MAPS LOCATION SECTION ===== -->
+              <div class="form-group" style="margin-top: 16px;">
+                <label style="font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px;">
+                  <i class="fa-solid fa-map-location-dot" style="color: var(--primary);"></i> Google Maps Location Embed / Coordinates
+                </label>
+                <input type="text" id="setting_map_embed" class="form-control no-icon" placeholder="https://maps.google.com/maps?q=... or leave blank to auto-embed from Factory Address" oninput="updateAdminMapPreview(this.value)">
+                <small style="color: var(--text-muted); font-size: 11.5px; margin-top: 5px; display: block;">
+                  Enter Google Maps embed iframe URL or location query. This will show an interactive map on the customer website footer.
+                </small>
+                <div id="adminMapPreviewWrap" style="margin-top: 10px; border-radius: 8px; overflow: hidden; display: none; border: 1px solid var(--border-color);">
+                  <iframe id="adminMapIframe" src="" width="100%" height="150" style="border:0;" loading="lazy"></iframe>
+                </div>
+              </div>
+
+              <!-- ===== OFFICIAL BANK & PAYMENT ACCOUNTS SECTION ===== -->
+              <div style="margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--border-color);">
+                <h4 style="display:flex; align-items:center; gap:10px; font-size:16px; font-weight:700; margin-bottom:14px; color:var(--primary);">
+                  <i class="fa-solid fa-building-columns"></i> Official Bank &amp; Payment Accounts
+                </h4>
+                <p style="font-size:13px; color:var(--text-muted); margin-bottom:18px;">
+                  Add, edit, or delete official bank account details and UPI ID. These details are automatically displayed in the wholesale price list (PDF) and website checkout section.
+                </p>
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:16px;">
+                  <div class="form-group">
+                    <label>Bank Name</label>
+                    <input type="text" id="setting_bank_name" class="form-control no-icon" placeholder="e.g. State Bank of India">
+                  </div>
+                  <div class="form-group">
+                    <label>Account Holder Name</label>
+                    <input type="text" id="setting_account_name" class="form-control no-icon" placeholder="e.g. Athira Crackers / Adhira Pyrotech">
+                  </div>
+                  <div class="form-group">
+                    <label>Account Number</label>
+                    <input type="text" id="setting_account_no" class="form-control no-icon" placeholder="e.g. 38920192837">
+                  </div>
+                  <div class="form-group">
+                    <label>IFSC Code</label>
+                    <input type="text" id="setting_ifsc" class="form-control no-icon" placeholder="e.g. SBIN0001234">
+                  </div>
+                  <div class="form-group">
+                    <label>Branch Name</label>
+                    <input type="text" id="setting_branch" class="form-control no-icon" placeholder="e.g. Sivakasi Town Branch">
+                  </div>
+                  <div class="form-group">
+                    <label>UPI ID (Google Pay / PhonePe / Paytm)</label>
+                    <input type="text" id="setting_upi_id" class="form-control no-icon" placeholder="e.g. adhira@upi">
+                  </div>
+                </div>
+              </div>
+
               <!-- ===== CHANGE PASSWORD SECTION ===== -->
               <div style="margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--border-color);">
                 <h4 style="display:flex; align-items:center; gap:10px; font-size:16px; font-weight:700; margin-bottom:18px; color:var(--primary);">
@@ -2088,33 +2138,39 @@
       <form id="productForm" onsubmit="handleProductSubmit(event)">
         <input type="hidden" id="prod_id">
 
+        <!-- Step 1: Select Category First -->
+        <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 10px; padding: 14px 18px; margin-bottom: 18px;">
+          <label style="color: var(--primary); font-size: 13px; font-weight: 800; text-transform: uppercase; display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-list-check"></i> Step 1: Select Product Category First *
+          </label>
+          <select id="prod_cat_id" class="form-control no-icon" required onchange="onCategoryChangedInModal(this.value)" style="margin-top: 8px; font-size: 14px; font-weight: 700; background: #131726; color: #fff;">
+          </select>
+          <div id="catPositionHint" style="font-size: 12px; color: #cbd5e1; margin-top: 6px;"></div>
+        </div>
+
         <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px;">
           <div class="form-group">
             <label>Product Name *</label>
             <input type="text" id="prod_name" class="form-control no-icon" required placeholder="e.g. 5&quot; Laxmi Special / 28 Chakkars">
           </div>
           <div class="form-group">
-            <label>Category *</label>
-            <select id="prod_cat_id" class="form-control no-icon" required></select>
+            <label>Position in Category</label>
+            <input type="number" id="prod_position" class="form-control no-icon" value="1" min="1" placeholder="1" title="Order inside the selected category">
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 14px;">
+        <div style="display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 14px;">
           <div class="form-group">
             <label>Package / Quantity Description</label>
             <input type="text" id="prod_desc" class="form-control no-icon" placeholder="e.g. 1 Box / 10 Pcs / 1 Pkt">
           </div>
           <div class="form-group">
-            <label>Original Price (₹) *</label>
-            <input type="number" step="0.01" id="prod_orig_price" class="form-control no-icon" required oninput="calcDiscount()">
+            <label>Original MRP (₹) *</label>
+            <input type="number" step="0.01" id="prod_orig_price" class="form-control no-icon" required oninput="onOrigPriceInput(this.value)" placeholder="e.g. 500">
           </div>
           <div class="form-group">
             <label>Sale / Offer Price (₹) *</label>
-            <input type="number" step="0.01" id="prod_sale_price" class="form-control no-icon" required oninput="calcDiscount()">
-          </div>
-          <div class="form-group">
-            <label>Website Position (Order)</label>
-            <input type="number" id="prod_position" class="form-control no-icon" value="1" min="1" placeholder="1">
+            <input type="number" step="0.01" id="prod_sale_price" class="form-control no-icon" required oninput="calcDiscount()" placeholder="Auto-calculated">
           </div>
         </div>
 
@@ -4212,6 +4268,17 @@ Wish you a Happy & Safe Diwali! 💥`;
       }
     }
 
+    function updateAdminMapPreview(val) {
+      const wrap = document.getElementById('adminMapPreviewWrap');
+      const iframe = document.getElementById('adminMapIframe');
+      const addr = document.getElementById('setting_address')?.value || 'Sivakasi, Tamil Nadu';
+      const targetUrl = val ? val.trim() : `https://maps.google.com/maps?q=${encodeURIComponent(addr)}&t=&z=14&ie=UTF8&iwloc=&output=embed`;
+      if (iframe && wrap) {
+        iframe.src = targetUrl;
+        wrap.style.display = 'block';
+      }
+    }
+
     // 6. Settings Population
     function populateSettings() {
       const s = currentData.settings || {};
@@ -4227,9 +4294,21 @@ Wish you a Happy & Safe Diwali! 💥`;
       if (annInput) annInput.value = s.notice_text || '';
       const annPreview = document.getElementById('announcementPreviewText');
       if (annPreview) annPreview.innerText = s.notice_text || 'No live announcement set';
+
+      if (s.map_embed || s.address) {
+        updateAdminMapPreview(s.map_embed || '');
+      }
     }
 
     async function saveSettingsForm() {
+      const bankName = (document.getElementById('setting_bank_name')?.value || '').trim();
+      const accName = (document.getElementById('setting_account_name')?.value || '').trim();
+      const accNo = (document.getElementById('setting_account_no')?.value || '').trim();
+      const ifsc = (document.getElementById('setting_ifsc')?.value || '').trim();
+      const branch = (document.getElementById('setting_branch')?.value || '').trim();
+      const upi = (document.getElementById('setting_upi_id')?.value || '').trim();
+      const mapEmbed = (document.getElementById('setting_map_embed')?.value || '').trim();
+
       const payload = {
         brand_name: document.getElementById('setting_brand_name').value.trim(),
         company_name: document.getElementById('setting_company_name').value.trim(),
@@ -4242,7 +4321,15 @@ Wish you a Happy & Safe Diwali! 💥`;
         discount_percent: parseFloat(document.getElementById('setting_discount_percent').value || 85),
         logo: document.getElementById('setting_logo').value.trim(),
         notice_text: document.getElementById('setting_notice_text').value.trim(),
-        address: document.getElementById('setting_address').value.trim()
+        address: document.getElementById('setting_address').value.trim(),
+        bank_name: bankName,
+        account_name: accName,
+        account_no: accNo,
+        ifsc: ifsc,
+        branch: branch,
+        upi_id: upi,
+        bank_details: `Account Name: ${accName || 'Athira Crackers'}\nBank: ${bankName || 'State Bank of India'}\nA/C No: ${accNo || '38920192837'}\nIFSC: ${ifsc || 'SBIN0001234'}\nBranch: ${branch || 'Sivakasi Town Branch'}`,
+        map_embed: mapEmbed
       };
 
       try {
@@ -4268,17 +4355,48 @@ Wish you a Happy & Safe Diwali! 💥`;
     // MODAL OPERATIONS
     // =========================================================
 
+    function onCategoryChangedInModal(catId) {
+      if (!catId) return;
+      const prodsInCat = (currentData.products || []).filter(p => Number(p.cat_id) === Number(catId));
+      const currentId = document.getElementById('prod_id').value;
+      if (!currentId) {
+        const nextPos = prodsInCat.length + 1;
+        document.getElementById('prod_position').value = nextPos;
+      }
+      const catObj = (currentData.categories || []).find(c => Number(c.id) === Number(catId));
+      const catName = catObj ? catObj.name : 'Category';
+      const hint = document.getElementById('catPositionHint');
+      if (hint) {
+        hint.innerHTML = `<i class="fa-solid fa-folder-open" style="color: var(--primary);"></i> Category: <strong>${catName}</strong> (Currently ${prodsInCat.length} products inside)`;
+      }
+    }
+
+    function onOrigPriceInput(val) {
+      const orig = parseFloat(val) || 0;
+      const discount = parseFloat(currentData.settings?.discount_percent) || 85;
+      if (orig > 0) {
+        const calculatedSale = Math.round(orig * (1 - discount / 100));
+        document.getElementById('prod_sale_price').value = calculatedSale;
+      }
+      calcDiscount();
+    }
+
     // Product Modal
     function openProductModal() {
       document.getElementById('productForm').reset();
       document.getElementById('prod_id').value = '';
-      document.getElementById('prod_position').value = currentData.products ? (currentData.products.length + 1) : 1;
       document.getElementById('productModalTitle').innerText = 'Add New Cracker Product';
       
       // Populate category dropdown
       const catSelect = document.getElementById('prod_cat_id');
-      catSelect.innerHTML = (currentData.categories || []).map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+      const cats = currentData.categories || [];
+      catSelect.innerHTML = cats.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+      if (cats.length > 0) {
+        catSelect.value = cats[0].id;
+        onCategoryChangedInModal(cats[0].id);
+      }
       
+      document.getElementById('discountNotice').innerText = '';
       updateImagePreview();
       updateVideoPreview();
       document.getElementById('productModal').classList.add('is-active');
@@ -4299,12 +4417,13 @@ Wish you a Happy & Safe Diwali! 💥`;
       document.getElementById('prod_sale_price').value = p.sale_price;
       document.getElementById('prod_img').value = p.img || '';
       document.getElementById('prod_video').value = p.video || '';
-      document.getElementById('prod_position').value = p.position !== undefined ? p.position : p.id;
+      document.getElementById('prod_position').value = p.position !== undefined ? p.position : 1;
       document.getElementById('prod_out_of_stock').checked = !!p.out_of_stock;
 
       const catSelect = document.getElementById('prod_cat_id');
       catSelect.innerHTML = (currentData.categories || []).map(c => `<option value="${c.id}">${c.name}</option>`).join('');
       catSelect.value = p.cat_id;
+      onCategoryChangedInModal(p.cat_id);
 
       document.getElementById('productModalTitle').innerText = `Edit Product #${p.id}`;
       calcDiscount();
@@ -4319,7 +4438,7 @@ Wish you a Happy & Safe Diwali! 💥`;
       const el = document.getElementById('discountNotice');
       if (orig > sale && orig > 0) {
         const pct = Math.round(((orig - sale) / orig) * 100);
-        el.innerText = `💥 Instant Customer Discount: ${pct}% OFF! (Saves ₹${(orig - sale).toFixed(2)})`;
+        el.innerText = `💥 Customer Discount: ${pct}% OFF! (Saves ₹${(orig - sale).toFixed(2)})`;
       } else {
         el.innerText = '';
       }
@@ -4652,21 +4771,27 @@ Wish you a Happy & Safe Diwali! 💥`;
     // POSITION & REORDERING HELPERS (Products & Categories)
     // =========================================================
     async function moveProduct(id, delta) {
-      let prods = [...(currentData.products || [])].sort((a, b) => 
-        Number(a.position !== undefined ? a.position : a.id) - Number(b.position !== undefined ? b.position : b.id)
-      );
-      const idx = prods.findIndex(p => p.id === id);
+      const prod = (currentData.products || []).find(p => p.id === id);
+      if (!prod) return;
+      const catId = prod.cat_id;
+
+      // Filter products only in this category
+      let catProds = (currentData.products || [])
+        .filter(p => Number(p.cat_id) === Number(catId))
+        .sort((a, b) => Number(a.position !== undefined ? a.position : a.id) - Number(b.position !== undefined ? b.position : b.id));
+
+      const idx = catProds.findIndex(p => p.id === id);
       if (idx === -1) return;
       const targetIdx = idx + delta;
-      if (targetIdx < 0 || targetIdx >= prods.length) return;
+      if (targetIdx < 0 || targetIdx >= catProds.length) return;
 
-      const currentPos = prods[idx].position !== undefined ? prods[idx].position : (idx + 1);
-      const targetPos = prods[targetIdx].position !== undefined ? prods[targetIdx].position : (targetIdx + 1);
-      
-      prods[idx].position = currentPos === targetPos ? (targetIdx + 1) : targetPos;
-      prods[targetIdx].position = currentPos === targetPos ? (idx + 1) : currentPos;
+      const currentPos = catProds[idx].position !== undefined ? catProds[idx].position : (idx + 1);
+      const targetPos = catProds[targetIdx].position !== undefined ? catProds[targetIdx].position : (targetIdx + 1);
 
-      const items = prods.map((p, i) => ({ id: p.id, position: p.position !== undefined ? p.position : (i + 1) }));
+      catProds[idx].position = currentPos === targetPos ? (targetIdx + 1) : targetPos;
+      catProds[targetIdx].position = currentPos === targetPos ? (idx + 1) : currentPos;
+
+      const items = catProds.map((p, i) => ({ id: p.id, position: p.position !== undefined ? p.position : (i + 1) }));
 
       try {
         const url = isPhp ? `${apiBase}?action=reorder-products` : `${apiBase}/products/reorder`;
@@ -4677,7 +4802,7 @@ Wish you a Happy & Safe Diwali! 💥`;
         });
         const resData = await res.json();
         if (resData.success) {
-          showToast('Product order updated');
+          showToast('Product order inside category updated');
           loadSiteData();
         }
       } catch (e) {
