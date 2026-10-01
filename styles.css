@@ -2949,6 +2949,7 @@ a {
   min-height: 100vh;
   width: 100%;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   background: radial-gradient(circle at top right, #1e2978 0%, #091a33 50%, #040d1a 100%);
