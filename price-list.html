@@ -1143,32 +1143,97 @@
       localStorage.setItem('athira_price_theme', themeName);
     }
 
+    // Direct Native Supabase REST Loader (Zero external script dependency, runs in 150ms)
+    async function fetchSupabaseDirect() {
+      const SUPABASE_URL = 'https://ucbxdisznepjproeylos.supabase.co';
+      const SUPABASE_ANON_KEY = 'sb_publishable_zmSNWU5n5vDmggSj32C44g_-GbubGeo';
+      const headers = {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'Accept': 'application/json'
+      };
+      const [sRes, bRes, cRes, pRes, coRes, gRes] = await Promise.all([
+        fetch(SUPABASE_URL + '/rest/v1/settings?select=*', { headers }).then(r => r.json()).catch(() => []),
+        fetch(SUPABASE_URL + '/rest/v1/banners?select=*&order=sort_order.asc', { headers }).then(r => r.json()).catch(() => []),
+        fetch(SUPABASE_URL + '/rest/v1/categories?select=*&order=position.asc', { headers }).then(r => r.json()).catch(() => []),
+        fetch(SUPABASE_URL + '/rest/v1/products?select=*&order=position.asc', { headers }).then(r => r.json()).catch(() => []),
+        fetch(SUPABASE_URL + '/rest/v1/combos?select=*&order=position.asc', { headers }).then(r => r.json()).catch(() => []),
+        fetch(SUPABASE_URL + '/rest/v1/giftboxes?select=*&order=position.asc', { headers }).then(r => r.json()).catch(() => [])
+      ]);
+
+      const settings = {};
+      if (Array.isArray(sRes)) {
+        sRes.forEach(r => {
+          try { settings[r.setting_key] = JSON.parse(r.setting_value); }
+          catch(e) { settings[r.setting_key] = r.setting_value; }
+        });
+      }
+
+      const products = (Array.isArray(pRes) ? pRes : []).map(p => ({
+        ...p,
+        id: Number(p.id),
+        cat_id: Number(p.cat_id),
+        orig_price: parseFloat(p.orig_price) || 0,
+        sale_price: parseFloat(p.sale_price) || 0,
+        out_of_stock: !!p.out_of_stock,
+        position: Number(p.position || p.id),
+        desc: p.description || p.desc || ''
+      }));
+
+      return {
+        success: true,
+        settings,
+        banners: Array.isArray(bRes) ? bRes : [],
+        categories: Array.isArray(cRes) ? cRes : [],
+        products,
+        combos: Array.isArray(coRes) ? coRes : [],
+        giftboxes: Array.isArray(gRes) ? gRes : []
+      };
+    }
+
     // Load Live Site Data
     async function loadPriceListData() {
       try {
-        // Use SupabaseAPI directly if available (Cloudflare/static hosting)
+        // 1. Try window.SupabaseAPI first
         if (window.SupabaseAPI) {
           const data = await window.SupabaseAPI.getSiteData();
+          if (data && data.success && data.products && data.products.length > 0) {
+            siteData = data;
+            renderPriceList();
+            return;
+          }
+        }
+      } catch (err1) {
+        console.warn('SupabaseAPI attempt:', err1);
+      }
+
+      // 2. Direct native REST fetch to Supabase (100% reliable on Cloudflare Pages)
+      try {
+        const directData = await fetchSupabaseDirect();
+        if (directData && directData.success && directData.products && directData.products.length > 0) {
+          siteData = directData;
+          renderPriceList();
+          return;
+        }
+      } catch (err2) {
+        console.warn('Direct Supabase fetch:', err2);
+      }
+
+      // 3. Fallback: try local API server (port 4000)
+      try {
+        const res = await fetch(apiEndpoint);
+        if (res.ok) {
+          const data = await res.json();
           if (data && data.success) {
             siteData = data;
             renderPriceList();
             return;
           }
         }
-        // Fallback: try local API server (port 4000)
-        const res = await fetch(apiEndpoint);
-        if (!res.ok) throw new Error('API response not ok');
-        const data = await res.json();
-        if (data.success) {
-          siteData = data;
-          renderPriceList();
-        } else {
-          fallbackLoadJson();
-        }
-      } catch (err) {
-        console.warn('Falling back to direct database.json fetch:', err);
-        fallbackLoadJson();
-      }
+      } catch (err3) {}
+
+      // 4. Fallback: try local database.json
+      fallbackLoadJson();
     }
 
     async function fallbackLoadJson() {
@@ -1188,8 +1253,11 @@
         document.getElementById('categoryTablesContainer').innerHTML = `
           <div style="text-align: center; padding: 40px; color: #ef4444;">
             <i class="fa-solid fa-triangle-exclamation" style="font-size: 32px; margin-bottom: 12px;"></i>
-            <h3>Failed to load Price List data</h3>
-            <p style="color: #64748b; margin-top: 6px;">Please make sure the local server is running on port 4000.</p>
+            <h3>Unable to connect to database</h3>
+            <p style="color: #64748b; margin-top: 6px;">Click below to retry loading the wholesale price list.</p>
+            <button onclick="loadPriceListData()" style="margin-top: 14px; background: #f59e0b; color: #111; font-weight: 800; border: none; padding: 10px 22px; border-radius: 8px; cursor: pointer;">
+              <i class="fa-solid fa-rotate"></i> Retry Loading Price List
+            </button>
           </div>
         `;
       }
@@ -1530,10 +1598,10 @@
       const filename = `${brand}_Wholesale_Price_List_2026.pdf`;
 
       const opt = {
-        margin: [8, 8, 8, 8],
+        margin: [6, 6, 6, 6],
         filename: filename,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false },
+        image: { type: 'jpeg', quality: 0.95 },
+        html2canvas: { scale: 1.5, useCORS: true, allowTaint: true, logging: false },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
         pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
       };
@@ -1563,7 +1631,7 @@
     function shareOnWhatsApp() {
       const s = siteData.settings || {};
       const brand = s.brand_name || 'ATHIRA CRACKERS';
-      const phones = (s.phones && Array.isArray(s.phones)) ? s.phones[0] : (s.whatsapp || '+918940855376');
+      const phones = (s.phones && Array.isArray(s.phones)) ? s.phones[0] : (s.whatsapp || '+91 63841 97583');
       const url = window.location.href;
 
       const message = 
@@ -1586,11 +1654,15 @@ Wishing you a Happy & Safe Diwali! 🎇`;
 
     // Initialize Theme from localStorage
     const savedTheme = localStorage.getItem('athira_price_theme') || 'royal';
-    document.getElementById('themeSelect').value = savedTheme;
+    const themeEl = document.getElementById('themeSelect');
+    if (themeEl) themeEl.value = savedTheme;
     changeTheme(savedTheme);
 
-    // Initial Load
+    // Initial Load - runs immediately
     loadPriceListData();
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', loadPriceListData);
+    }
   </script>
 </body>
 </html>

@@ -3343,7 +3343,8 @@ i.fa, i.fas, i.fab, i.far, i.fa-solid, i.fa-brands, i[class*="fa-"],
 
 <script>
 (function() {
-    window.__wpStorePhones = ["+918940855376","+919443959680","8973320741"];
+    window.__wpStorePhones = ["+91 63838 24813"];
+    window.__wpStoreWhatsApp = "+91 63841 97583";
     window.__wpStoreEmails = ["motherskaruppasamy@gmail.com"];
 
     window.closeWpMobileDrawer = function() {
@@ -10647,13 +10648,15 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { clo
                                     <div class="robo-footer-contact-line" id="roboFooterPhonesWrap">
                         <i class="fa-solid fa-phone"></i>
                         <div class="robo-footer-contact-content" id="roboFooterPhones">
-                                                            <a href="tel:+918940855376">+918940855376</a>,                                                             <a href="tel:+919443959680">+919443959680</a>,                                                             <a href="tel:8973320741">8973320741</a>                                                    </div>
+                            <a href="tel:+916383824813">+91 63838 24813</a>
+                        </div>
                     </div>
                 
                                     <div class="robo-footer-contact-line" id="roboFooterEmailWrap">
                         <i class="fa-solid fa-envelope"></i>
                         <div class="robo-footer-contact-content" id="roboFooterEmail">
-                                                            <a href="mailto:motherskaruppasamy@gmail.com">motherskaruppasamy@gmail.com</a>                                                    </div>
+                            <a href="mailto:motherskaruppasamy@gmail.com">motherskaruppasamy@gmail.com</a>
+                        </div>
                     </div>
                 
                                     <div class="robo-footer-contact-line">
@@ -10690,6 +10693,9 @@ OLD RTO OFFICE, opposite SIVAKASI, Parapatti, Sivakasi, Tamil Nadu 626123</div>
         <div class="robo-footer-bottom-inner">
             <div class="robo-footer-copyright">
                 &copy; 2026 <strong>ATHIRA CRACKERS &amp; ADHIRA PYROTECH</strong>. All Rights Reserved.
+                <a href="./admin.html" style="color: #64748b; font-size: 11.5px; text-decoration: none; margin-left: 14px; display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 4px; background: rgba(255,255,255,0.05); transition: color 0.2s;" onmouseover="this.style.color='#f59e0b'" onmouseout="this.style.color='#64748b'" title="Owner / Staff Admin Login">
+                    <i class="fa-solid fa-lock" style="font-size: 10px;"></i> Staff Portal
+                </a>
             </div>
             <div class="robo-footer-credit" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end;">
                 <span style="display:inline-flex; align-items:center; gap:7px; background:linear-gradient(135deg,#1e3a8a,#0ea5e9); color:#fff; padding:5px 13px; border-radius:20px; font-size:12px; font-weight:800; letter-spacing:0.4px; box-shadow:0 2px 8px rgba(14,165,233,0.35);">
@@ -11071,7 +11077,7 @@ OLD RTO OFFICE, opposite SIVAKASI, Parapatti, Sivakasi, Tamil Nadu 626123</div>
     </div>
 
     <!-- WhatsApp & Call Plugins from StoreSetting -->
-    <a href="https://wa.me/918973320741?text=Hello%2C+I+have+an+inquiry+about+your+products."
+    <a href="https://wa.me/916384197583?text=Hello%2C+I+have+an+inquiry+about+your+products."
        target="_blank"
        rel="noopener"
        class="robo-wa-fab"
@@ -11088,7 +11094,7 @@ OLD RTO OFFICE, opposite SIVAKASI, Parapatti, Sivakasi, Tamil Nadu 626123</div>
                 class="robo-call-fab"
                 style="left: 20px !important; right: auto !important; top: auto !important; bottom: 144px !important;"
                 aria-label="Call Us"
-                title="Call Support"
+                title="Call Support (+91 63838 24813)"
                 onclick="toggleRoboCallMenu(event)">
             <i class="fa-solid fa-phone"></i>
         </button>
@@ -11097,16 +11103,10 @@ OLD RTO OFFICE, opposite SIVAKASI, Parapatti, Sivakasi, Tamil Nadu 626123</div>
                 <i class="fa-solid fa-phone-volume"></i> Select a number to call
             </div>
             <div class="robo-call-menu-list">
-                                    <a href="tel:+918940855376" class="robo-call-menu-item">
-                        <i class="fa-solid fa-phone"></i> <span>+918940855376</span>
-                    </a>
-                                    <a href="tel:+918610554869" class="robo-call-menu-item">
-                        <i class="fa-solid fa-phone"></i> <span>+918610554869</span>
-                    </a>
-                                    <a href="tel:+918973320741" class="robo-call-menu-item">
-                        <i class="fa-solid fa-phone"></i> <span>+918973320741</span>
-                    </a>
-                            </div>
+                <a href="tel:+916383824813" class="robo-call-menu-item">
+                    <i class="fa-solid fa-phone"></i> <span>+91 63838 24813</span>
+                </a>
+            </div>
         </div>
     </div>
 
@@ -13408,23 +13408,47 @@ document.addEventListener('keydown', function(e) {
     var isPhp = !isNodeServer || window.location.pathname.endsWith('.php') || window.location.search.includes('backend=php');
     var apiEndpoint = isPhp ? 'api.php?action=site-data' : '/api/site-data';
 
-    fetch(apiEndpoint)
-      .then(function(res) { return res.json(); })
-      .then(function(data) {
-        if (!data || !data.success) return;
+    function applySiteData(data) {
+      if (!data || !data.success) return;
+      
+      // Update Store Title & Branding
+      if (data.settings) {
+        var brand = data.settings.brand_name || 'ATHIRA CRACKERS';
+        if (data.settings.site_title) document.title = data.settings.site_title;
         
-        // Update Store Title & Branding
-        if (data.settings) {
-          var brand = data.settings.brand_name || 'ATHIRA CRACKERS';
-          if (data.settings.site_title) document.title = data.settings.site_title;
-          
-          // Update phone numbers
-          if (data.settings.whatsapp) {
-            window.__wpStorePhones = [data.settings.whatsapp];
+        // Update phone numbers from real backend
+        if (data.settings.whatsapp) {
+          window.__wpStoreWhatsApp = data.settings.whatsapp;
+        }
+        if (data.settings.phones) {
+          var phs = data.settings.phones;
+          if (typeof phs === 'string') {
+            try { phs = JSON.parse(phs); } catch(e) { phs = [phs]; }
           }
-          if (data.settings.phones && Array.isArray(data.settings.phones)) {
-            window.__wpStorePhones = data.settings.phones;
+          if (Array.isArray(phs) && phs.length > 0) {
+            window.__wpStorePhones = phs;
           }
+        }
+
+        // ── Real Backend Phone & WhatsApp on Floating Action Buttons ──
+        var waNum = (data.settings.whatsapp || '').replace(/[^0-9]/g, '') || '916384197583';
+        var waFab = document.querySelector('.robo-wa-fab');
+        if (waFab) {
+          waFab.href = 'https://wa.me/' + waNum + '?text=Hello%2C+I+have+an+inquiry+about+your+products.';
+        }
+
+        var phonesList = window.__wpStorePhones || ['+91 63838 24813'];
+        var callListEl = document.querySelector('.robo-call-menu-list');
+        if (callListEl && phonesList.length > 0) {
+          callListEl.innerHTML = phonesList.map(function(ph) {
+            var clean = ph.replace(/[^0-9+]/g, '');
+            return '<a href="tel:' + clean + '" class="robo-call-menu-item"><i class="fa-solid fa-phone"></i> <span>' + ph + '</span></a>';
+          }).join('');
+        }
+        var callFab = document.querySelector('.robo-call-fab');
+        if (callFab && phonesList.length > 0) {
+          callFab.setAttribute('title', 'Call Support (' + phonesList[0] + ')');
+        }
 
           // Update announcement marquee bar from DB
           var announcementBar = document.getElementById('announcementBar');
@@ -13722,11 +13746,77 @@ document.addEventListener('keydown', function(e) {
         if (window.calculateSummary) window.calculateSummary();
         if (typeof initProductScrollAnimations === 'function') initProductScrollAnimations();
         if (typeof applyFilters === 'function') applyFilters();
-      })
-      .catch(function(e) {
-        console.log('Running in static fallback mode:', e);
+    }
+
+    async function initSiteData() {
+      var data = null;
+      // 1. Supabase API
+      if (window.SupabaseAPI) {
+        try {
+          var sData = await window.SupabaseAPI.getSiteData();
+          if (sData && sData.success && sData.products && sData.products.length > 0) data = sData;
+        } catch (e1) {}
+      }
+      // 2. Direct REST fetch to Supabase (Zero dependency fallback)
+      if (!data || !data.success) {
+        try {
+          var SUPABASE_URL = 'https://ucbxdisznepjproeylos.supabase.co';
+          var SUPABASE_ANON_KEY = 'sb_publishable_zmSNWU5n5vDmggSj32C44g_-GbubGeo';
+          var headers = { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'Accept': 'application/json' };
+          var [sRes, bRes, cRes, pRes, coRes, gRes] = await Promise.all([
+            fetch(SUPABASE_URL + '/rest/v1/settings?select=*', { headers }).then(r => r.json()).catch(() => []),
+            fetch(SUPABASE_URL + '/rest/v1/banners?select=*&order=sort_order.asc', { headers }).then(r => r.json()).catch(() => []),
+            fetch(SUPABASE_URL + '/rest/v1/categories?select=*&order=position.asc', { headers }).then(r => r.json()).catch(() => []),
+            fetch(SUPABASE_URL + '/rest/v1/products?select=*&order=position.asc', { headers }).then(r => r.json()).catch(() => []),
+            fetch(SUPABASE_URL + '/rest/v1/combos?select=*&order=position.asc', { headers }).then(r => r.json()).catch(() => []),
+            fetch(SUPABASE_URL + '/rest/v1/giftboxes?select=*&order=position.asc', { headers }).then(r => r.json()).catch(() => [])
+          ]);
+          var settings = {};
+          if (Array.isArray(sRes)) {
+            sRes.forEach(function(r) {
+              try { settings[r.setting_key] = JSON.parse(r.setting_value); }
+              catch(e) { settings[r.setting_key] = r.setting_value; }
+            });
+          }
+          if (Array.isArray(cRes) && cRes.length > 0) {
+            data = {
+              success: true,
+              settings: settings,
+              banners: bRes || [],
+              categories: cRes || [],
+              products: pRes || [],
+              combos: coRes || [],
+              giftboxes: gRes || []
+            };
+          }
+        } catch (e2) {}
+      }
+      // 3. Fallback: try local apiEndpoint
+      if (!data || !data.success) {
+        try {
+          var res = await fetch(apiEndpoint);
+          if (res.ok) data = await res.json();
+        } catch (e3) {}
+      }
+      // 4. Fallback: try database.json
+      if (!data || !data.success) {
+        try {
+          var res2 = await fetch('./database.json');
+          if (res2.ok) data = await res2.json();
+        } catch (e4) {}
+      }
+
+      if (data && data.success) {
+        applySiteData(data);
+      } else {
         injectVideoBadges();
-      });
+      }
+    }
+
+    initSiteData();
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initSiteData);
+    }
 
     // Render Changing Banner Carousel Images
     function renderWebsiteBanners(banners) {
@@ -14221,7 +14311,7 @@ document.addEventListener('keydown', function(e) {
           lines.push('----------------------------------------');
           lines.push('Please confirm my cracker booking for Diwali! Thank you.');
 
-          var waNum = (window.__wpStorePhones && window.__wpStorePhones[0]) ? window.__wpStorePhones[0].replace(/[^0-9]/g, '') : '918940855376';
+          var waNum = (window.__wpStoreWhatsApp ? window.__wpStoreWhatsApp.replace(/[^0-9]/g, '') : '') || ((window.__wpStorePhones && window.__wpStorePhones[0]) ? window.__wpStorePhones[0].replace(/[^0-9]/g, '') : '916384197583');
           var waUrl = 'https://wa.me/' + waNum + '?text=' + encodeURIComponent(lines.join('\n'));
 
           btn.disabled = false;
@@ -14233,7 +14323,7 @@ document.addEventListener('keydown', function(e) {
         })
         .catch(function(err) {
           console.error(err);
-          var waNum = (window.__wpStorePhones && window.__wpStorePhones[0]) ? window.__wpStorePhones[0].replace(/[^0-9]/g, '') : '918940855376';
+          var waNum = (window.__wpStoreWhatsApp ? window.__wpStoreWhatsApp.replace(/[^0-9]/g, '') : '') || ((window.__wpStorePhones && window.__wpStorePhones[0]) ? window.__wpStorePhones[0].replace(/[^0-9]/g, '') : '916384197583');
           alert('Opening WhatsApp to send your order...');
           closeCheckoutModal();
           window.open('https://wa.me/' + waNum, '_blank');

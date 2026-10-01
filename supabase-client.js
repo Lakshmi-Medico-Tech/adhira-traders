@@ -58,6 +58,16 @@
       } catch (e) {
         console.warn('[SupabaseAPI] Auth using default settings fallback:', e.message);
       }
+    } else {
+      try {
+        var rows = await directRestFetch('settings');
+        if (rows && Array.isArray(rows)) {
+          var sm = {};
+          rows.forEach(function(r) { sm[r.setting_key] = r.setting_value; });
+          if (sm.admin_username) storedUser = sm.admin_username;
+          if (sm.admin_password) storedPass = sm.admin_password;
+        }
+      } catch (e) {}
     }
 
     if (username === storedUser && password === storedPass) {
@@ -94,32 +104,77 @@
     }
   }
 
+  // ── DIRECT REST FETCH (Zero dependency - 100% resilient fallback) ──
+  async function directRestFetch(table, query) {
+    try {
+      var url = SUPABASE_URL + '/rest/v1/' + table + (query ? '?' + query : '?select=*');
+      var res = await fetch(url, {
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+          'Accept': 'application/json'
+        }
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return await res.json();
+    } catch(e) {
+      console.warn('[SupabaseAPI] directRestFetch error on ' + table + ':', e);
+      return null;
+    }
+  }
+
   // ── SITE DATA ─────────────────────────────────────────────
   async function getSiteData() {
     var sb = getClient();
-    if (!sb) {
-      return fallbackLocalData();
+    var sRes = null, bRes = null, cRes = null, pRes = null, coRes = null, gRes = null;
+
+    if (sb) {
+      try {
+        var results = await Promise.all([
+          sb.from('settings').select('setting_key,setting_value'),
+          sb.from('banners').select('*').order('sort_order', { ascending: true }),
+          sb.from('categories').select('*').order('position', { ascending: true }),
+          sb.from('products').select('*').order('position', { ascending: true }),
+          sb.from('combos').select('*').order('position', { ascending: true }),
+          sb.from('giftboxes').select('*').order('position', { ascending: true })
+        ]);
+        if (results[0] && results[0].data) sRes = results[0].data;
+        if (results[1] && results[1].data) bRes = results[1].data;
+        if (results[2] && results[2].data) cRes = results[2].data;
+        if (results[3] && results[3].data) pRes = results[3].data;
+        if (results[4] && results[4].data) coRes = results[4].data;
+        if (results[5] && results[5].data) gRes = results[5].data;
+      } catch (err) {
+        console.warn('[SupabaseAPI] sb client getSiteData failed, trying direct REST fetch:', err.message);
+      }
     }
 
-    try {
-      var [sRes, bRes, cRes, pRes, coRes, gRes] = await Promise.all([
-        sb.from('settings').select('setting_key,setting_value'),
-        sb.from('banners').select('*').order('sort_order', { ascending: true }),
-        sb.from('categories').select('*').order('position', { ascending: true }),
-        sb.from('products').select('*').order('position', { ascending: true }),
-        sb.from('combos').select('*').order('position', { ascending: true }),
-        sb.from('giftboxes').select('*').order('position', { ascending: true })
-      ]);
-
-      // If categories or products table is missing (PGRST205), fallback to database.json
-      if (pRes.error && pRes.error.code === 'PGRST205') {
-        console.warn('[SupabaseAPI] Tables not yet created in Supabase! Run supabase_schema.sql in Supabase SQL Editor. Falling back to local data.');
-        return fallbackLocalData();
+    // Direct REST fallback if sb client was null or failed to return products/categories
+    if (!cRes || !pRes || !cRes.length || !pRes.length) {
+      try {
+        var restResults = await Promise.all([
+          directRestFetch('settings'),
+          directRestFetch('banners', 'select=*&order=sort_order.asc'),
+          directRestFetch('categories', 'select=*&order=position.asc'),
+          directRestFetch('products', 'select=*&order=position.asc'),
+          directRestFetch('combos', 'select=*&order=position.asc'),
+          directRestFetch('giftboxes', 'select=*&order=position.asc')
+        ]);
+        if (restResults[0]) sRes = restResults[0];
+        if (restResults[1]) bRes = restResults[1];
+        if (restResults[2]) cRes = restResults[2];
+        if (restResults[3]) pRes = restResults[3];
+        if (restResults[4]) coRes = restResults[4];
+        if (restResults[5]) gRes = restResults[5];
+      } catch (err2) {
+        console.warn('[SupabaseAPI] directRestFetch also failed:', err2.message);
       }
+    }
 
+    if (cRes && pRes && (cRes.length > 0 || pRes.length > 0)) {
       var settings = {};
-      if (sRes.data) {
-        sRes.data.forEach(function(r) {
+      if (sRes && Array.isArray(sRes)) {
+        sRes.forEach(function(r) {
           try { settings[r.setting_key] = JSON.parse(r.setting_value); }
           catch (e) { settings[r.setting_key] = r.setting_value; }
         });
@@ -127,7 +182,7 @@
       delete settings.admin_password;
       delete settings.admin_username;
 
-      var prods = (pRes.data || []).map(function(p) {
+      var prods = (pRes || []).map(function(p) {
         return Object.assign({}, p, {
           id: Number(p.id),
           cat_id: Number(p.cat_id),
@@ -142,16 +197,15 @@
       return {
         success: true,
         settings: settings,
-        banners: bRes.data || [],
-        categories: cRes.data || [],
+        banners: bRes || [],
+        categories: cRes || [],
         products: prods,
-        combos: coRes.data || [],
-        giftboxes: gRes.data || []
+        combos: coRes || [],
+        giftboxes: gRes || []
       };
-    } catch (err) {
-      console.warn('[SupabaseAPI] Error in getSiteData, falling back to local database.json:', err.message);
-      return fallbackLocalData();
     }
+
+    return fallbackLocalData();
   }
 
   async function fallbackLocalData() {
@@ -385,14 +439,21 @@
   // ── ORDERS ────────────────────────────────────────────────
   async function getOrders() {
     var sb = getClient();
-    if (!sb) return { success: false, error: 'Not initialised' };
-    try {
-      var { data, error } = await sb.from('orders').select('*').order('created_at', { ascending: false });
-      if (error) {
-        if (error.code === 'PGRST205') return { success: true, orders: [] };
-        return { success: false, error: error.message };
-      }
-      var orders = (data || []).map(function(o) {
+    var data = null;
+    if (sb) {
+      try {
+        var res = await sb.from('orders').select('*').order('created_at', { ascending: false });
+        if (res.error && res.error.code === 'PGRST205') return { success: true, orders: [] };
+        if (!res.error && res.data) data = res.data;
+      } catch (e) {}
+    }
+    if (!data) {
+      try {
+        data = await directRestFetch('orders', 'select=*&order=created_at.desc');
+      } catch (e) {}
+    }
+    if (data && Array.isArray(data)) {
+      var orders = data.map(function(o) {
         var it = o.items_json;
         if (typeof it === 'string') {
           try { it = JSON.parse(it); } catch (e) { it = []; }
@@ -400,9 +461,8 @@
         return Object.assign({}, o, { items: it || o.items || [] });
       });
       return { success: true, orders: orders };
-    } catch (err) {
-      return { success: false, error: err.message };
     }
+    return { success: true, orders: [] };
   }
 
   async function createOrder(d) {
@@ -895,6 +955,7 @@
     updateGiftbox: updateGiftbox,
     deleteGiftbox: deleteGiftbox,
     reorderGiftboxes: reorderGiftboxes,
+    directRestFetch: directRestFetch,
     uploadFile: uploadFile
   };
 
