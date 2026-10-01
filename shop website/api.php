@@ -730,6 +730,197 @@ if ($action === 'delete-product') {
     exit;
 }
 
+// D2. BULK PRODUCTS UPLOAD / UPDATE
+if ($action === 'bulk-products') {
+    $input = getJsonInput();
+    $products = $input['products'] ?? [];
+    $catNameMap = $input['catNameMap'] ?? [];
+
+    $data = readJsonDb();
+    if (!isset($data['products']) || !is_array($data['products'])) $data['products'] = [];
+    if (!isset($data['categories']) || !is_array($data['categories'])) $data['categories'] = [];
+
+    // Fallback: Populate catNameMap from JSON DB categories
+    foreach ($data['categories'] as $c) {
+        if (!empty($c['name'])) {
+            $key = strtoupper(trim($c['name']));
+            if (!isset($catNameMap[$key])) {
+                $catNameMap[$key] = (int)$c['id'];
+            }
+        }
+    }
+
+    // Fallback: Populate catNameMap from MySQL categories if available
+    if ($pdo) {
+        try {
+            $catRows = $pdo->query("SELECT id, UPPER(TRIM(name)) as uname FROM categories")->fetchAll();
+            foreach ($catRows as $crow) {
+                if (!empty($crow['uname']) && !isset($catNameMap[$crow['uname']])) {
+                    $catNameMap[$crow['uname']] = (int)$crow['id'];
+                }
+            }
+        } catch (Exception $e) {}
+    }
+
+    // Determine current discount percent for auto-calculated sale price
+    $discPercent = 85.0;
+    if (!empty($data['settings']['discount_percent'])) {
+        $discPercent = (float)$data['settings']['discount_percent'];
+    }
+    if ($pdo) {
+        try {
+            $stmt = $pdo->prepare("SELECT setting_value FROM settings WHERE setting_key = 'discount_percent'");
+            $stmt->execute();
+            $dVal = $stmt->fetchColumn();
+            if ($dVal !== false && is_numeric($dVal)) {
+                $discPercent = (float)$dVal;
+            }
+        } catch (Exception $e) {}
+    }
+
+    $added = 0;
+    $updated = 0;
+    $errors = [];
+
+    foreach ($products as $idx => $p) {
+        $rowNum = $p['_row'] ?? ($idx + 2);
+        $catKey = strtoupper(trim($p['categoryName'] ?? ''));
+        $catId = $catNameMap[$catKey] ?? null;
+
+        if (!$catId && !empty($p['cat_id'])) {
+            $catId = (int)$p['cat_id'];
+        }
+
+        if (!$catId) {
+            $errors[] = "Row {$rowNum}: Category '{$p['categoryName']}' not found";
+            continue;
+        }
+
+        $name = trim($p['name'] ?? '');
+        if (empty($name)) {
+            $errors[] = "Row {$rowNum}: Missing product name";
+            continue;
+        }
+
+        $origPrice = (float)($p['orig_price'] ?? 0);
+        $salePrice = (float)($p['sale_price'] ?? 0);
+        if ($salePrice <= 0 && $origPrice > 0) {
+            $salePrice = round($origPrice * (1 - $discPercent / 100));
+        }
+
+        $desc = trim($p['desc'] ?? ($p['description'] ?? ''));
+        $img = trim($p['img'] ?? '');
+        $video = trim($p['video'] ?? '');
+        $outOfStock = !empty($p['out_of_stock']) ? 1 : 0;
+        $pId = !empty($p['id']) ? (int)$p['id'] : null;
+
+        if ($pId) {
+            // UPDATE EXISTING
+            $foundInJson = false;
+            foreach ($data['products'] as &$jp) {
+                if ((int)$jp['id'] === $pId) {
+                    $jp['name'] = $name;
+                    $jp['cat_id'] = $catId;
+                    $jp['desc'] = $desc;
+                    $jp['orig_price'] = $origPrice;
+                    $jp['sale_price'] = $salePrice;
+                    if (!empty($img)) $jp['img'] = $img;
+                    if (!empty($video)) $jp['video'] = $video;
+                    $jp['out_of_stock'] = (bool)$outOfStock;
+                    $foundInJson = true;
+                    break;
+                }
+            }
+
+            if ($pdo) {
+                try {
+                    if (!empty($img) && !empty($video)) {
+                        $stmt = $pdo->prepare("UPDATE products SET name=?, cat_id=?, description=?, orig_price=?, sale_price=?, img=?, video=?, out_of_stock=? WHERE id=?");
+                        $stmt->execute([$name, $catId, $desc, $origPrice, $salePrice, $img, $video, $outOfStock, $pId]);
+                    } elseif (!empty($img)) {
+                        $stmt = $pdo->prepare("UPDATE products SET name=?, cat_id=?, description=?, orig_price=?, sale_price=?, img=?, out_of_stock=? WHERE id=?");
+                        $stmt->execute([$name, $catId, $desc, $origPrice, $salePrice, $img, $outOfStock, $pId]);
+                    } elseif (!empty($video)) {
+                        $stmt = $pdo->prepare("UPDATE products SET name=?, cat_id=?, description=?, orig_price=?, sale_price=?, video=?, out_of_stock=? WHERE id=?");
+                        $stmt->execute([$name, $catId, $desc, $origPrice, $salePrice, $video, $outOfStock, $pId]);
+                    } else {
+                        $stmt = $pdo->prepare("UPDATE products SET name=?, cat_id=?, description=?, orig_price=?, sale_price=?, out_of_stock=? WHERE id=?");
+                        $stmt->execute([$name, $catId, $desc, $origPrice, $salePrice, $outOfStock, $pId]);
+                    }
+                    $updated++;
+                } catch (Exception $e) {
+                    if ($foundInJson) {
+                        $updated++;
+                    } else {
+                        $errors[] = "Row {$rowNum}: Error updating product ID {$pId}: " . $e->getMessage();
+                    }
+                }
+            } else {
+                if ($foundInJson) {
+                    $updated++;
+                } else {
+                    $errors[] = "Row {$rowNum}: Product ID {$pId} not found to update";
+                }
+            }
+        } else {
+            // INSERT NEW
+            $position = 0;
+            foreach ($data['products'] as $jp) {
+                if ((int)($jp['cat_id'] ?? 0) === $catId) {
+                    $position++;
+                }
+            }
+            $position++;
+
+            if ($pdo) {
+                try {
+                    $stmt = $pdo->prepare("INSERT INTO products (cat_id, name, description, orig_price, sale_price, img, video, out_of_stock, position) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->execute([$catId, $name, $desc, $origPrice, $salePrice, $img, $video, $outOfStock, $position]);
+                    $newId = (int)$pdo->lastInsertId();
+                    $data['products'][] = [
+                        'id' => $newId,
+                        'cat_id' => $catId,
+                        'name' => $name,
+                        'desc' => $desc,
+                        'orig_price' => $origPrice,
+                        'sale_price' => $salePrice,
+                        'img' => $img,
+                        'video' => $video,
+                        'position' => $position,
+                        'out_of_stock' => (bool)$outOfStock
+                    ];
+                    $added++;
+                } catch (Exception $e) {
+                    $errors[] = "Row {$rowNum}: Failed to add product: " . $e->getMessage();
+                }
+            } else {
+                $maxId = 0;
+                foreach ($data['products'] as $jp) {
+                    if ((int)$jp['id'] > $maxId) $maxId = (int)$jp['id'];
+                }
+                $newId = $maxId + 1;
+                $data['products'][] = [
+                    'id' => $newId,
+                    'cat_id' => $catId,
+                    'name' => $name,
+                    'desc' => $desc,
+                    'orig_price' => $origPrice,
+                    'sale_price' => $salePrice,
+                    'img' => $img,
+                    'video' => $video,
+                    'position' => $position,
+                    'out_of_stock' => (bool)$outOfStock
+                ];
+                $added++;
+            }
+        }
+    }
+
+    writeJsonDb($data);
+    echo json_encode(['success' => true, 'added' => $added, 'updated' => $updated, 'errors' => $errors]);
+    exit;
+}
+
 if ($action === 'reorder-products') {
     $input = getJsonInput();
     $items = $input['items'] ?? [];
@@ -1455,6 +1646,7 @@ echo json_encode([
         'POST ?action=products',
         'POST ?action=update-product',
         'POST ?action=delete-product',
+        'POST ?action=bulk-products',
         'POST ?action=categories',
         'POST ?action=update-category',
         'POST ?action=delete-category',

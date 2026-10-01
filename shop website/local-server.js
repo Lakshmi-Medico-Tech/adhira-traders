@@ -171,6 +171,20 @@ const server = http.createServer(async (req, res) => {
     }
     
     db.settings = { ...db.settings, ...body };
+
+    // Automatically recalculate product sale prices when discount_percent is updated
+    if (body.discount_percent !== undefined) {
+      const disc = parseFloat(body.discount_percent);
+      if (disc > 0 && Array.isArray(db.products)) {
+        db.products.forEach(p => {
+          const orig = parseFloat(p.orig_price || 0);
+          if (orig > 0) {
+            p.sale_price = Math.round(orig * (1 - disc / 100));
+          }
+        });
+      }
+    }
+
     writeDb(db);
     return sendJson(res, 200, { success: true, settings: db.settings });
   }
@@ -278,20 +292,121 @@ define('ADMIN_PASS', 'admin123');
     return sendJson(res, 400, { success: false, error: 'Invalid items array' });
   }
 
+  // 4b. Bulk Products Upload / Update
+  if (pathname === '/api/products/bulk' && method === 'POST') {
+    const body = await parseRequestBody(req);
+    const db = readDb();
+    if (!Array.isArray(db.products)) db.products = [];
+    if (!Array.isArray(db.categories)) db.categories = [];
+    const products = Array.isArray(body.products) ? body.products : [];
+    const catNameMap = body.catNameMap || {};
+
+    // Build fallback map from db categories
+    db.categories.forEach(c => {
+      if (c && c.name) {
+        const key = c.name.trim().toUpperCase();
+        if (!catNameMap[key]) catNameMap[key] = c.id;
+      }
+    });
+
+    const discPercent = parseFloat(db.settings?.discount_percent) || 85;
+    let added = 0;
+    let updated = 0;
+    const errors = [];
+
+    products.forEach((p, index) => {
+      const rowNum = p._row || (index + 2);
+      const catKey = (p.categoryName || '').trim().toUpperCase();
+      let catId = catNameMap[catKey];
+
+      if (!catId && p.cat_id) {
+        catId = parseInt(p.cat_id, 10);
+      }
+      if (!catId) {
+        const foundCat = db.categories.find(c => c.name && c.name.trim().toUpperCase() === catKey);
+        if (foundCat) catId = foundCat.id;
+      }
+
+      if (!catId) {
+        errors.push(`Row ${rowNum}: Category "${p.categoryName || 'Unknown'}" not found`);
+        return;
+      }
+
+      const name = (p.name || '').trim();
+      if (!name) {
+        errors.push(`Row ${rowNum}: Missing product name`);
+        return;
+      }
+
+      const origPrice = parseFloat(p.orig_price) || 0;
+      let salePrice = parseFloat(p.sale_price) || 0;
+      if (salePrice <= 0 && origPrice > 0) {
+        salePrice = Math.round(origPrice * (1 - discPercent / 100));
+      }
+
+      const desc = (p.desc || p.description || '').trim();
+      const img = (p.img || '').trim();
+      const video = (p.video || '').trim();
+      const outOfStock = !!p.out_of_stock;
+      const pId = p.id ? parseInt(p.id, 10) : null;
+
+      if (pId && !isNaN(pId)) {
+        // UPDATE existing product by ID
+        const idx = db.products.findIndex(x => x.id === pId);
+        if (idx !== -1) {
+          db.products[idx].name = name;
+          db.products[idx].cat_id = catId;
+          db.products[idx].desc = desc;
+          db.products[idx].orig_price = origPrice;
+          db.products[idx].sale_price = salePrice;
+          if (img) db.products[idx].img = img;
+          if (video) db.products[idx].video = video;
+          db.products[idx].out_of_stock = outOfStock;
+          updated++;
+        } else {
+          errors.push(`Row ${rowNum}: Product ID ${pId} not found to update`);
+        }
+      } else {
+        // ADD new product
+        const maxId = db.products.reduce((max, x) => (x.id > max ? x.id : max), 0);
+        const prodsInCat = db.products.filter(x => Number(x.cat_id) === Number(catId));
+        const newProduct = {
+          id: maxId + 1,
+          cat_id: catId,
+          name: name,
+          desc: desc,
+          orig_price: origPrice,
+          sale_price: salePrice,
+          img: img,
+          video: video,
+          position: prodsInCat.length + 1,
+          out_of_stock: outOfStock
+        };
+        db.products.push(newProduct);
+        added++;
+      }
+    });
+
+    writeDb(db);
+    return sendJson(res, 200, { success: true, added, updated, errors });
+  }
+
   if (pathname === '/api/products' && method === 'POST') {
     const body = await parseRequestBody(req);
     const db = readDb();
     const maxId = db.products.reduce((max, p) => (p.id > max ? p.id : max), 0);
+    const catId = parseInt(body.cat_id || 1, 10);
+    const prodsInCat = (db.products || []).filter(p => Number(p.cat_id) === catId);
     const newProduct = {
       id: maxId + 1,
-      cat_id: parseInt(body.cat_id || 1, 10),
+      cat_id: catId,
       name: (body.name || '').trim(),
       desc: (body.desc || body.description || '').trim(),
       orig_price: parseFloat(body.orig_price || 0),
       sale_price: parseFloat(body.sale_price || 0),
       img: (body.img || '').trim(),
       video: (body.video || '').trim(),
-      position: parseInt(body.position || (maxId + 1), 10),
+      position: parseInt(body.position || (prodsInCat.length + 1), 10),
       out_of_stock: !!body.out_of_stock
     };
     db.products.push(newProduct);

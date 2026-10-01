@@ -16,6 +16,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,300;0,400;0,500;0,700;0,900;1,400;1,700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- Supabase Cloud DB Client (Cloudflare Pages Ready) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <script src="supabase-client.js"></script>
 
     <style>
         *, *::before, *::after {
@@ -174,23 +177,24 @@
             animation: ribbonHighlightPulse 1.2s ease-in-out;
         }
 
-        /* ===== BANNER CAROUSEL (FIXED CONSTANT HEIGHT, FULL SCREEN WIDTH) ===== */
+        /* ===== BANNER CAROUSEL (AUTO-FIT TO SIZE, FULLY VISIBLE, CLEAN WHITE BACKGROUND) ===== */
         .robo-banner-wrap {
             width: 100%;
             position: relative;
-            background: #0a0a0a;
+            background: #ffffff;
             overflow: hidden;
             margin: 0;
-            padding: 0;
+            padding: 8px 0 4px;
             line-height: 0;
         }
         .robo-banner-carousel {
             position: relative;
             width: 100%;
-            height: 380px;
-            max-height: 48vh;
+            max-width: 1320px;
+            margin: 0 auto;
+            padding: 0 16px;
             overflow: hidden;
-            background: #080c14;
+            background: transparent;
             line-height: 0;
             cursor: grab;
             user-select: none;
@@ -206,34 +210,52 @@
             inset: 0;
             width: 100%;
             height: 100%;
-            display: flex;
+            display: none;
             align-items: center;
             justify-content: center;
             opacity: 0;
             z-index: 1;
             pointer-events: none;
-            transition: opacity 0.5s ease;
+            transition: opacity 0.4s ease;
             line-height: 0;
         }
         .robo-banner-slide.active {
+            position: relative;
+            inset: auto;
+            width: 100%;
+            height: auto;
+            display: flex;
             opacity: 1;
             z-index: 2;
             pointer-events: auto;
         }
         .robo-banner-slide img {
             width: 100%;
-            height: 100%;
+            height: auto;
+            max-height: 380px;
             display: block;
             object-fit: contain;
             object-position: center center;
+            margin: 0 auto;
+            border-radius: 8px;
             user-select: none;
             -webkit-user-drag: none;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
         }
         @media (max-width: 768px) {
-            .robo-banner-carousel { height: 240px; }
+            .robo-banner-wrap { padding: 4px 0 2px; }
+            .robo-banner-carousel { padding: 0 8px; }
+            .robo-banner-slide img {
+                max-height: 240px;
+                border-radius: 6px;
+            }
         }
         @media (max-width: 480px) {
-            .robo-banner-carousel { height: 180px; }
+            .robo-banner-carousel { padding: 0 4px; }
+            .robo-banner-slide img {
+                max-height: 180px;
+                border-radius: 4px;
+            }
         }
         .robo-banner-dots {
             position: absolute;
@@ -13522,7 +13544,18 @@ document.addEventListener('keydown', function(e) {
         // 2. Apply updated product data, add new rows, remove deleted rows, sort by position
         if (data.products && Array.isArray(data.products)) {
           var disc2 = parseFloat((data.settings && data.settings.discount_percent) || window.__storeDiscount || 0);
+
+          var catOrderMap = {};
+          if (data.categories && Array.isArray(data.categories)) {
+            data.categories.forEach(function(c, idx) {
+              catOrderMap[c.id] = c.position !== undefined ? Number(c.position) : (idx + 1);
+            });
+          }
+
           var sortedProds = [...data.products].sort(function(a, b) {
+            var catA = catOrderMap[a.cat_id] !== undefined ? catOrderMap[a.cat_id] : 9999;
+            var catB = catOrderMap[b.cat_id] !== undefined ? catOrderMap[b.cat_id] : 9999;
+            if (catA !== catB) return catA - catB;
             return (Number(a.position !== undefined ? a.position : a.id) - Number(b.position !== undefined ? b.position : b.id));
           });
           var dbIds = sortedProds.map(function(p) { return String(p.id); });
@@ -13541,11 +13574,27 @@ document.addEventListener('keydown', function(e) {
             var catEl = document.getElementById('cat-section-' + p.cat_id);
             var tbody = catEl ? catEl.querySelector('tbody') : null;
 
-            // Compute prices
+            // Dynamically create category block if it doesn't exist yet
+            if (!catEl && data.categories) {
+              var cObj = data.categories.find(function(c) { return String(c.id) === String(p.cat_id); });
+              var cName = cObj ? cObj.name : ('Category ' + p.cat_id);
+              var catListWrap = document.getElementById('categoryBlocksList');
+              if (catListWrap) {
+                catEl = document.createElement('div');
+                catEl.className = 'robo-category-block';
+                catEl.id = 'cat-section-' + p.cat_id;
+                catEl.setAttribute('data-cat-id', p.cat_id);
+                catEl.innerHTML = '<div class="sticky-cat-header"><div class="cat-ribbon">' + cName + '</div></div><div class="category-table-wrap"><table class="robo-product-table"><tbody></tbody></table></div>';
+                catListWrap.appendChild(catEl);
+                tbody = catEl.querySelector('tbody');
+              }
+            }
+
+            // Compute prices based on active store discount
             var origPrice = parseFloat(p.orig_price || 0);
             var salePrice = parseFloat(p.sale_price || 0);
-            if (disc2 > 0 && origPrice > 0 && (!salePrice || salePrice === origPrice)) {
-              salePrice = parseFloat((origPrice * (1 - disc2 / 100)).toFixed(2));
+            if (disc2 > 0 && origPrice > 0) {
+              salePrice = Math.round(origPrice * (1 - disc2 / 100));
             }
 
             if (row) {

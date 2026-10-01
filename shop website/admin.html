@@ -9,6 +9,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" />
+  <!-- Supabase Cloud DB Client (Cloudflare Pages Ready) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="supabase-client.js"></script>
 
   <style>
     :root {
@@ -1237,11 +1240,12 @@
         border: none !important;
         padding: 10px 20px !important;
         margin: 0 !important;
-      }
-      .bill-watermark {
-        opacity: 0.15 !important;
+      .bill-watermark-logo, .bill-watermark-text, .bill-watermark {
+        opacity: 0.12 !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
+        display: block !important;
+        visibility: visible !important;
       }
       .bill-items-table th {
         background-color: #c61d23 !important;
@@ -1508,6 +1512,9 @@
                 <select id="productCatFilter" class="form-control" style="width: 200px; padding-left: 14px;" onchange="filterProductsTable()">
                   <option value="all">All Categories</option>
                 </select>
+                <button class="btn btn-secondary" onclick="openBulkUploadModal()" title="Upload CSV or Excel to add/update products in bulk">
+                  <i class="fa-solid fa-file-arrow-up"></i> Bulk Upload
+                </button>
                 <button class="btn btn-primary" onclick="openProductModal()">
                   <i class="fa-solid fa-plus"></i> New Product
                 </button>
@@ -1518,7 +1525,7 @@
               <table class="data-table">
                 <thead>
                   <tr>
-                    <th style="width: 60px;">ID</th>
+                    <th style="width: 75px;">Item #</th>
                     <th style="width: 140px;">Media (Img / Video)</th>
                     <th>Product Name</th>
                     <th>Category</th>
@@ -2025,6 +2032,55 @@
                 </ol>
               </div>
 
+              <!-- ========================================================= -->
+              <!-- SUPABASE CLOUD & CLOUDFLARE PAGES INTEGRATION             -->
+              <!-- ========================================================= -->
+              <div style="margin-top: 24px; background: rgba(16, 185, 129, 0.06); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px; padding: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 12px;">
+                  <div style="font-weight: 800; font-size: 16px; color: #34d399; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-cloud" style="font-size: 18px;"></i>
+                    Supabase Cloud PostgreSQL &amp; Cloudflare Pages
+                  </div>
+                  <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); padding: 4px 10px; font-weight: 700;">
+                    <i class="fa-solid fa-bolt"></i> Cloudflare Pages Native
+                  </span>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 16px;">
+                  <div style="background: rgba(0,0,0,0.25); padding: 12px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Supabase Project URL</div>
+                    <code style="color: #67e8f9; font-size: 13px; word-break: break-all;">https://ucbxdisznepjproeylos.supabase.co</code>
+                  </div>
+                  <div style="background: rgba(0,0,0,0.25); padding: 12px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Publishable Anon Key</div>
+                    <code style="color: #a7f3d0; font-size: 12px; word-break: break-all;">sb_publishable_zmSNWU5n5vDmggSj32C44g_-GbubGeo</code>
+                  </div>
+                </div>
+
+                <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                  <button type="button" class="btn btn-secondary" onclick="testSupabaseCloud()" style="background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.4); color: #34d399;">
+                    <i class="fa-solid fa-network-wired"></i> Test Supabase Connection
+                  </button>
+                  <a href="supabase_schema.sql" target="_blank" class="btn btn-secondary" style="text-decoration: none;">
+                    <i class="fa-solid fa-file-code"></i> View / Copy supabase_schema.sql
+                  </a>
+                  <a href="https://supabase.com/dashboard/project/ucbxdisznepjproeylos/sql/new" target="_blank" class="btn btn-primary" style="background: linear-gradient(135deg, #059669 0%, #10b981 100%); border: none; text-decoration: none;">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i> Open Supabase SQL Editor
+                  </a>
+                </div>
+                <div id="supabaseTestFeedback" style="margin-top: 12px; font-size: 13px; font-weight: 600;"></div>
+
+                <!-- 3-Step Setup Guide -->
+                <div style="margin-top: 16px; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 12px 16px; font-size: 12.5px; color: #cbd5e1; line-height: 1.7;">
+                  <strong style="color: #34d399;">⚡ Quick Supabase + Cloudflare Setup in 2 Minutes:</strong>
+                  <ol style="margin-left: 20px; margin-top: 4px;">
+                    <li>Click <strong>"View / Copy supabase_schema.sql"</strong> above (contains all 128 products, 13 categories, settings, and orders tables).</li>
+                    <li>Click <strong>"Open Supabase SQL Editor"</strong> &rarr; paste the SQL and click <strong>RUN</strong>. This creates all tables with live seed data.</li>
+                    <li>Deploy this folder to <strong>Cloudflare Pages</strong> (connect Git repository or drag &amp; drop via Cloudflare dashboard). Everything runs seamlessly via Supabase Cloud!</li>
+                  </ol>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
@@ -2127,6 +2183,49 @@
   <!-- ========================================================= -->
   <!-- 3. MODALS                                                 -->
   <!-- ========================================================= -->
+
+  <!-- BULK UPLOAD MODAL -->
+  <div id="bulkUploadModal" class="modal-overlay">
+    <div class="modal-dialog" style="max-width: 640px;">
+      <button class="modal-close-btn" onclick="closeBulkUploadModal()"><i class="fa-solid fa-xmark"></i></button>
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-file-arrow-up" style="color: var(--primary);"></i> Bulk Product Upload (CSV)</h3>
+      </div>
+
+      <!-- Format Instructions -->
+      <div style="background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.25); border-radius: 8px; padding: 14px 16px; margin-bottom: 18px; font-size: 12.5px; color: #94a3b8; line-height: 1.7;">
+        <div style="font-weight: 700; color: #60a5fa; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;"><i class="fa-solid fa-circle-info"></i> CSV Format Instructions</div>
+        <p>Upload a <strong>.csv</strong> file with these columns (first row = header, order matters):</p>
+        <code style="display: block; background: rgba(0,0,0,0.3); padding: 8px 10px; border-radius: 6px; margin: 8px 0; font-size: 11px; color: #e2e8f0; white-space: pre-wrap;">id, name, category, desc, orig_price, sale_price, img, video, out_of_stock</code>
+        <ul style="margin-left: 18px; margin-top: 4px; font-size: 12px;">
+          <li><strong>id</strong>: leave blank for new products, or set an existing product ID to update it</li>
+          <li><strong>category</strong>: exact category name (e.g. SOUND CRACKERS) — must already exist</li>
+          <li><strong>img / video</strong>: can be left blank or use existing path (e.g. ./storage/products/file.jpg)</li>
+          <li><strong>out_of_stock</strong>: 0 or 1</li>
+          <li>Existing products matched by <strong>ID</strong> will be <span style="color: #fbbf24;">updated</span>. Others will be <span style="color: #34d399;">added as new</span>.</li>
+        </ul>
+        <button class="btn btn-secondary" style="margin-top: 8px; font-size: 12px; padding: 5px 12px;" onclick="downloadBulkTemplate()">
+          <i class="fa-solid fa-download"></i> Download CSV Template
+        </button>
+      </div>
+
+      <!-- File picker -->
+      <div class="form-group">
+        <label>Select CSV File</label>
+        <input type="file" id="bulkCsvFile" accept=".csv,text/csv" class="form-control no-icon" style="padding: 10px;">
+      </div>
+
+      <!-- Result area -->
+      <div id="bulkUploadResult" style="display: none; margin-top: 12px; padding: 12px 14px; border-radius: 8px; font-size: 13px; line-height: 1.6;"></div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 18px;">
+        <button class="btn btn-secondary" onclick="closeBulkUploadModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="processBulkUpload()" id="bulkUploadBtn">
+          <i class="fa-solid fa-upload"></i> Upload & Apply
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- PRODUCT ADD / EDIT MODAL (WITH BOTH IMAGE & VIDEO) -->
   <div id="productModal" class="modal-overlay">
@@ -3109,6 +3208,28 @@
       }, 150);
     }
 
+    async function testSupabaseCloud() {
+      const fb = document.getElementById('supabaseTestFeedback');
+      if (fb) fb.innerHTML = '<span style="color: var(--primary);"><i class="fa-solid fa-spinner fa-spin"></i> Testing Supabase Cloud connection...</span>';
+      try {
+        if (!window.SupabaseAPI) {
+          if (fb) fb.innerHTML = '<span style="color: #ef4444;"><i class="fa-solid fa-circle-xmark"></i> Supabase library not loaded.</span>';
+          return;
+        }
+        const status = await window.SupabaseAPI.getDbStatus();
+        if (status.connected) {
+          const counts = status.table_counts || {};
+          if (fb) fb.innerHTML = `<span style="color: #10b981;"><i class="fa-solid fa-circle-check"></i> Connected to Supabase Cloud! Found ${counts.products || 0} products, ${counts.categories || 0} categories, ${counts.orders || 0} orders.</span>`;
+          showToast('Supabase Cloud is live & connected!');
+        } else {
+          if (fb) fb.innerHTML = `<span style="color: #f59e0b;"><i class="fa-solid fa-triangle-exclamation"></i> Connected to Supabase, but database tables are not yet created.<br>Click "Open Supabase SQL Editor" above, paste the contents of <strong>supabase_schema.sql</strong> and click <strong>RUN</strong>.</span>`;
+          showToast('Supabase tables not found. Run supabase_schema.sql', 'error');
+        }
+      } catch (err) {
+        if (fb) fb.innerHTML = `<span style="color: #ef4444;"><i class="fa-solid fa-circle-xmark"></i> Error: ${err.message}</span>`;
+      }
+    }
+
     function togglePasswordVisibility(id, btn) {
       const input = document.getElementById(id);
       if (!input) return;
@@ -3292,16 +3413,17 @@
 
       let lastCatId = null;
       let html = '';
+      let catItemNum = 0;
 
       prods.forEach(p => {
         const hasVideo = p.video && p.video.trim().length > 5;
         const discountPct = p.orig_price > p.sale_price ? Math.round(((p.orig_price - p.sale_price) / p.orig_price) * 100) : 0;
-        const pos = p.position !== undefined ? p.position : 1;
         const catName = catMap[p.cat_id] || 'General';
 
         // Add Category Divider Banner if category changes
         if (p.cat_id !== lastCatId) {
           lastCatId = p.cat_id;
+          catItemNum = 0; // Reset item number for each category
           const prodsInThisCat = (currentData.products || []).filter(item => Number(item.cat_id) === Number(p.cat_id));
           html += `
             <tr class="cat-group-row" style="background: linear-gradient(90deg, rgba(245, 158, 11, 0.16), rgba(30, 41, 59, 0.4)); border-top: 2px solid rgba(245, 158, 11, 0.5); border-bottom: 1px solid rgba(245, 158, 11, 0.25);">
@@ -3320,9 +3442,16 @@
           `;
         }
 
+        catItemNum++;
+        const pos = p.position !== undefined ? p.position : catItemNum;
+
         html += `
           <tr>
-            <td><strong style="color: #94a3b8;">${p.id}</strong></td>
+            <td>
+              <div style="display: inline-flex; align-items: center; justify-content: center; min-width: 32px; padding: 3px 8px; background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 6px; font-weight: 800; font-size: 12px;" title="Item #${catItemNum} inside ${catName}">
+                #${catItemNum}
+              </div>
+            </td>
             <td>
               <div class="media-preview-cell">
                 <img src="${p.img || './storage/settings/adhira-logo.jpg'}" 
@@ -4407,12 +4536,13 @@ Wish you a Happy & Safe Diwali! 💥`;
         const nextPos = prodsInCat.length + 1;
         document.getElementById('prod_position').value = nextPos;
       }
+      const totalInCat = prodsInCat.length + (currentId ? 0 : 1);
       const posLabel = document.getElementById('prod_position_label');
-      if (posLabel) posLabel.innerText = `Position in "${catName}" *`;
+      if (posLabel) posLabel.innerText = `Item Position in "${catName}" (1 to ${Math.max(1, totalInCat)}) *`;
 
       const hint = document.getElementById('catPositionHint');
       if (hint) {
-        hint.innerHTML = `<i class="fa-solid fa-folder-open" style="color: var(--primary);"></i> Category: <strong>${catName}</strong> (Currently ${prodsInCat.length} products inside. This product will appear at this position inside "${catName}")`;
+        hint.innerHTML = `<i class="fa-solid fa-folder-open" style="color: var(--primary);"></i> Category: <strong>${catName}</strong> &bull; Total Products in this Category: <strong>${prodsInCat.length}</strong> (Position range: <strong>1 to ${Math.max(1, totalInCat)}</strong>)`;
       }
     }
 
@@ -4449,6 +4579,159 @@ Wish you a Happy & Safe Diwali! 💥`;
 
     function closeProductModal() {
       document.getElementById('productModal').classList.remove('is-active');
+    }
+
+    // =========================================================
+    // BULK UPLOAD
+    // =========================================================
+    function openBulkUploadModal() {
+      document.getElementById('bulkCsvFile').value = '';
+      const res = document.getElementById('bulkUploadResult');
+      res.style.display = 'none';
+      res.innerHTML = '';
+      document.getElementById('bulkUploadBtn').disabled = false;
+      document.getElementById('bulkUploadBtn').innerHTML = '<i class="fa-solid fa-upload"></i> Upload & Apply';
+      document.getElementById('bulkUploadModal').classList.add('is-active');
+    }
+
+    function closeBulkUploadModal() {
+      document.getElementById('bulkUploadModal').classList.remove('is-active');
+    }
+
+    function downloadBulkTemplate() {
+      // Build template with existing categories as hints
+      const cats = (currentData.categories || []).map(c => c.name).join(' | ');
+      const rows = [
+        'id,name,category,desc,orig_price,sale_price,img,video,out_of_stock',
+        `,(leave blank = new),${(currentData.categories || [])[0]?.name || 'SOUND CRACKERS'},1 pkt,500,50,,,0`,
+        `,Another Product,${(currentData.categories || [])[1]?.name || 'FANCY'},1 box,800,80,,,0`
+      ];
+      // Add hint comment row
+      const hint = `# Available categories: ${cats || 'See Categories tab'}`;
+      const csvContent = hint + '\n' + rows.join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'product_bulk_upload_template.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    async function processBulkUpload() {
+      const fileInput = document.getElementById('bulkCsvFile');
+      const resultBox = document.getElementById('bulkUploadResult');
+      const btn = document.getElementById('bulkUploadBtn');
+
+      if (!fileInput.files || !fileInput.files[0]) {
+        showToast('Please select a CSV file first', 'error');
+        return;
+      }
+
+      const file = fileInput.files[0];
+      const text = await file.text();
+
+      // Parse CSV (skip comment lines starting with #)
+      const lines = text.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+      if (lines.length < 2) {
+        showToast('CSV file is empty or has no data rows', 'error');
+        return;
+      }
+
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+      const rows = lines.slice(1);
+
+      // Build category name -> id map
+      const catNameMap = {};
+      (currentData.categories || []).forEach(c => {
+        catNameMap[c.name.trim().toUpperCase()] = c.id;
+      });
+
+      const parsed = rows.map((row, rowIdx) => {
+        // Handle CSV values that may contain commas inside quotes
+        const cols = [];
+        let cur = '', inQ = false;
+        for (let i = 0; i < row.length; i++) {
+          const ch = row[i];
+          if (ch === '"') { inQ = !inQ; }
+          else if (ch === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
+          else { cur += ch; }
+        }
+        cols.push(cur.trim());
+
+        const get = (key) => {
+          const idx = headers.indexOf(key);
+          return idx !== -1 ? (cols[idx] || '').trim() : '';
+        };
+
+        return {
+          _row: rowIdx + 2,
+          id: parseInt(get('id'), 10) || null,
+          name: get('name'),
+          categoryName: get('category').toUpperCase(),
+          desc: get('desc') || get('description'),
+          orig_price: parseFloat(get('orig_price')) || 0,
+          sale_price: parseFloat(get('sale_price')) || 0,
+          img: get('img'),
+          video: get('video'),
+          out_of_stock: get('out_of_stock') === '1'
+        };
+      }).filter(r => r.name);
+
+      if (parsed.length === 0) {
+        showToast('No valid product rows found in CSV', 'error');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Processing...';
+
+      let added = 0, updated = 0, errors = [];
+
+      // Send to API endpoint
+      try {
+        const url = isPhp ? `${apiBase}?action=bulk-products` : `${apiBase}/products/bulk`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ products: parsed, catNameMap })
+        });
+        const data = await res.json();
+        if (data.success) {
+          added = data.added || 0;
+          updated = data.updated || 0;
+          errors = data.errors || [];
+        } else {
+          errors.push(data.error || 'Unknown server error');
+        }
+      } catch (e) {
+        errors.push('Network error: ' + e.message);
+      }
+
+      // Show results
+      resultBox.style.display = 'block';
+      if (errors.length > 0 && added === 0 && updated === 0) {
+        resultBox.style.background = 'rgba(239,68,68,0.1)';
+        resultBox.style.border = '1px solid rgba(239,68,68,0.35)';
+        resultBox.style.color = '#fca5a5';
+        resultBox.innerHTML = `<strong>❌ Upload Failed</strong><br>${errors.join('<br>')}`;
+      } else {
+        resultBox.style.background = 'rgba(52,211,153,0.1)';
+        resultBox.style.border = '1px solid rgba(52,211,153,0.35)';
+        resultBox.style.color = '#6ee7b7';
+        resultBox.innerHTML = `
+          <strong>✅ Bulk Upload Complete!</strong><br>
+          <span style="color:#34d399;">✓ ${added} new products added</span><br>
+          <span style="color:#fbbf24;">✓ ${updated} existing products updated</span>
+          ${errors.length > 0 ? '<br><span style="color:#fca5a5;">⚠ Skipped ' + errors.length + ' rows: ' + errors.slice(0, 3).join('; ') + '</span>' : ''}
+        `;
+        loadSiteData();
+      }
+
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-upload"></i> Upload & Apply';
     }
 
     function editProduct(id) {
