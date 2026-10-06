@@ -2488,13 +2488,12 @@ a {
     box-shadow: none !important;
     width: 210mm !important;
     min-height: 297mm !important;
-    max-height: 297mm !important;
+    max-height: none !important;
     padding: 12mm 16mm !important;
     margin: 0 !important;
     transform: none !important;
-    overflow: hidden !important;
-    page-break-after: always;
-    page-break-inside: avoid;
+    overflow: visible !important;
+    page-break-after: auto;
     font-size: 8.5pt !important;
     background: #ffffff !important;
   }
@@ -3958,6 +3957,48 @@ a {
     flex-wrap: wrap;
     justify-content: center;
   }
+}
+
+/* ==========================================================================
+   PDF EXPORT & MULTI-PAGE PRINT STYLES
+   Ensures clean pagination across Page 1, 2, 3, 4 without row slicing
+   ========================================================================== */
+
+/* Prevent html2pdf container and overlay clipping on mobile viewports */
+.html2pdf__overlay {
+  height: auto !important;
+  min-height: 100% !important;
+  overflow: visible !important;
+}
+
+.html2pdf__container {
+  height: auto !important;
+  overflow: visible !important;
+}
+
+/* Multi-page row & block page break handling */
+.pdf-items-table tr,
+.sb-items-table tr {
+  page-break-inside: avoid !important;
+  break-inside: avoid !important;
+}
+
+.pdf-items-table thead,
+.sb-items-table thead {
+  page-break-inside: avoid !important;
+  break-inside: avoid !important;
+}
+
+.pdf-tax-summary-table,
+.pdf-bottom-grid,
+.pdf-signatures-grid,
+.pdf-footer-note,
+.sb-summary-grid,
+.sb-words-box,
+.sb-terms-sign-grid,
+.simple-estimate-footer {
+  page-break-inside: avoid !important;
+  break-inside: avoid !important;
 }
 
 

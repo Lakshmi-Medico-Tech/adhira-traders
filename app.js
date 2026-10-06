@@ -6834,8 +6834,9 @@
       margin: [8, 8.4, 8, 8.4],
       filename: `Estimate_${bill.number || 'Bill'}_${(bill.customer?.name || 'Customer').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, logging: false },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      html2canvas: { scale: 2, useCORS: true, logging: false, windowWidth: 730, scrollX: 0, scrollY: 0 },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.sb-summary-grid', '.sb-words-box', '.sb-terms-sign-grid', '.simple-estimate-footer'] }
     };
 
     showToast('Generating Estimate PDF...', 'info');
@@ -9103,28 +9104,63 @@
     },
 
     downloadPdfFile: (docNo) => {
-      const element = document.getElementById('printableA4Document');
-      if (!element) return;
+      if (typeof html2pdf === 'undefined') {
+        window.adhiraApp.printPdfOnly();
+        return;
+      }
+
+      const doc = (state.viewingDoc && state.viewingDoc.doc)
+        ? state.viewingDoc.doc
+        : ((db.quotations || []).find(q => q.number === docNo) || (db.invoices || []).find(i => i.number === docNo));
+      const isInvoice = state.viewingDoc
+        ? Boolean(state.viewingDoc.isInvoice)
+        : Boolean((db.invoices || []).find(i => i.number === docNo));
+
+      const container = document.createElement('div');
+      if (doc) {
+        container.innerHTML = generateA4DocumentHtml(doc, isInvoice);
+      } else {
+        const liveEl = document.getElementById('printableA4Document');
+        if (liveEl) {
+          container.appendChild(liveEl.cloneNode(true));
+        }
+      }
+      const element = container.firstElementChild;
+      if (!element) {
+        window.adhiraApp.printPdfOnly();
+        return;
+      }
+
+      element.id = 'exportA4Document';
+      element.style.width = '794px';
+      element.style.minWidth = '794px';
+      element.style.maxWidth = '794px';
+      element.style.boxSizing = 'border-box';
+      element.style.margin = '0 auto';
+      element.style.boxShadow = 'none';
+      element.style.borderRadius = '0';
+      element.style.transform = 'none';
+
+      document.body.appendChild(element);
+
+      const opt = {
+        margin: [0, 0, 0, 0],
+        filename: `${(docNo || doc?.number || 'document').replace(/\//g, '_')}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false, windowWidth: 794, scrollX: 0, scrollY: 0 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.pdf-bottom-grid', '.pdf-signatures-grid', '.pdf-footer-note', '.pdf-tax-summary-table'] }
+      };
 
       showToast('Rendering high-resolution A4 PDF...', 'info');
-
-      if (typeof html2pdf !== 'undefined') {
-        const opt = {
-          margin: 0,
-          filename: `${docNo.replace(/\//g, '_')}.pdf`,
-          image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: { scale: 2, useCORS: true, logging: false },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
-        html2pdf().set(opt).from(element).save().then(() => {
-          showToast('PDF downloaded successfully!', 'success');
-        }).catch(err => {
-          console.error(err);
-          window.adhiraApp.printPdfOnly();
-        });
-      } else {
+      html2pdf().set(opt).from(element).save().then(() => {
+        element.remove();
+        showToast('PDF downloaded successfully!', 'success');
+      }).catch(err => {
+        element.remove();
+        console.error(err);
         window.adhiraApp.printPdfOnly();
-      }
+      });
     },
 
     // Print ONLY the A4 PDF document, not the entire app page
@@ -9342,19 +9378,46 @@
         window.open(url, '_blank');
       };
 
-      if (element && typeof html2pdf !== 'undefined') {
+      if (typeof html2pdf !== 'undefined') {
         showToast('Generating PDF for WhatsApp...', 'info');
-        const opt = {
-          margin: 0,
-          filename: `${(doc.number || 'document').replace(/\//g, '_')}.pdf`,
-          image: { type: 'jpeg', quality: 0.97 },
-          html2canvas: { scale: 2, useCORS: true, logging: false },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
-        html2pdf().set(opt).from(element).save().then(() => {
-          showToast('PDF downloaded! Opening WhatsApp...', 'success');
-          setTimeout(doWhatsApp, 400);
-        }).catch(() => doWhatsApp());
+        const container = document.createElement('div');
+        if (doc) {
+          container.innerHTML = generateA4DocumentHtml(doc, Boolean(isInvoice));
+        } else if (element) {
+          container.appendChild(element.cloneNode(true));
+        }
+        const waElement = container.firstElementChild;
+        if (waElement) {
+          waElement.id = 'exportWaA4Document';
+          waElement.style.width = '794px';
+          waElement.style.minWidth = '794px';
+          waElement.style.maxWidth = '794px';
+          waElement.style.boxSizing = 'border-box';
+          waElement.style.margin = '0 auto';
+          waElement.style.boxShadow = 'none';
+          waElement.style.borderRadius = '0';
+          waElement.style.transform = 'none';
+          document.body.appendChild(waElement);
+
+          const opt = {
+            margin: [0, 0, 0, 0],
+            filename: `${(doc.number || 'document').replace(/\//g, '_')}.pdf`,
+            image: { type: 'jpeg', quality: 0.97 },
+            html2canvas: { scale: 2, useCORS: true, logging: false, windowWidth: 794, scrollX: 0, scrollY: 0 },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.pdf-bottom-grid', '.pdf-signatures-grid', '.pdf-footer-note', '.pdf-tax-summary-table'] }
+          };
+          html2pdf().set(opt).from(waElement).save().then(() => {
+            waElement.remove();
+            showToast('PDF downloaded! Opening WhatsApp...', 'success');
+            setTimeout(doWhatsApp, 400);
+          }).catch(() => {
+            waElement.remove();
+            doWhatsApp();
+          });
+        } else {
+          doWhatsApp();
+        }
       } else {
         doWhatsApp();
       }
@@ -9392,19 +9455,46 @@
         window.location.href = mailto;
       };
 
-      if (element && typeof html2pdf !== 'undefined') {
+      if (typeof html2pdf !== 'undefined') {
         showToast('Generating PDF for Email...', 'info');
-        const opt = {
-          margin: 0,
-          filename: `${(doc.number || 'document').replace(/\//g, '_')}.pdf`,
-          image: { type: 'jpeg', quality: 0.97 },
-          html2canvas: { scale: 2, useCORS: true, logging: false },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
-        html2pdf().set(opt).from(element).save().then(() => {
-          showToast('PDF downloaded! Opening email client...', 'success');
-          setTimeout(doEmail, 400);
-        }).catch(() => doEmail());
+        const container = document.createElement('div');
+        if (doc) {
+          container.innerHTML = generateA4DocumentHtml(doc, Boolean(isInvoice));
+        } else if (element) {
+          container.appendChild(element.cloneNode(true));
+        }
+        const mailElement = container.firstElementChild;
+        if (mailElement) {
+          mailElement.id = 'exportMailA4Document';
+          mailElement.style.width = '794px';
+          mailElement.style.minWidth = '794px';
+          mailElement.style.maxWidth = '794px';
+          mailElement.style.boxSizing = 'border-box';
+          mailElement.style.margin = '0 auto';
+          mailElement.style.boxShadow = 'none';
+          mailElement.style.borderRadius = '0';
+          mailElement.style.transform = 'none';
+          document.body.appendChild(mailElement);
+
+          const opt = {
+            margin: [0, 0, 0, 0],
+            filename: `${(doc.number || 'document').replace(/\//g, '_')}.pdf`,
+            image: { type: 'jpeg', quality: 0.97 },
+            html2canvas: { scale: 2, useCORS: true, logging: false, windowWidth: 794, scrollX: 0, scrollY: 0 },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.pdf-bottom-grid', '.pdf-signatures-grid', '.pdf-footer-note', '.pdf-tax-summary-table'] }
+          };
+          html2pdf().set(opt).from(mailElement).save().then(() => {
+            mailElement.remove();
+            showToast('PDF downloaded! Opening email client...', 'success');
+            setTimeout(doEmail, 400);
+          }).catch(() => {
+            mailElement.remove();
+            doEmail();
+          });
+        } else {
+          doEmail();
+        }
       } else {
         doEmail();
       }
