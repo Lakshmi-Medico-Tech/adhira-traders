@@ -4111,6 +4111,14 @@
               <span class="nav-badge">${(db.simpleBills || []).length}</span>
             </a>
 
+            <a href="#" class="nav-item" onclick="event.preventDefault(); window.adhiraVoice && window.adhiraVoice.openAssistant();" style="border: 1px solid rgba(245, 158, 11, 0.4); background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(239, 68, 68, 0.12)); margin: 4px 0 6px 0;" title="Voice Speech Billing (Hey Adhira)">
+              <div class="nav-item-content">
+                <span class="nav-icon">🎙️</span>
+                <span style="font-weight:700;color:var(--gold-400)">Voice Bill (Hey Adhira)</span>
+              </div>
+              <span class="nav-badge" style="background:var(--gold-500);color:#0f172a;font-weight:800">AI</span>
+            </a>
+
             <a href="#" class="nav-item ${state.page === 'quotations' ? 'active' : ''}" data-nav="quotations">
               <div class="nav-item-content">
                 <span class="nav-icon">▤</span>
@@ -4213,6 +4221,11 @@
               <button class="btn btn-secondary btn-sm" onclick="window.adhiraApp.openSimpleBilling()" title="Non-GST Estimate Billing" style="font-weight:600">
                 <span>📄</span>
                 <span>Simple Bill</span>
+              </button>
+
+              <button class="btn btn-secondary btn-sm" onclick="window.adhiraVoice && window.adhiraVoice.openAssistant()" title="Voice Speech Billing (Tamil & English • Hey Adhira)" style="font-weight:700;background:linear-gradient(135deg,#f59e0b,#ef4444);color:#ffffff;border:none;box-shadow:0 2px 8px rgba(245,158,11,0.35);">
+                <span>🎙️</span>
+                <span>Voice Bill</span>
               </button>
 
               <button class="btn btn-gold" onclick="window.adhiraApp.openNewQuotation()">
@@ -10842,7 +10855,12 @@
     handleDropdownProductChange: (prodId) => handleDropdownProductChange(prodId),
     updateDropdownPendingCalc: () => updateDropdownPendingCalc(),
     addCurrentDropdownItem: () => addCurrentDropdownItem(),
-    autoFitSimpleBillPreview: () => autoFitSimpleBillPreview()
+    autoFitSimpleBillPreview: () => autoFitSimpleBillPreview(),
+    openVoiceBilling: () => {
+      if (window.adhiraVoice && typeof window.adhiraVoice.openAssistant === 'function') {
+        window.adhiraVoice.openAssistant();
+      }
+    }
   };
 
   // Helper to inspect database in browser console
@@ -11003,6 +11021,172 @@
       syncFromServer(true);
     });
   }
+
+  // ==========================================================================
+  // VOICE BILLING ASSISTANT INTEGRATION BRIDGE (Simple Bill & Quotation)
+  // Web Speech API • Tamil & English • Live DB • Instant PDF & WhatsApp
+  // ==========================================================================
+  window.adhiraVoiceGetProducts = () => (db && db.products) || [];
+  window.adhiraVoiceGetCustomers = () => (db && db.customers) || [];
+
+  window.adhiraVoiceSaveBill = async function(type, custData, items) {
+    if (!items || items.length === 0) {
+      return { success: false, error: 'No items in bill' };
+    }
+
+    if (type === 'quotation') {
+      initDraftQuote();
+      if (!draftQuote) return { success: false, error: 'Failed to initialize draft quotation' };
+
+      const cName = (custData.name || '').trim() || 'Counter Customer';
+      let existingCust = (db.customers || []).find(c => c.name && c.name.toLowerCase() === cName.toLowerCase());
+      if (!existingCust) {
+        existingCust = {
+          id: 'CUST-' + Date.now(),
+          name: cName,
+          phone: custData.phone || '',
+          city: custData.city || 'Sivakasi',
+          billingAddress: custData.address || '',
+          state: 'Tamil Nadu',
+          stateCode: '33',
+          status: 'Active',
+          createdAt: new Date().toISOString()
+        };
+        db.customers.push(existingCust);
+      }
+
+      draftQuote.customerId = existingCust.id;
+      draftQuote.customer = structuredClone(existingCust);
+      draftQuote.destination = custData.city || 'Sivakasi';
+
+      draftQuote.items = (items || []).map((it, idx) => {
+        const prod = (db.products || []).find(p => p.id === it.id) || {};
+        return {
+          id: 'row-' + (idx + 1),
+          productId: it.id || '',
+          name: (it.name || prod.name || 'Fireworks Item').toUpperCase(),
+          hsn: prod.hsn || '3604',
+          packing: prod.packing || it.packing || '1 Box',
+          qty: Number(it.qty) || 1,
+          unit: 'CASE',
+          rate: Number(it.price) || Number(prod.rate) || 0,
+          discountType: 'fixed',
+          discount: 0,
+          gst: 18
+        };
+      });
+
+      const summary = calculateDocumentSummary(draftQuote.items, draftQuote.customer.stateCode || '33');
+      const finalQuote = {
+        id: 'Q-' + Date.now(),
+        number: generateDocNumber('quote'),
+        date: new Date().toISOString().slice(0, 10),
+        validUntil: new Date(Date.now() + 15 * 86400000).toISOString().slice(0, 10),
+        customerId: existingCust.id,
+        customer: structuredClone(draftQuote.customer),
+        seller: structuredClone(draftQuote.seller || db.company),
+        deliveryNote: '',
+        deliveryNoteDate: '',
+        supplierRef: '',
+        otherReferences: '',
+        poNumber: '',
+        poDate: '',
+        despatchDocNo: '',
+        paymentTerms: 'Advance',
+        deliveryTerms: 'Ex-Factory Sivakasi',
+        dispatchThrough: '',
+        destination: custData.city || 'Sivakasi',
+        billOfLadingNo: '',
+        motorVehicleNo: '',
+        termsOfDelivery: 'Ex-Factory Sivakasi',
+        salesPerson: (currentUser && currentUser.name) ? currentUser.name : 'Admin',
+        items: structuredClone(draftQuote.items),
+        subtotal: summary.subtotal,
+        discountTotal: summary.totalDiscount,
+        taxable: summary.taxableAmount,
+        gstTotal: summary.totalGst,
+        cgst: summary.cgst,
+        sgst: summary.sgst,
+        igst: summary.igst,
+        roundOff: summary.roundOff,
+        grandTotal: summary.grandTotal,
+        notes: 'Created via Adhira Voice Assistant',
+        status: 'Issued',
+        timeline: [
+          { status: 'Issued', time: new Date().toISOString(), user: `${(currentUser && currentUser.name) || 'Admin'} (Voice Assistant)` }
+        ],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      incrementDocNumber('quote');
+      db.quotations.push(finalQuote);
+      saveDatabase();
+      localStorage.removeItem(DRAFT_KEY);
+      draftQuote = null;
+      renderAppShell();
+      return {
+        success: true,
+        type: 'quotation',
+        bill: finalQuote,
+        id: finalQuote.id,
+        number: finalQuote.number
+      };
+    } else {
+      // Default: Simple Bill / Non-GST Estimate
+      initDraftSimpleBill();
+      if (!draftSimpleBill) return { success: false, error: 'Failed to initialize Simple Bill' };
+
+      draftSimpleBill.customer.name = custData.name || 'Counter Customer';
+      draftSimpleBill.customer.phone = custData.phone || '';
+      draftSimpleBill.customer.cityPin = custData.city || 'Sivakasi';
+      draftSimpleBill.customer.addressLine1 = custData.address || '';
+
+      draftSimpleBill.items = (items || []).map((it, idx) => {
+        const qty = Number(it.qty) || 1;
+        const rate = Number(it.price) || 0;
+        return {
+          id: 'SBITM-' + Date.now() + Math.random().toString(36).substring(2, 5),
+          sno: idx + 1,
+          particulars: (it.name || 'FIREWORKS ITEM').toUpperCase(),
+          cases: 1,
+          contents: qty,
+          qty: qty,
+          rate: rate,
+          ratePer: '1 BOX',
+          amount: round2(qty * rate)
+        };
+      });
+
+      saveCurrentSimpleBill();
+
+      return {
+        success: true,
+        type: 'simple',
+        bill: draftSimpleBill,
+        id: draftSimpleBill.id,
+        number: draftSimpleBill.number
+      };
+    }
+  };
+
+  window.adhiraVoiceViewBill = function(id) {
+    if (!id) return;
+    if (typeof id === 'string' && id.startsWith('SB-')) {
+      viewSimpleBillModalById(id);
+    } else if (typeof id === 'string' && id.startsWith('Q-')) {
+      const q = (db.quotations || []).find(x => x.id === id);
+      if (q) openPdfPreviewModal(q, false);
+    } else {
+      const sb = (db.simpleBills || []).find(x => x.id === id);
+      if (sb) {
+        viewSimpleBillModalById(id);
+      } else {
+        const q = (db.quotations || []).find(x => x.id === id);
+        if (q) openPdfPreviewModal(q, false);
+      }
+    }
+  };
 
   document.addEventListener('DOMContentLoaded', bootApp);
   if (document.readyState === 'complete' || document.readyState === 'interactive') {
