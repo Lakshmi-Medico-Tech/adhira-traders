@@ -6298,14 +6298,19 @@ Wish you a Happy & Safe Diwali! 💥`;
       } catch (e) {}
     }
 
-    /* ---------- Text-to-Speech ---------- */
+    /* ---------- Text-to-Speech (Human Voice with Echo Protection) ---------- */
     function vbsSpeak(text, onEnd) {
       if (!window.speechSynthesis) { if (onEnd) onEnd(); return; }
       try {
         window.speechSynthesis.cancel();
+        // Pause microphone while bot speaks to prevent mic feedback loops
+        if (vbsRecognition) {
+          try { vbsRecognition.stop(); } catch (e) {}
+        }
         const u = new SpeechSynthesisUtterance(text);
+        window.vbsCurrentUtterance = u; // Keep reference to prevent GC in Chrome
         u.lang = vbsLang;
-        u.rate = 0.95;
+        u.rate = 0.96;
         u.pitch = 1.02;
         const voices = window.speechSynthesis.getVoices();
         const match = voices.find(v => v.lang === vbsLang) ||
@@ -6313,107 +6318,21 @@ Wish you a Happy & Safe Diwali! 💥`;
                       voices.find(v => v.lang.includes('IN'));
         if (match) u.voice = match;
         vbsSpeaking = true;
-        u.onend = () => { vbsSpeaking = false; if (onEnd) onEnd(); };
-        u.onerror = () => { vbsSpeaking = false; if (onEnd) onEnd(); };
+        u.onend = () => {
+          vbsSpeaking = false;
+          // Wait 350ms so ambient speaker sound finishes before mic activates
+          if (onEnd) setTimeout(onEnd, 350);
+        };
+        u.onerror = () => {
+          vbsSpeaking = false;
+          if (onEnd) setTimeout(onEnd, 350);
+        };
         window.speechSynthesis.speak(u);
         vbsAddMessage('bot', text);
       } catch (err) {
         vbsSpeaking = false;
         if (onEnd) onEnd();
       }
-    }
-
-    /* ---------- Numbers Parsing (Tamil + English words) ---------- */
-    function vbsParseNumber(s) {
-      if (!s) return NaN;
-      s = String(s).toLowerCase().trim();
-      const tamilNums = {
-        'ஒன்று': 1, 'ஒரு': 1, 'இரண்டு': 2, 'ரெண்டு': 2, 'மூன்று': 3, 'மூணு': 3,
-        'நான்கு': 4, 'நாலு': 4, 'ஐந்து': 5, 'அஞ்சு': 5, 'ஆறு': 6, 'ஏழு': 7,
-        'எட்டு': 8, 'ஒன்பது': 9, 'பத்து': 10, 'இருபது': 20, 'முப்பது': 30,
-        'நாற்பது': 40, 'ஐம்பது': 50, 'அறுபது': 60, 'எழுபது': 70, 'எண்பது': 80,
-        'தொண்ணூறு': 90, 'நூறு': 100, 'இருநூறு': 200, 'முந்நூறு': 300, 'ஐந்நூறு': 500,
-        'ஆயிரம்': 1000
-      };
-      for (const [w, n] of Object.entries(tamilNums)) {
-        if (s.includes(w)) return n;
-      }
-      const engNums = {
-        'zero': 0, 'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
-        'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10, 'eleven': 11,
-        'twelve': 12, 'thirteen': 13, 'fourteen': 14, 'fifteen': 15, 'sixteen': 16,
-        'seventeen': 17, 'eighteen': 18, 'nineteen': 19, 'twenty': 20, 'thirty': 30,
-        'forty': 40, 'fifty': 50, 'sixty': 60, 'seventy': 70, 'eighty': 80,
-        'ninety': 90, 'hundred': 100, 'thousand': 1000
-      };
-      for (const [w, n] of Object.entries(engNums)) {
-        if (s.includes(w)) return n;
-      }
-      const digits = s.replace(/[^\d.]/g, '');
-      return digits ? parseFloat(digits) : NaN;
-    }
-
-    /* ---------- Product Matching (Fuzzy, Catalog, Combos & Giftboxes) ---------- */
-    function vbsCleanWord(str) {
-      return (str || '').toLowerCase()
-        .replace(/[^a-z0-9\u0B80-\u0BFF\s]/gi, ' ')
-        .replace(/\b(crackers?|pattasu|வெடி|பட்டாசு|box|boxes|pkt|pkts|packet|packets|piece|pieces|case|cases)\b/gi, '')
-        .trim();
-    }
-
-    function vbsFindProduct(spoken) {
-      if (!spoken) return null;
-      const cleanSpoken = vbsCleanWord(spoken);
-      if (!cleanSpoken || cleanSpoken.length < 2) return null;
-
-      const allItems = [
-        ...(currentData.products || []),
-        ...(currentData.combos || []).map(c => ({ ...c, isCombo: true })),
-        ...(currentData.giftboxes || []).map(g => ({ ...g, isGift: true }))
-      ];
-
-      // 1. Exact cleaned match
-      let exact = allItems.find(p => vbsCleanWord(p.name) === cleanSpoken);
-      if (exact) return exact;
-
-      // 2. Contains match
-      let contains = allItems.find(p => {
-        const cName = vbsCleanWord(p.name);
-        return cName.includes(cleanSpoken) || cleanSpoken.includes(cName);
-      });
-      if (contains) return contains;
-
-      // 3. Tamil name in parentheses check e.g. "4\" Gold Laxmi (கோல்டு லட்சுமி)"
-      let tamilMatch = allItems.find(p => {
-        const full = (p.name || '').toLowerCase();
-        return spoken.split(/\s+/).some(w => w.length > 2 && full.includes(w.toLowerCase()));
-      });
-      if (tamilMatch) return tamilMatch;
-
-      // 4. Token overlap score
-      const spokenTokens = cleanSpoken.split(/\s+/).filter(t => t.length > 1);
-      let bestItem = null, bestScore = 0;
-      for (const p of allItems) {
-        const pTokens = vbsCleanWord(p.name).split(/\s+/).filter(t => t.length > 1);
-        let score = 0;
-        for (const st of spokenTokens) {
-          if (pTokens.some(pt => pt.includes(st) || st.includes(pt))) {
-            score += 2;
-          }
-        }
-        // Match numbers e.g. "28", "4", "1000", "2000"
-        const spokenNumMatch = cleanSpoken.match(/\b\d+\b/g) || [];
-        const pNumMatch = (p.name || '').match(/\b\d+\b/g) || [];
-        for (const sn of spokenNumMatch) {
-          if (pNumMatch.includes(sn)) score += 3;
-        }
-        if (score > bestScore) {
-          bestScore = score;
-          bestItem = p;
-        }
-      }
-      if (bestScore >= 2) return bestItem;
-      return null;
     }
 
     /* =================================================================
@@ -6491,6 +6410,24 @@ Wish you a Happy & Safe Diwali! 💥`;
         ...(currentData.combos || []).map(c => ({ ...c, isCombo: true })),
         ...(currentData.giftboxes || []).map(g => ({ ...g, isGift: true }))
       ];
+
+      // 0. High priority colloquial Sivakasi cracker aliases
+      if (cleanSpoken.includes('chorsa') || cleanSpoken.includes('giant') || cleanSpoken.includes('gaint')) {
+        const chorsa = allItems.find(p => /28\s*(?:gaint|giant|chorsa)/i.test(p.name));
+        if (chorsa) return chorsa;
+      }
+      if (cleanSpoken.includes('kuruvi') || cleanSpoken.includes('குருவி')) {
+        const kuruvi = allItems.find(p => /kuruvi|குருவி/i.test(p.name));
+        if (kuruvi) return kuruvi;
+      }
+      if (cleanSpoken.includes('gold laxmi') || cleanSpoken.includes('gold lakshmi') || cleanSpoken.includes('கோல்டு லட்சுமி')) {
+        const gl = allItems.find(p => /gold\s*la[kx]mi|கோல்டு\s*லட்சுமி/i.test(p.name));
+        if (gl) return gl;
+      }
+      if (cleanSpoken.includes('delux laxmi') || cleanSpoken.includes('delux lakshmi') || cleanSpoken.includes('deluxe')) {
+        const dl = allItems.find(p => /delux.*la[kx]mi/i.test(p.name));
+        if (dl) return dl;
+      }
 
       // 1. Exact cleaned match
       let exact = allItems.find(p => vbsCleanWord(p.name) === cleanSpoken);
