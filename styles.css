@@ -4487,3 +4487,444 @@ a {
 @media (max-width: 480px) {
   #avpPanel { right: 8px; width: calc(100vw - 16px); bottom: 148px; max-height: 82vh; }
 }
+
+/* ==========================================================================
+   GST E-WAY BILL SYSTEM (NIC GOVERNMENT STANDARD SPECIFICATION)
+   Matching Ponmuneeswari_eWayBill_PNFW-POS-0011 Sample
+   ========================================================================== */
+
+.eway-page-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.eway-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.eway-toolbar {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.eway-search-box {
+  flex: 1;
+  min-width: 280px;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.eway-search-box input {
+  width: 100%;
+  padding-left: 36px;
+}
+
+.eway-search-box .search-icon {
+  position: absolute;
+  left: 12px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+/* Mobile cards list for small screens */
+.eway-mobile-cards {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.eway-card-item {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: var(--shadow-sm);
+}
+
+.eway-card-item-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.eway-card-item-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border-subtle);
+}
+
+/* --- THE A4 E-WAY BILL DOCUMENT SHEET --- */
+.eway-bill-sheet {
+  background: #ffffff;
+  color: #0f172a;
+  width: 794px;
+  min-width: 794px;
+  max-width: 794px;
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding: 24px 30px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  position: relative;
+  line-height: 1.35;
+}
+
+.eway-top-badge-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  margin-bottom: 4px;
+}
+
+.eway-govt-pill {
+  background: #e0f2fe;
+  color: #0284c7;
+  border: 1px solid #bae6fd;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.9px;
+  padding: 4px 18px;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  user-select: none;
+}
+
+.eway-edit-btn {
+  position: absolute;
+  right: 0;
+  top: 0;
+  background: #ffffff;
+  color: #0284c7;
+  border: 1px solid #0284c7;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.eway-edit-btn:hover {
+  background: #0284c7;
+  color: #ffffff;
+}
+
+.eway-heading-title {
+  font-size: 26px;
+  font-weight: 800;
+  color: #0f172a;
+  text-align: center;
+  margin: 2px 0 6px 0;
+  letter-spacing: -0.3px;
+}
+
+.eway-qr-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.eway-qr-box {
+  width: 132px;
+  height: 132px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  padding: 2px;
+}
+
+.eway-qr-box img,
+.eway-qr-box canvas {
+  width: 132px !important;
+  height: 132px !important;
+  display: block !important;
+}
+
+.eway-scan-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #0284c7;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  user-select: none;
+}
+
+.eway-summary-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 10px;
+}
+
+.eway-summary-row {
+  display: flex;
+  align-items: baseline;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.eway-label {
+  width: 145px;
+  flex-shrink: 0;
+  color: #475569;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.eway-value {
+  flex: 1;
+  color: #0f172a;
+  font-size: 13.5px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.eway-bold-number {
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: 0.5px;
+  line-height: 1.1;
+  font-family: inherit;
+}
+
+.gstin-red {
+  color: #dc2626 !important;
+  font-weight: 700 !important;
+}
+
+.gen-name {
+  font-weight: 700;
+  color: #0f172a;
+  margin-left: 2px;
+}
+
+.eway-km-badge {
+  color: #0284c7;
+  font-weight: 700;
+  margin-left: 4px;
+}
+
+.copy-icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px;
+  font-size: 13px;
+  opacity: 0.65;
+  transition: opacity 0.2s, transform 0.1s;
+  border-radius: 4px;
+}
+
+.copy-icon-btn:hover {
+  opacity: 1;
+  transform: scale(1.15);
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* --- SECTION CARDS WITH BLUE HEADER BARS --- */
+.eway-section-card {
+  margin-top: 10px;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.eway-section-header {
+  background: #0077b6;
+  color: #ffffff;
+  padding: 5px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.eway-section-header .sec-title {
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.eway-section-header .sec-sub {
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.4px;
+  opacity: 0.95;
+  text-transform: uppercase;
+}
+
+.eway-section-body {
+  border: 1px solid #94a3b8;
+  border-top: none;
+  padding: 8px 12px;
+  background: #ffffff;
+}
+
+.eway-part-b-table-wrap {
+  padding: 0 !important;
+  border: 1px solid #94a3b8;
+  border-top: none;
+}
+
+.eway-detail-row {
+  display: flex;
+  padding: 2.5px 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  align-items: baseline;
+}
+
+.eway-col-label {
+  width: 195px;
+  flex-shrink: 0;
+  color: #475569;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.eway-col-val {
+  flex: 1;
+  color: #0f172a;
+  font-size: 12.5px;
+  word-break: break-word;
+}
+
+.eway-irn-hash {
+  font-family: monospace;
+  font-size: 11px;
+  word-break: break-all;
+  color: #334155;
+  letter-spacing: 0.2px;
+}
+
+.eway-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+}
+
+.eway-table th {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  padding: 5px 8px;
+  font-weight: 600;
+  color: #334155;
+  text-align: left;
+  font-size: 11px;
+}
+
+.eway-table td {
+  border: 1px solid #cbd5e1;
+  padding: 6px 8px;
+  color: #0f172a;
+  font-size: 11.5px;
+  vertical-align: middle;
+}
+
+/* Modal Creation / Editing Form Specifics */
+.ewb-form-section-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--navy-900);
+  background: rgba(2, 132, 199, 0.08);
+  border-left: 3px solid #0284c7;
+  padding: 6px 10px;
+  border-radius: 0 4px 4px 0;
+  margin: 14px 0 10px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Mobile Responsive */
+@media (max-width: 860px) {
+  .eway-bill-sheet {
+    transform-origin: top center;
+  }
+  
+  .eway-mobile-cards {
+    display: flex;
+  }
+
+  .table-desktop-eway {
+    display: none !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .eway-summary-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .eway-label {
+    width: 100%;
+    margin-bottom: 2px;
+  }
+  
+  .eway-detail-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .eway-col-label {
+    width: 100%;
+    margin-bottom: 1px;
+  }
+
+  .eway-stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Dedicated Print Media Query for Clean Single-Page A4 Print */
+@media print {
+  .eway-bill-sheet {
+    box-shadow: none !important;
+    border: none !important;
+    width: 210mm !important;
+    max-width: 210mm !important;
+    min-height: 297mm !important;
+    padding: 8mm 12mm !important;
+    margin: 0 auto !important;
+    transform: none !important;
+    background: #ffffff !important;
+    page-break-after: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .eway-bill-sheet .no-print,
+  .eway-edit-btn,
+  .copy-icon-btn {
+    display: none !important;
+  }
+}

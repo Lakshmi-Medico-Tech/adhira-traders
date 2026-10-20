@@ -42,6 +42,46 @@
     { code: '30', name: 'Goa' }
   ];
 
+  // --- PONMUNEESWARI SAMPLE E-WAY BILL REFERENCE RECORD ---
+  const PONMUNEESWARI_SAMPLE_EWAY_BILL = {
+    id: 'EWB-PNFW-0011',
+    ewayBillNo: '542075380011',
+    ewayBillDate: '14/10/2026 15:54',
+    generatedByGstin: '33ABKFP0985E1Z6',
+    generatedByName: 'PONMUNEESWARI FIREWORKS',
+    validFrom: '14/10/2026 15:54',
+    distanceKm: 35,
+    validUntil: '15/10/2026 11:59 PM',
+    irn: 'e1100f45480e67fea8b1fbf6fdfb7b66e12ab09bd9db398fa56ca8998aa380011',
+    ackNo: '152627221380011',
+    ackDate: '14/10/2026 15:54',
+    supplierGstin: '33ABKFP0985E1Z6',
+    supplierName: 'PONMUNEESWARI FIREWORKS',
+    placeOfDispatch: 'NO: 1/185, FIRST STREET, LAKSHMI NARAYANAPURAM, MANGALAM (VILLAGE), SIVAKASI',
+    recipientGstin: '33QRQPS0659E1Z4',
+    recipientName: 'ATHIRA TRADERS',
+    placeOfDelivery: '8/444NEAR BY JAISHNAVISTORES GANTHI NAGAR ANAIYUR VIRUTHUNAGAR(DT) TAMILNADU 626 124',
+    docType: 'Tax Invoice',
+    docNo: 'PNFW-POS-0011',
+    docDate: '14/10/2026',
+    transactionType: 'Regular',
+    totalValue: 23600.00,
+    hsnCode: '36041000',
+    hsnDesc: 'Fireworks & Pyrotechnics',
+    reasonForTrans: 'Outward - Supply',
+    transporter: '-',
+    mode: 'Road',
+    vehicleDocNo: 'TN95P9824 & 14/10/2026',
+    vehicleNo: 'TN95P9824',
+    fromPlace: 'Sivakasi',
+    enteredDate: '14/10/2026 15:54',
+    enteredBy: '33ABKFP0985E1Z6',
+    cewbNo: '-',
+    multiVehInfo: '-',
+    status: 'ACTIVE',
+    createdAt: '2026-10-14T15:54:00.000Z'
+  };
+
   // --- INITIAL SEED DATABASE ---
   const INITIAL_DB = {
     company: {
@@ -111,7 +151,7 @@
       }
     ],
     simpleBills: [],
-    ewayBills: [],
+    ewayBills: [structuredClone(PONMUNEESWARI_SAMPLE_EWAY_BILL)],
     einvoices: [],
     auditLogs: [
       {
@@ -3138,7 +3178,26 @@
       }
     }
     merged.simpleBills = Array.from(sbMap.values());
-    merged.ewayBills = Array.isArray(remoteData.ewayBills) ? remoteData.ewayBills : (localData.ewayBills || []);
+    // Merge ewayBills safely by id or ewayBillNo
+    const ewbMap = new Map();
+    (remoteData.ewayBills || []).forEach(e => { if (e && (e.id || e.ewayBillNo)) ewbMap.set(e.id || e.ewayBillNo, e); });
+    (localData.ewayBills || []).forEach(e => {
+      if (e && (e.id || e.ewayBillNo)) {
+        const key = e.id || e.ewayBillNo;
+        if (!ewbMap.has(key)) {
+          ewbMap.set(key, e);
+        } else {
+          const rem = ewbMap.get(key);
+          const locTime = new Date(e.updatedAt || e.createdAt || 0).getTime();
+          const remTime = new Date(rem.updatedAt || rem.createdAt || 0).getTime();
+          if (locTime > remTime) ewbMap.set(key, e);
+        }
+      }
+    });
+    if (ewbMap.size === 0 && INITIAL_DB.ewayBills && INITIAL_DB.ewayBills.length > 0) {
+      INITIAL_DB.ewayBills.forEach(e => ewbMap.set(e.id, structuredClone(e)));
+    }
+    merged.ewayBills = Array.from(ewbMap.values());
     merged.einvoices = Array.isArray(remoteData.einvoices) ? remoteData.einvoices : (localData.einvoices || []);
     merged.auditLogs = Array.isArray(remoteData.auditLogs) ? remoteData.auditLogs : (localData.auditLogs || INITIAL_DB.auditLogs);
     merged.gstConfig = Object.assign({}, INITIAL_DB.gstConfig, remoteData.gstConfig || {}, localData.gstConfig || {});
@@ -3194,6 +3253,9 @@
           if (!Array.isArray(parsed.invoices)) parsed.invoices = [];
           if (!Array.isArray(parsed.simpleBills)) parsed.simpleBills = [];
           if (!Array.isArray(parsed.customers)) parsed.customers = [];
+          if (!Array.isArray(parsed.ewayBills) || parsed.ewayBills.length === 0) {
+            parsed.ewayBills = structuredClone(INITIAL_DB.ewayBills || []);
+          }
           if (!Array.isArray(parsed.sellers) || parsed.sellers.length === 0) {
             parsed.sellers = structuredClone(INITIAL_DB.sellers);
           }
@@ -3808,6 +3870,9 @@
     productViewMode: 'grid',
     invoiceSearch: '',
     invoiceFilterStatus: 'All',
+    ewayBillSearch: '',
+    ewayBillFilterStatus: 'All',
+    viewingEwayBill: null,
     globalSearchQuery: '',
     reportDateRange: 'all',
     autosaveTimer: null,
@@ -4135,6 +4200,14 @@
               <span class="nav-badge">${db.invoices.length}</span>
             </a>
 
+            <a href="#" class="nav-item ${state.page === 'eway-bills' ? 'active' : ''}" data-nav="eway-bills">
+              <div class="nav-item-content">
+                <span class="nav-icon">🚚</span>
+                <span>E-Way Bills</span>
+              </div>
+              <span class="nav-badge" style="background:#0284c7;color:#ffffff">${(db.ewayBills || []).length}</span>
+            </a>
+
             <div class="nav-section-title">Master Data</div>
 
             <a href="#" class="nav-item ${state.page === 'customers' ? 'active' : ''}" data-nav="customers">
@@ -4282,6 +4355,10 @@
             <span class="icon">▤</span>
             <span>Quotes</span>
           </button>
+          <button class="mobile-nav-btn ${state.page === 'eway-bills' ? 'active' : ''}" data-nav="eway-bills">
+            <span class="icon">🚚</span>
+            <span>E-Way</span>
+          </button>
           <button class="mobile-nav-btn ${state.page === 'products' ? 'active' : ''}" data-nav="products">
             <span class="icon">🎆</span>
             <span>Products</span>
@@ -4301,6 +4378,7 @@
       case 'quotations': return 'Quotations Management';
       case 'new-quotation': return state.editingQuoteId ? 'Edit Quotation' : 'Create GST Quotation';
       case 'invoices': return 'Tax Invoices';
+      case 'eway-bills': return 'E-Way Bill Management';
       case 'customers': return 'Customer & Shop Master';
       case 'products': return 'Fireworks Product Master';
       case 'categories': return 'Product Categories';
@@ -4317,6 +4395,7 @@
       case 'quotations': return 'Search, issue, duplicate, print and convert quotations.';
       case 'new-quotation': return 'Comprehensive GST billing calculator with live snapshot preservation.';
       case 'invoices': return 'Commercial tax invoices with transport & E-Way Bill fields.';
+      case 'eway-bills': return 'Government of India GST E-Way Bill system with NIC format, QR Code & single-page A4 PDF.';
       case 'customers': return 'Searchable shop directory with GSTIN auto-fill and history.';
       case 'products': return 'Packing rates, HSN 3604, GST rates, and case pricing.';
       case 'categories': return 'Manage product categories used in quotations and product master.';
@@ -4405,6 +4484,10 @@
       case 'invoices':
         container.innerHTML = renderInvoicesPage();
         attachInvoicesListeners();
+        break;
+      case 'eway-bills':
+        container.innerHTML = renderEWayBillsPage();
+        attachEWayBillsListeners();
         break;
       case 'customers':
         container.innerHTML = renderCustomersPage();
@@ -6987,6 +7070,1390 @@
   }
 
   // ==========================================================================
+  // MODULE: GST E-WAY BILL SYSTEM (NIC GOVERNMENT STANDARD FORMAT)
+  // Matching Ponmuneeswari_eWayBill_PNFW-POS-0011 Reference Specification
+  // ==========================================================================
+
+  function calculateEwbValidity(fromDateStr, distanceKm) {
+    const km = Number(distanceKm) || 35;
+    const days = Math.max(1, Math.ceil(km / 200));
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return `${dd}/${mm}/${yyyy} 11:59 PM`;
+  }
+
+  function copyToClipboard(text, msg) {
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        showToast(msg || 'Copied to clipboard!', 'success');
+      }).catch(() => {
+        fallbackCopy(text, msg);
+      });
+    } else {
+      fallbackCopy(text, msg);
+    }
+  }
+
+  function fallbackCopy(text, msg) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand('copy');
+      showToast(msg || 'Copied to clipboard!', 'success');
+    } catch (e) {
+      showToast('Copied text: ' + text, 'info');
+    }
+    ta.remove();
+  }
+
+  function renderEWayBillsPage() {
+    let filtered = (db.ewayBills || []).slice();
+
+    if (state.ewayBillFilterStatus && state.ewayBillFilterStatus !== 'All') {
+      if (state.ewayBillFilterStatus === 'Active') {
+        filtered = filtered.filter(e => (e.status || 'ACTIVE') === 'ACTIVE');
+      } else if (state.ewayBillFilterStatus === 'Expired') {
+        filtered = filtered.filter(e => (e.status || 'ACTIVE') === 'EXPIRED');
+      }
+    }
+
+    if (state.ewayBillSearch && state.ewayBillSearch.trim()) {
+      const q = state.ewayBillSearch.toLowerCase().trim();
+      filtered = filtered.filter(e =>
+        (e.ewayBillNo && e.ewayBillNo.toLowerCase().includes(q)) ||
+        (e.recipientName && e.recipientName.toLowerCase().includes(q)) ||
+        (e.recipientGstin && e.recipientGstin.toLowerCase().includes(q)) ||
+        (e.docNo && e.docNo.toLowerCase().includes(q)) ||
+        (e.supplierName && e.supplierName.toLowerCase().includes(q)) ||
+        (e.vehicleDocNo && e.vehicleDocNo.toLowerCase().includes(q)) ||
+        (e.vehicleNo && e.vehicleNo.toLowerCase().includes(q)) ||
+        (e.placeOfDelivery && e.placeOfDelivery.toLowerCase().includes(q))
+      );
+    }
+
+    filtered.sort((a, b) => new Date(b.createdAt || b.ewayBillDate || 0) - new Date(a.createdAt || a.ewayBillDate || 0));
+
+    const totalCount = (db.ewayBills || []).length;
+    const totalValue = (db.ewayBills || []).reduce((acc, e) => acc + (Number(e.totalValue) || 0), 0);
+
+    return `
+      <div class="eway-page-container">
+        <!-- TOP EXECUTIVE STATS -->
+        <div class="eway-stats-grid">
+          <div class="stat-card sky">
+            <div class="stat-top">
+              <span class="stat-label">Total E-Way Bills</span>
+              <span class="stat-icon">🚚</span>
+            </div>
+            <div class="stat-value">${totalCount}</div>
+            <div class="stat-bottom">
+              <span class="stat-pill positive">NIC GST Portal Standard</span>
+            </div>
+          </div>
+
+          <div class="stat-card emerald">
+            <div class="stat-top">
+              <span class="stat-label">Consignment Goods Value</span>
+              <span class="stat-icon">₹</span>
+            </div>
+            <div class="stat-value">${formatMoney(totalValue)}</div>
+            <div class="stat-bottom">
+              <span>Fireworks & Pyrotechnics</span>
+            </div>
+          </div>
+
+          <div class="stat-card gold">
+            <div class="stat-top">
+              <span class="stat-label">HSN Code Category</span>
+              <span class="stat-icon">🎆</span>
+            </div>
+            <div class="stat-value" style="font-size:20px;letter-spacing:1px">3604 10 00</div>
+            <div class="stat-bottom">
+              <span>Commercial Pyrotechnic Rules</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-top">
+              <span class="stat-label">Government System</span>
+              <span class="stat-icon">🏛️</span>
+            </div>
+            <div class="stat-value" style="font-size:20px;">EWB & IRN</div>
+            <div class="stat-bottom">
+              <span class="stat-pill positive">A4 Single-Page PDF Ready</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- MAIN CARD -->
+        <div class="card">
+          <div class="eway-toolbar">
+            <div class="unified-search-bar" style="flex:1;min-width:300px">
+              <span class="search-icon">🔍</span>
+              <input type="text" class="search-input" id="ewayBillSearchInput" placeholder="Search E-Way Bill No, customer, GSTIN, invoice no, vehicle..." value="${escapeHtml(state.ewayBillSearch || '')}" />
+              <div class="search-divider"></div>
+              <button class="search-add-btn" onclick="window.adhiraApp.openCreateEWayBillModal()" title="Create New GST E-Way Bill">
+                <span>+</span> New E-Way Bill
+              </button>
+            </div>
+
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <button class="btn btn-secondary btn-sm" onclick="window.adhiraApp.loadPonmuneeswariSample()" title="Click to quickly load the official Ponmuneeswari sample bill" style="background:#e0f2fe;color:#0369a1;border-color:#bae6fd;font-weight:700">
+                <span>✨</span> Ponmuneeswari Sample
+              </button>
+              <select class="select" id="ewayBillStatusFilter" style="width:140px;">
+                <option value="All" ${state.ewayBillFilterStatus === 'All' ? 'selected' : ''}>All Status</option>
+                <option value="Active" ${state.ewayBillFilterStatus === 'Active' ? 'selected' : ''}>Active</option>
+                <option value="Expired" ${state.ewayBillFilterStatus === 'Expired' ? 'selected' : ''}>Expired</option>
+              </select>
+            </div>
+          </div>
+
+          ${filtered.length > 0 ? `
+            <!-- DESKTOP TABLE -->
+            <div class="table-responsive table-desktop-eway">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>E-Way Bill No</th>
+                    <th>Consignor (Supplier)</th>
+                    <th>Recipient (Customer)</th>
+                    <th>Doc No & Date</th>
+                    <th class="num">Value (₹)</th>
+                    <th>Vehicle / Mode</th>
+                    <th>Validity</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${filtered.map(e => `
+                    <tr>
+                      <td>
+                        <div style="display:flex;align-items:center;gap:6px">
+                          <span style="font-family:monospace;font-size:13px;font-weight:800;color:var(--navy-900)">${escapeHtml(e.ewayBillNo)}</span>
+                          <button type="button" class="copy-icon-btn" onclick="window.adhiraApp.copyText('${escapeHtml(e.ewayBillNo)}', 'E-Way Bill No copied!')" title="Copy Number">📋</button>
+                        </div>
+                        <div style="font-size:10.5px;color:var(--text-muted);margin-top:2px">${escapeHtml(e.ewayBillDate || '')}</div>
+                      </td>
+                      <td>
+                        <span class="gstin-red" style="font-size:11px">${escapeHtml(e.supplierGstin || e.generatedByGstin || '')}</span>
+                        <div style="font-weight:600;font-size:12px;color:var(--text-main)">${escapeHtml(e.supplierName || e.generatedByName || '')}</div>
+                      </td>
+                      <td>
+                        <span style="font-size:11px;font-weight:700;color:var(--text-main)">${escapeHtml(e.recipientGstin || '—')}</span>
+                        <div style="font-weight:600;font-size:12.5px;color:var(--navy-950)">${escapeHtml(e.recipientName || '—')}</div>
+                        <div style="font-size:10.5px;color:var(--text-muted);max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${escapeHtml(e.placeOfDelivery || '')}">
+                          📍 ${escapeHtml(e.placeOfDelivery || '')}
+                        </div>
+                      </td>
+                      <td>
+                        <span class="strong">${escapeHtml(e.docNo || '—')}</span>
+                        <div style="font-size:11px;color:var(--text-muted)">${escapeHtml(e.docDate || '')}</div>
+                      </td>
+                      <td class="num strong" style="font-size:13px;color:#047857">
+                        ₹${Number(e.totalValue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
+                      <td>
+                        <div style="font-weight:700;font-size:12px">${escapeHtml(e.vehicleNo || (e.vehicleDocNo ? e.vehicleDocNo.split('&')[0].trim() : 'Road'))}</div>
+                        <div style="font-size:10.5px;color:var(--text-muted)">From: ${escapeHtml(e.fromPlace || 'Sivakasi')}</div>
+                      </td>
+                      <td>
+                        <span class="badge badge-active" style="font-size:10.5px">Valid: ${escapeHtml(e.validUntil || 'Active')}</span>
+                        <div style="font-size:10px;color:#0284c7;font-weight:700;margin-top:2px">[ ${escapeHtml(e.distanceKm || '35')} KM ]</div>
+                      </td>
+                      <td>
+                        <div style="display:flex;gap:4px;flex-wrap:wrap">
+                          <button class="btn btn-secondary btn-sm" onclick="window.adhiraApp.viewEWayBill('${e.id}')" title="View Official A4 Document">👁️ View</button>
+                          <button class="btn btn-gold btn-sm" onclick="window.adhiraApp.downloadEWayPdf('${e.id}')" title="Instant Local PDF Download">📥 PDF</button>
+                          <button class="btn btn-secondary btn-sm" onclick="window.adhiraApp.openCreateEWayBillModal('${e.id}')" title="Edit E-Way Bill">✏️</button>
+                          <button class="btn btn-danger btn-sm" onclick="window.adhiraApp.deleteEWayBill('${e.id}')" title="Delete">✕</button>
+                        </div>
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+
+            <!-- MOBILE CARDS LIST -->
+            <div class="eway-mobile-cards">
+              ${filtered.map(e => `
+                <div class="eway-card-item">
+                  <div class="eway-card-item-top">
+                    <div>
+                      <div style="display:flex;align-items:center;gap:6px">
+                        <span style="font-family:monospace;font-size:15px;font-weight:800;color:var(--navy-950)">${escapeHtml(e.ewayBillNo)}</span>
+                        <button type="button" class="copy-icon-btn" onclick="window.adhiraApp.copyText('${escapeHtml(e.ewayBillNo)}', 'E-Way Bill No copied!')">📋</button>
+                      </div>
+                      <div style="font-size:11px;color:var(--text-muted)">${escapeHtml(e.ewayBillDate || '')}</div>
+                    </div>
+                    <span class="badge badge-active" style="font-size:10.5px">${escapeHtml(e.distanceKm || '35')} KM</span>
+                  </div>
+
+                  <div style="display:flex;flex-direction:column;gap:3px;font-size:12.5px">
+                    <div><strong>To:</strong> ${escapeHtml(e.recipientName)} <span style="font-size:11px;color:var(--text-muted)">(${escapeHtml(e.recipientGstin || 'No GST')})</span></div>
+                    <div><strong>Doc:</strong> ${escapeHtml(e.docNo)} (${escapeHtml(e.docDate)}) • <strong>Value:</strong> <span style="color:#047857;font-weight:800">₹${Number(e.totalValue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
+                    <div><strong>Vehicle:</strong> ${escapeHtml(e.vehicleDocNo || e.vehicleNo || 'Road')} • <strong>From:</strong> ${escapeHtml(e.fromPlace || 'Sivakasi')}</div>
+                    <div><strong>Valid Until:</strong> <span style="font-weight:700;color:#0369a1">${escapeHtml(e.validUntil)}</span></div>
+                  </div>
+
+                  <div class="eway-card-item-actions">
+                    <button class="btn btn-secondary btn-sm" onclick="window.adhiraApp.viewEWayBill('${e.id}')" style="flex:1">👁️ View Bill</button>
+                    <button class="btn btn-gold btn-sm" onclick="window.adhiraApp.downloadEWayPdf('${e.id}')" style="flex:1">📥 Download PDF</button>
+                    <button class="btn btn-secondary btn-sm" onclick="window.adhiraApp.openCreateEWayBillModal('${e.id}')">✏️ Edit</button>
+                    <button class="btn btn-danger btn-sm" onclick="window.adhiraApp.deleteEWayBill('${e.id}')">✕</button>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          ` : `
+            <div class="empty-state">
+              <div class="empty-state-icon">🚚</div>
+              <h4 class="empty-state-title">No E-Way Bills Found</h4>
+              <p class="empty-state-desc">Generate official GST E-Way Bills with real customer details, enter official EWB numbers, and download crisp A4 single-page PDFs.</p>
+              <div style="display:flex;gap:10px;justify-content:center;margin-top:14px;flex-wrap:wrap">
+                <button class="btn btn-gold" onclick="window.adhiraApp.openCreateEWayBillModal()">+ Create E-Way Bill</button>
+                <button class="btn btn-secondary" onclick="window.adhiraApp.loadPonmuneeswariSample()">✨ Load Ponmuneeswari Sample</button>
+              </div>
+            </div>
+          `}
+        </div>
+      </div>
+    `;
+  }
+
+  function attachEWayBillsListeners() {
+    const search = document.getElementById('ewayBillSearchInput');
+    if (search) {
+      search.oninput = (e) => {
+        state.ewayBillSearch = e.target.value;
+        renderCurrentPage();
+      };
+    }
+
+    const filter = document.getElementById('ewayBillStatusFilter');
+    if (filter) {
+      filter.onchange = (e) => {
+        state.ewayBillFilterStatus = e.target.value;
+        renderCurrentPage();
+      };
+    }
+  }
+
+  function generateEWayBillHtml(ewb, forExport = false) {
+    const safeEwb = Object.assign({}, PONMUNEESWARI_SAMPLE_EWAY_BILL, ewb || {});
+    const qrId = `ewayQrBox_${safeEwb.id}_${forExport ? 'exp' : 'view'}`;
+
+    return `
+      <div class="eway-bill-sheet" id="${forExport ? 'exportA4EwayContent' : 'printableA4EwayDocument'}">
+        <!-- TOP BADGE ROW -->
+        <div class="eway-top-badge-row">
+          <div class="eway-govt-pill">
+            GOVERNMENT OF INDIA • GST E-WAY BILL SYSTEM
+          </div>
+          ${!forExport ? `
+            <button type="button" class="eway-edit-btn no-print" onclick="window.adhiraApp.openCreateEWayBillModal('${safeEwb.id}')">
+              ✏️ Edit Details
+            </button>
+          ` : ''}
+        </div>
+
+        <!-- MAIN HEADING -->
+        <div class="eway-heading-title">
+          e-Way Bill
+        </div>
+
+        <!-- QR CODE AREA -->
+        <div class="eway-qr-wrapper">
+          <div class="eway-qr-box" id="${qrId}"></div>
+          <div class="eway-scan-label">
+            <span>🔲</span> Click or Scan to Verify
+          </div>
+        </div>
+
+        <!-- HEADER SUMMARY GRID -->
+        <div class="eway-summary-grid">
+          <div class="eway-summary-row">
+            <div class="eway-label">E-Way Bill No:</div>
+            <div class="eway-value">
+              <span class="eway-bold-number">${escapeHtml(safeEwb.ewayBillNo)}</span>
+              ${!forExport ? `<button type="button" class="copy-icon-btn no-print" onclick="window.adhiraApp.copyText('${escapeHtml(safeEwb.ewayBillNo)}', 'E-Way Bill No copied!')" title="Copy Number">📋</button>` : ''}
+            </div>
+          </div>
+
+          <div class="eway-summary-row">
+            <div class="eway-label">E-Way Bill Date:</div>
+            <div class="eway-value" style="font-weight:700">${escapeHtml(safeEwb.ewayBillDate)}</div>
+          </div>
+
+          <div class="eway-summary-row">
+            <div class="eway-label">Generated By:</div>
+            <div class="eway-value">
+              <span class="gstin-red">${escapeHtml(safeEwb.generatedByGstin || safeEwb.supplierGstin)}</span>
+              <span class="gen-name">${escapeHtml(safeEwb.generatedByName || safeEwb.supplierName)}</span>
+            </div>
+          </div>
+
+          <div class="eway-summary-row">
+            <div class="eway-label">Valid From:</div>
+            <div class="eway-value" style="font-weight:700">
+              ${escapeHtml(safeEwb.validFrom)}
+              <span class="eway-km-badge">[ ${escapeHtml(safeEwb.distanceKm || '35')} KM ]</span>
+            </div>
+          </div>
+
+          <div class="eway-summary-row">
+            <div class="eway-label">Valid Until:</div>
+            <div class="eway-value" style="font-weight:700">${escapeHtml(safeEwb.validUntil)}</div>
+          </div>
+        </div>
+
+        <!-- IRN DETAILS SECTION -->
+        <div class="eway-section-card">
+          <div class="eway-section-header">
+            <span class="sec-title">IRN DETAILS</span>
+            <span class="sec-sub">INVOICE REGISTRATION NETWORK</span>
+          </div>
+          <div class="eway-section-body">
+            <div class="eway-detail-row">
+              <div class="eway-col-label">IRN:</div>
+              <div class="eway-col-val eway-irn-hash">
+                <span>${escapeHtml(safeEwb.irn || '—')}</span>
+                ${(!forExport && safeEwb.irn) ? `<button type="button" class="copy-icon-btn no-print" onclick="window.adhiraApp.copyText('${escapeHtml(safeEwb.irn)}', 'IRN copied!')" title="Copy IRN">📋</button>` : ''}
+              </div>
+            </div>
+            <div class="eway-detail-row">
+              <div class="eway-col-label">Ack No:</div>
+              <div class="eway-col-val font-bold">${escapeHtml(safeEwb.ackNo || '—')}</div>
+            </div>
+            <div class="eway-detail-row">
+              <div class="eway-col-label">Ack Date:</div>
+              <div class="eway-col-val font-bold">${escapeHtml(safeEwb.ackDate || safeEwb.ewayBillDate || '—')}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PART - A SECTION -->
+        <div class="eway-section-card">
+          <div class="eway-section-header">
+            <span class="sec-title">PART - A</span>
+            <span class="sec-sub">CONSIGNOR, CONSIGNEE & GOODS DETAILS</span>
+          </div>
+          <div class="eway-section-body">
+            <div class="eway-detail-row">
+              <div class="eway-col-label">GSTIN of Supplier:</div>
+              <div class="eway-col-val">
+                <span class="gstin-red font-bold">${escapeHtml(safeEwb.supplierGstin)}</span>
+                <span class="font-bold" style="margin-left:4px">${escapeHtml(safeEwb.supplierName)}</span>
+              </div>
+            </div>
+
+            <div class="eway-detail-row">
+              <div class="eway-col-label">Place of Dispatch:</div>
+              <div class="eway-col-val" style="text-transform:uppercase">${escapeHtml(safeEwb.placeOfDispatch)}</div>
+            </div>
+
+            <div class="eway-detail-row">
+              <div class="eway-col-label">GSTIN of Recipient:</div>
+              <div class="eway-col-val">
+                <span class="font-bold">${escapeHtml(safeEwb.recipientGstin || '—')}</span>
+                <span class="font-bold" style="margin-left:4px">${escapeHtml(safeEwb.recipientName)}</span>
+              </div>
+            </div>
+
+            <div class="eway-detail-row">
+              <div class="eway-col-label">Place of Delivery:</div>
+              <div class="eway-col-val" style="text-transform:uppercase">${escapeHtml(safeEwb.placeOfDelivery)}</div>
+            </div>
+
+            <div class="eway-detail-row">
+              <div class="eway-col-label">Document No.:</div>
+              <div class="eway-col-val font-bold">${escapeHtml(safeEwb.docNo)}</div>
+            </div>
+
+            <div class="eway-detail-row">
+              <div class="eway-col-label">Document Date:</div>
+              <div class="eway-col-val font-bold">${escapeHtml(safeEwb.docDate)}</div>
+            </div>
+
+            <div class="eway-detail-row">
+              <div class="eway-col-label">Transaction Type:</div>
+              <div class="eway-col-val font-bold">${escapeHtml(safeEwb.transactionType || 'Regular')}</div>
+            </div>
+
+            <div class="eway-detail-row">
+              <div class="eway-col-label">Value of Goods:</div>
+              <div class="eway-col-val font-bold">₹${Number(safeEwb.totalValue || 0).toFixed(2)}</div>
+            </div>
+
+            <div class="eway-detail-row">
+              <div class="eway-col-label">HSN Code:</div>
+              <div class="eway-col-val">
+                <span class="font-bold">${escapeHtml(safeEwb.hsnCode || '36041000')}</span>
+                <span style="color:#64748b;margin-left:4px">(${escapeHtml(safeEwb.hsnDesc || 'Fireworks & Pyrotechnics')})</span>
+              </div>
+            </div>
+
+            <div class="eway-detail-row">
+              <div class="eway-col-label">Reason for Transportation:</div>
+              <div class="eway-col-val font-bold">${escapeHtml(safeEwb.reasonForTrans || 'Outward - Supply')}</div>
+            </div>
+
+            <div class="eway-detail-row">
+              <div class="eway-col-label">Transporter:</div>
+              <div class="eway-col-val">${escapeHtml(safeEwb.transporter || '-')}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PART - B SECTION -->
+        <div class="eway-section-card">
+          <div class="eway-section-header">
+            <span class="sec-title">PART - B</span>
+            <span class="sec-sub">VEHICLE ENTRY & MODE OF TRANSPORTATION</span>
+          </div>
+          <div class="eway-part-b-table-wrap">
+            <table class="eway-table">
+              <thead>
+                <tr>
+                  <th>Mode</th>
+                  <th>Vehicle / Trans Doc No & Dt.</th>
+                  <th>From</th>
+                  <th>Entered Date</th>
+                  <th>Entered By</th>
+                  <th>CEWB No. (if any)</th>
+                  <th>Multi Veh.Info (if any)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>${escapeHtml(safeEwb.mode || 'Road')}</td>
+                  <td class="font-bold">${escapeHtml(safeEwb.vehicleDocNo || (safeEwb.vehicleNo ? (safeEwb.vehicleNo + ' & ' + safeEwb.docDate) : '-'))}</td>
+                  <td>${escapeHtml(safeEwb.fromPlace || 'Sivakasi')}</td>
+                  <td>${escapeHtml(safeEwb.enteredDate || safeEwb.ewayBillDate)}</td>
+                  <td><span class="gstin-red font-bold">${escapeHtml(safeEwb.enteredBy || safeEwb.supplierGstin)}</span></td>
+                  <td>${escapeHtml(safeEwb.cewbNo || '-')}</td>
+                  <td>${escapeHtml(safeEwb.multiVehInfo || '-')}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function openEWayPreviewModal(ewb) {
+    state.viewingEwayBill = ewb;
+    const isMobile = window.innerWidth <= 768;
+    const autoScale = isMobile ? Math.min(1.0, Math.max(0.35, (window.innerWidth - 16) / 800)) : 1.0;
+    state.zoomScale = autoScale;
+
+    const modalTitle = `e-Way Bill ${ewb.ewayBillNo} (${ewb.docNo})`;
+    const docHtml = generateEWayBillHtml(ewb, false);
+
+    const body = `
+      <div class="pdf-preview-backdrop">
+        <div class="pdf-preview-toolbar">
+          <button class="btn btn-secondary btn-sm" onclick="window.adhiraApp.setEwbScale(1.0)" title="100% Full View">🔍 100%</button>
+          <button class="btn btn-secondary btn-sm" onclick="window.adhiraApp.fitEwbToScreen()" title="Fit Document to Screen Width">📱 Fit Screen</button>
+
+          <div style="height:18px;width:1px;background:var(--border-subtle);margin:0 2px;"></div>
+
+          <button class="btn btn-secondary btn-sm" onclick="window.adhiraApp.zoomEwb(-0.1)" title="Zoom Out">➖</button>
+          <span id="ewbZoomScaleLabel" style="font-size:12px;font-weight:700;min-width:38px;text-align:center;">${Math.round(autoScale * 100)}%</span>
+          <button class="btn btn-secondary btn-sm" onclick="window.adhiraApp.zoomEwb(0.1)" title="Zoom In">➕</button>
+
+          <div style="height:18px;width:1px;background:var(--border-subtle);margin:0 2px;"></div>
+
+          <button class="btn btn-gold btn-sm" onclick="window.adhiraApp.downloadEWayPdf('${ewb.id}')">
+            <span>📥</span> Download PDF
+          </button>
+
+          <button class="btn btn-primary btn-sm" onclick="window.adhiraApp.printEWayBill('${ewb.id}')">
+            <span>🖨️</span> Print Bill
+          </button>
+
+          <button class="btn btn-secondary btn-sm" onclick="window.adhiraApp.openCreateEWayBillModal('${ewb.id}')">
+            <span>✏️</span> Edit
+          </button>
+
+          <button class="btn btn-success btn-sm" onclick="window.adhiraApp.shareEWayWhatsApp('${ewb.id}')">
+            <span>💬</span> WhatsApp
+          </button>
+        </div>
+
+        <div id="ewbZoomContainer" style="display:flex;justify-content:center;width:100%;overflow-x:auto;">
+          ${docHtml}
+        </div>
+      </div>
+    `;
+
+    openModal(modalTitle, body, `<button class="btn btn-secondary" onclick="window.adhiraApp.closeModal()">Close</button>`, 'modal-lg');
+
+    // Auto-scale sheet for mobile preview
+    setTimeout(() => {
+      const sheet = document.getElementById('printableA4EwayDocument');
+      if (sheet && autoScale !== 1.0) {
+        sheet.style.transform = `scale(${autoScale})`;
+        sheet.style.transformOrigin = 'top center';
+      }
+    }, 40);
+
+    // Render QR Code inside preview
+    setTimeout(() => {
+      const qrBox = document.getElementById(`ewayQrBox_${ewb.id}_view`);
+      if (qrBox && typeof QRCode !== 'undefined') {
+        qrBox.innerHTML = '';
+        const qrPayload = JSON.stringify({
+          ewbNo: ewb.ewayBillNo,
+          ewbDt: ewb.ewayBillDate,
+          genGstin: ewb.generatedByGstin || ewb.supplierGstin,
+          docNo: ewb.docNo,
+          docDt: ewb.docDate,
+          totVal: Number(ewb.totalValue || 0).toFixed(2),
+          recGstin: ewb.recipientGstin,
+          hsn: ewb.hsnCode || '36041000',
+          irn: ewb.irn || ''
+        });
+        new QRCode(qrBox, {
+          text: qrPayload,
+          width: 132,
+          height: 132,
+          colorDark: '#000000',
+          colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.M
+        });
+      }
+    }, 60);
+  }
+
+  function openCreateEWayBillModal(editId = null, prefillData = null) {
+    const existing = editId ? (db.ewayBills || []).find(e => e.id === editId) : null;
+    const initial = existing || prefillData || {};
+
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const defaultDateStr = `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    const defaultDocDate = `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()}`;
+    const defaultValidUntil = calculateEwbValidity(defaultDateStr, initial.distanceKm || 35);
+
+    const isEdit = Boolean(existing);
+    const modalTitle = isEdit ? `Edit E-Way Bill (${existing.ewayBillNo})` : 'Create GST E-Way Bill (NIC Government Format)';
+
+    const formHtml = `
+      <form id="ewayBillForm" onsubmit="window.adhiraApp.submitEWayBillForm(event, true, false)">
+        <input type="hidden" id="ewbEditId" value="${escapeHtml(editId || '')}" />
+
+        <!-- QUICK ASSIST / PREFILL BAR -->
+        <div style="background:var(--bg-app);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:12px;margin-bottom:16px;">
+          <div style="font-weight:700;font-size:12px;color:var(--gold-600);text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">
+            <span>⚡ Quick Fill & Real Data Presets</span>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="window.adhiraApp.fillEwbPonmuneeswariSampleModal()" style="font-size:11px;padding:3px 10px;background:#e0f2fe;color:#0369a1;border-color:#bae6fd">
+              ✨ Fill Ponmuneeswari Sample
+            </button>
+          </div>
+
+          <div class="grid-2" style="gap:10px">
+            <div class="form-group" style="margin-bottom:0">
+              <label class="form-label" style="font-size:11.5px">🏢 Select Customer (Auto-fills Consignee & Delivery Place)</label>
+              <select class="select" id="ewbCustomerSelect" onchange="window.adhiraApp.onEwbCustomerSelect(this.value)">
+                <option value="">-- Pick Customer from Database --</option>
+                ${(db.customers || []).map(c => `
+                  <option value="${c.id}">${escapeHtml(c.name)} (${escapeHtml(c.city || 'Tamil Nadu')}) - ${escapeHtml(c.gstin || 'Unregistered')}</option>
+                `).join('')}
+                <option value="SAMPLE_PONMUNEESWARI">⭐ ATHIRA TRADERS (From Ponmuneeswari Sample)</option>
+              </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom:0">
+              <label class="form-label" style="font-size:11.5px">🧾 Or Autofill from Tax Invoice</label>
+              <select class="select" id="ewbInvoiceSelect" onchange="window.adhiraApp.onEwbInvoiceSelect(this.value)">
+                <option value="">-- Choose Invoice to autofill doc & goods value --</option>
+                ${(db.invoices || []).map(inv => `
+                  <option value="${inv.id}">${escapeHtml(inv.number)} - ${escapeHtml(inv.customer?.name || 'Customer')} (₹${Number(inv.grandTotal || 0).toLocaleString('en-IN')})</option>
+                `).join('')}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- 1. E-WAY BILL CORE HEADER -->
+        <div class="ewb-form-section-title">
+          <span>1. E-WAY BILL NUMBER & VALIDITY</span>
+          <span style="font-size:11px;font-weight:600;color:#0284c7">Government 12-Digit Identifier</span>
+        </div>
+
+        <div class="grid-2" style="gap:12px">
+          <div class="form-group">
+            <label class="form-label" style="font-weight:800;color:#0f172a">
+              E-Way Bill Number <span style="color:#ef4444">*</span>
+            </label>
+            <div style="display:flex;gap:6px">
+              <input type="text" class="input" id="ewbNumberInput" placeholder="e.g. 542075380011" maxlength="12" value="${escapeHtml(initial.ewayBillNo || '')}" style="font-family:monospace;font-size:15px;font-weight:800;letter-spacing:1px" required />
+              <button type="button" class="btn btn-secondary btn-sm" onclick="window.adhiraApp.suggestEwbNumber()" title="Generate 12-digit number">
+                🎲 Suggest
+              </button>
+            </div>
+            <small style="color:var(--text-muted);font-size:11px">Enter official 12-digit NIC E-Way Bill Number.</small>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">E-Way Bill Date & Time</label>
+            <input type="text" class="input" id="ewbDateInput" value="${escapeHtml(initial.ewayBillDate || defaultDateStr)}" />
+          </div>
+        </div>
+
+        <div class="grid-3" style="gap:12px">
+          <div class="form-group">
+            <label class="form-label">Approx Distance (KM) <span style="color:#ef4444">*</span></label>
+            <input type="number" class="input" id="ewbDistanceInput" min="1" max="5000" value="${initial.distanceKm || 35}" oninput="window.adhiraApp.onEwbDistanceChange(this.value)" required />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Valid From</label>
+            <input type="text" class="input" id="ewbValidFromInput" value="${escapeHtml(initial.validFrom || defaultDateStr)}" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Valid Until</label>
+            <input type="text" class="input" id="ewbValidUntilInput" value="${escapeHtml(initial.validUntil || defaultValidUntil)}" />
+          </div>
+        </div>
+
+        <!-- 2. IRN DETAILS -->
+        <div class="ewb-form-section-title">
+          <span>2. IRN DETAILS (INVOICE REGISTRATION NETWORK)</span>
+          <span style="font-size:11px;font-weight:600;color:#0284c7">E-Invoice Portal Hash</span>
+        </div>
+
+        <div class="form-group">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <label class="form-label" style="margin-bottom:0">IRN (64-character Hash)</label>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="window.adhiraApp.generateEwbIrnHash()" style="font-size:10.5px;padding:2px 8px">
+              ⚙️ Auto-Generate Hash
+            </button>
+          </div>
+          <input type="text" class="input" id="ewbIrnInput" placeholder="64-character hexadecimal IRN hash" value="${escapeHtml(initial.irn || 'e1100f45480e67fea8b1fbf6fdfb7b66e12ab09bd9db398fa56ca8998aa380011')}" style="font-family:monospace;font-size:11.5px" />
+        </div>
+
+        <div class="grid-2" style="gap:12px">
+          <div class="form-group">
+            <label class="form-label">Ack No.</label>
+            <input type="text" class="input" id="ewbAckNoInput" placeholder="15-digit Ack No" value="${escapeHtml(initial.ackNo || '152627221380011')}" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Ack Date & Time</label>
+            <input type="text" class="input" id="ewbAckDateInput" value="${escapeHtml(initial.ackDate || defaultDateStr)}" />
+          </div>
+        </div>
+
+        <!-- 3. PART - A DETAILS -->
+        <div class="ewb-form-section-title">
+          <span>3. PART - A: CONSIGNOR, CONSIGNEE & GOODS</span>
+          <span style="font-size:11px;font-weight:600;color:#0284c7">Supplier & Buyer Details</span>
+        </div>
+
+        <div class="grid-2" style="gap:12px">
+          <!-- Supplier (Consignor) -->
+          <div style="background:var(--bg-app);padding:10px;border-radius:6px;border:1px solid var(--border-subtle)">
+            <b style="font-size:12px;color:#dc2626;display:block;margin-bottom:6px">Consignor (Supplier)</b>
+            <div class="form-group" style="margin-bottom:6px">
+              <label class="form-label" style="font-size:11px">Supplier Profile</label>
+              <select class="select" id="ewbSupplierSelect" onchange="window.adhiraApp.onEwbSupplierChange(this.value)">
+                <option value="ADHIRA">ADHIRA FIRE WORKS & PYROTECH (33QRQPS0659E1Z4)</option>
+                <option value="ATHIRA">ATHIRA TRADERS (33QRQPS0659E1Z4)</option>
+                <option value="PONMUNEESWARI" selected>PONMUNEESWARI FIREWORKS (33ABKFP0985E1Z6)</option>
+                <option value="CUSTOM">Custom Consignor...</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin-bottom:6px">
+              <label class="form-label" style="font-size:11px">Supplier GSTIN</label>
+              <input type="text" class="input" id="ewbSupplierGstin" value="${escapeHtml(initial.supplierGstin || '33ABKFP0985E1Z6')}" required />
+            </div>
+            <div class="form-group" style="margin-bottom:6px">
+              <label class="form-label" style="font-size:11px">Supplier Trade / Legal Name</label>
+              <input type="text" class="input" id="ewbSupplierName" value="${escapeHtml(initial.supplierName || 'PONMUNEESWARI FIREWORKS')}" required />
+            </div>
+            <div class="form-group" style="margin-bottom:0">
+              <label class="form-label" style="font-size:11px">Place of Dispatch</label>
+              <textarea class="textarea" id="ewbPlaceOfDispatch" rows="2" style="font-size:11.5px">${escapeHtml(initial.placeOfDispatch || 'NO: 1/185, FIRST STREET, LAKSHMI NARAYANAPURAM, MANGALAM (VILLAGE), SIVAKASI')}</textarea>
+            </div>
+          </div>
+
+          <!-- Recipient (Consignee) -->
+          <div style="background:var(--bg-app);padding:10px;border-radius:6px;border:1px solid var(--border-subtle)">
+            <b style="font-size:12px;color:var(--navy-900);display:block;margin-bottom:6px">Consignee (Recipient / Customer)</b>
+            <div class="form-group" style="margin-bottom:6px">
+              <label class="form-label" style="font-size:11px">Recipient GSTIN</label>
+              <input type="text" class="input" id="ewbRecipientGstin" placeholder="e.g. 33QRQPS0659E1Z4" value="${escapeHtml(initial.recipientGstin || '33QRQPS0659E1Z4')}" />
+            </div>
+            <div class="form-group" style="margin-bottom:6px">
+              <label class="form-label" style="font-size:11px">Recipient Name <span style="color:#ef4444">*</span></label>
+              <input type="text" class="input" id="ewbRecipientName" placeholder="Customer / Trade Name" value="${escapeHtml(initial.recipientName || 'ATHIRA TRADERS')}" required />
+            </div>
+            <div class="form-group" style="margin-bottom:0">
+              <label class="form-label" style="font-size:11px">Place of Delivery <span style="color:#ef4444">*</span></label>
+              <textarea class="textarea" id="ewbPlaceOfDelivery" rows="2" style="font-size:11.5px" required>${escapeHtml(initial.placeOfDelivery || '8/444NEAR BY JAISHNAVISTORES GANTHI NAGAR ANAIYUR VIRUTHUNAGAR(DT) TAMILNADU 626 124')}</textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Document Details -->
+        <div class="grid-3" style="gap:12px;margin-top:10px">
+          <div class="form-group">
+            <label class="form-label">Document Type</label>
+            <select class="select" id="ewbDocType">
+              <option value="Tax Invoice" selected>Tax Invoice</option>
+              <option value="Bill of Supply">Bill of Supply</option>
+              <option value="Delivery Challan">Delivery Challan</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Document No. <span style="color:#ef4444">*</span></label>
+            <input type="text" class="input" id="ewbDocNo" placeholder="e.g. PNFW-POS-0011" value="${escapeHtml(initial.docNo || 'PNFW-POS-0011')}" required />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Document Date</label>
+            <input type="text" class="input" id="ewbDocDate" value="${escapeHtml(initial.docDate || defaultDocDate)}" required />
+          </div>
+        </div>
+
+        <div class="grid-3" style="gap:12px">
+          <div class="form-group">
+            <label class="form-label">Transaction Type</label>
+            <select class="select" id="ewbTransType">
+              <option value="Regular" selected>Regular</option>
+              <option value="Bill To - Ship To">Bill To - Ship To</option>
+              <option value="Bill From - Dispatch From">Bill From - Dispatch From</option>
+              <option value="Combination of 2 and 3">Combination of 2 and 3</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Value of Goods (₹) <span style="color:#ef4444">*</span></label>
+            <input type="number" step="0.01" class="input" id="ewbTotalValue" value="${initial.totalValue || 23600.00}" required />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">HSN Code & Description</label>
+            <input type="text" class="input" id="ewbHsnCode" value="${escapeHtml(initial.hsnCode || '36041000')}" />
+            <input type="hidden" id="ewbHsnDesc" value="${escapeHtml(initial.hsnDesc || 'Fireworks & Pyrotechnics')}" />
+          </div>
+        </div>
+
+        <div class="grid-2" style="gap:12px">
+          <div class="form-group">
+            <label class="form-label">Reason for Transportation</label>
+            <select class="select" id="ewbReason">
+              <option value="Outward - Supply" selected>Outward - Supply</option>
+              <option value="Inward - Supply">Inward - Supply</option>
+              <option value="Job Work">Job Work</option>
+              <option value="SKD/CKD">SKD/CKD</option>
+              <option value="Recipient Not Known">Recipient Not Known</option>
+              <option value="For Own Use">For Own Use</option>
+              <option value="Exhibition or Fairs">Exhibition or Fairs</option>
+              <option value="Line Sales">Line Sales</option>
+              <option value="Others">Others</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Transporter (Name or ID)</label>
+            <input type="text" class="input" id="ewbTransporter" placeholder="-" value="${escapeHtml(initial.transporter || '-')}" />
+          </div>
+        </div>
+
+        <!-- 4. PART - B DETAILS -->
+        <div class="ewb-form-section-title">
+          <span>4. PART - B: VEHICLE & TRANSPORTATION ENTRY</span>
+          <span style="font-size:11px;font-weight:600;color:#0284c7">Vehicle & Transporter Movement</span>
+        </div>
+
+        <div class="grid-3" style="gap:12px">
+          <div class="form-group">
+            <label class="form-label">Mode</label>
+            <select class="select" id="ewbMode">
+              <option value="Road" selected>Road</option>
+              <option value="Rail">Rail</option>
+              <option value="Air">Air</option>
+              <option value="Ship">Ship</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Vehicle Number <span style="color:#ef4444">*</span></label>
+            <input type="text" class="input" id="ewbVehicleNo" placeholder="e.g. TN95P9824" value="${escapeHtml(initial.vehicleNo || 'TN95P9824')}" required />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Vehicle Doc No & Dt.</label>
+            <input type="text" class="input" id="ewbVehicleDocNo" placeholder="e.g. TN95P9824 & 14/10/2026" value="${escapeHtml(initial.vehicleDocNo || 'TN95P9824 & 14/10/2026')}" />
+          </div>
+        </div>
+
+        <div class="grid-3" style="gap:12px">
+          <div class="form-group">
+            <label class="form-label">From (Place of Dispatch)</label>
+            <input type="text" class="input" id="ewbFromPlace" value="${escapeHtml(initial.fromPlace || 'Sivakasi')}" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Entered Date & Time</label>
+            <input type="text" class="input" id="ewbEnteredDate" value="${escapeHtml(initial.enteredDate || defaultDateStr)}" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Entered By (GSTIN)</label>
+            <input type="text" class="input" id="ewbEnteredBy" value="${escapeHtml(initial.enteredBy || '33ABKFP0985E1Z6')}" />
+          </div>
+        </div>
+
+        <!-- FORM FOOTER BUTTONS -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:20px;padding-top:14px;border-top:1px solid var(--border-subtle)">
+          <button type="button" class="btn btn-secondary" onclick="window.adhiraApp.closeModal()">Cancel</button>
+          <button type="button" class="btn btn-secondary" onclick="window.adhiraApp.submitEWayBillForm(event, false, false)" style="font-weight:600">
+            💾 Save Only
+          </button>
+          <button type="button" class="btn btn-primary" onclick="window.adhiraApp.submitEWayBillForm(event, true, false)" style="font-weight:700">
+            👁️ Save & View Bill
+          </button>
+          <button type="button" class="btn btn-gold" onclick="window.adhiraApp.submitEWayBillForm(event, true, true)" style="font-weight:800">
+            📥 Save & Download PDF
+          </button>
+        </div>
+      </form>
+    `;
+
+    openModal(modalTitle, formHtml, '', 'modal-lg');
+
+    setTimeout(() => {
+      const numInput = document.getElementById('ewbNumberInput');
+      if (numInput && !numInput.value) {
+        numInput.focus();
+      }
+    }, 100);
+  }
+
+  function onEwbCustomerSelect(custId) {
+    if (!custId) return;
+    if (custId === 'SAMPLE_PONMUNEESWARI') {
+      const gstinEl = document.getElementById('ewbRecipientGstin');
+      const nameEl = document.getElementById('ewbRecipientName');
+      const delivEl = document.getElementById('ewbPlaceOfDelivery');
+      if (gstinEl) gstinEl.value = '33QRQPS0659E1Z4';
+      if (nameEl) nameEl.value = 'ATHIRA TRADERS';
+      if (delivEl) delivEl.value = '8/444NEAR BY JAISHNAVISTORES GANTHI NAGAR ANAIYUR VIRUTHUNAGAR(DT) TAMILNADU 626 124';
+      showToast('Selected Athira Traders from sample bill', 'info');
+      return;
+    }
+    const cust = (db.customers || []).find(c => c.id === custId);
+    if (!cust) return;
+
+    const gstinEl = document.getElementById('ewbRecipientGstin');
+    const nameEl = document.getElementById('ewbRecipientName');
+    const delivEl = document.getElementById('ewbPlaceOfDelivery');
+    const distEl = document.getElementById('ewbDistanceInput');
+
+    if (gstinEl) gstinEl.value = cust.gstin || '';
+    if (nameEl) nameEl.value = cust.name || '';
+    if (delivEl) {
+      const parts = [
+        cust.shippingAddress || cust.billingAddress || '',
+        cust.city,
+        cust.state,
+        cust.pin
+      ].filter(Boolean);
+      delivEl.value = parts.join(', ').toUpperCase();
+    }
+
+    if (distEl) {
+      if (cust.stateCode === '33') {
+        distEl.value = 35;
+      } else {
+        distEl.value = 750;
+      }
+      onEwbDistanceChange(distEl.value);
+    }
+
+    showToast(`Autofilled customer: ${cust.name}`, 'info');
+  }
+
+  function onEwbInvoiceSelect(invId) {
+    if (!invId) return;
+    const inv = (db.invoices || []).find(i => i.id === invId);
+    if (!inv) return;
+
+    const docNo = document.getElementById('ewbDocNo');
+    const docDate = document.getElementById('ewbDocDate');
+    const valEl = document.getElementById('ewbTotalValue');
+    const gstinEl = document.getElementById('ewbRecipientGstin');
+    const nameEl = document.getElementById('ewbRecipientName');
+    const delivEl = document.getElementById('ewbPlaceOfDelivery');
+    const vehNo = document.getElementById('ewbVehicleNo');
+    const vehDoc = document.getElementById('ewbVehicleDocNo');
+    const ewbNum = document.getElementById('ewbNumberInput');
+
+    if (docNo) docNo.value = inv.number;
+    if (docDate) docDate.value = inv.date;
+    if (valEl) valEl.value = inv.grandTotal;
+    if (gstinEl && inv.customer) gstinEl.value = inv.customer.gstin || '';
+    if (nameEl && inv.customer) nameEl.value = inv.customer.name || '';
+    if (delivEl && inv.customer) {
+      const parts = [inv.deliveryPlace || inv.customer.shippingAddress || inv.customer.billingAddress, inv.customer.city, inv.customer.state, inv.customer.pin].filter(Boolean);
+      delivEl.value = parts.join(', ').toUpperCase();
+    }
+    if (vehNo && inv.vehicleNo) vehNo.value = inv.vehicleNo;
+    if (vehDoc && inv.vehicleNo) vehDoc.value = `${inv.vehicleNo} & ${inv.date}`;
+    if (ewbNum && inv.ewayBillNo && !ewbNum.value) ewbNum.value = inv.ewayBillNo;
+
+    showToast(`Autofilled from invoice ${inv.number}`, 'info');
+  }
+
+  function onEwbSupplierChange(supplierKey) {
+    const gstinEl = document.getElementById('ewbSupplierGstin');
+    const nameEl = document.getElementById('ewbSupplierName');
+    const dispEl = document.getElementById('ewbPlaceOfDispatch');
+    const entByEl = document.getElementById('ewbEnteredBy');
+
+    if (supplierKey === 'PONMUNEESWARI') {
+      if (gstinEl) gstinEl.value = '33ABKFP0985E1Z6';
+      if (nameEl) nameEl.value = 'PONMUNEESWARI FIREWORKS';
+      if (dispEl) dispEl.value = 'NO: 1/185, FIRST STREET, LAKSHMI NARAYANAPURAM, MANGALAM (VILLAGE), SIVAKASI';
+      if (entByEl) entByEl.value = '33ABKFP0985E1Z6';
+    } else if (supplierKey === 'ATHIRA' || supplierKey === 'ADHIRA') {
+      const gstin = db.company.gstin || '33QRQPS0659E1Z4';
+      const name = supplierKey === 'ATHIRA' ? (db.company.gstCertTradeName || 'ATHIRA TRADERS') : db.company.name;
+      const addr = `${db.company.address1 || ''}, ${db.company.address2 || ''}, ${db.company.area || ''}, ${db.company.city || 'Sivakasi'} - ${db.company.pin || '626124'}`.toUpperCase();
+      if (gstinEl) gstinEl.value = gstin;
+      if (nameEl) nameEl.value = name;
+      if (dispEl) dispEl.value = addr;
+      if (entByEl) entByEl.value = gstin;
+    }
+  }
+
+  function onEwbDistanceChange(kmVal) {
+    const validUntilEl = document.getElementById('ewbValidUntilInput');
+    const dateInput = document.getElementById('ewbDateInput');
+    if (validUntilEl) {
+      validUntilEl.value = calculateEwbValidity(dateInput ? dateInput.value : '', kmVal);
+    }
+  }
+
+  function fillEwbPonmuneeswariSampleModal() {
+    const p = PONMUNEESWARI_SAMPLE_EWAY_BILL;
+    const setVal = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.value = val;
+    };
+
+    setVal('ewbNumberInput', p.ewayBillNo);
+    setVal('ewbDateInput', p.ewayBillDate);
+    setVal('ewbDistanceInput', p.distanceKm);
+    setVal('ewbValidFromInput', p.validFrom);
+    setVal('ewbValidUntilInput', p.validUntil);
+    setVal('ewbIrnInput', p.irn);
+    setVal('ewbAckNoInput', p.ackNo);
+    setVal('ewbAckDateInput', p.ackDate);
+    setVal('ewbSupplierSelect', 'PONMUNEESWARI');
+    setVal('ewbSupplierGstin', p.supplierGstin);
+    setVal('ewbSupplierName', p.supplierName);
+    setVal('ewbPlaceOfDispatch', p.placeOfDispatch);
+    setVal('ewbRecipientGstin', p.recipientGstin);
+    setVal('ewbRecipientName', p.recipientName);
+    setVal('ewbPlaceOfDelivery', p.placeOfDelivery);
+    setVal('ewbDocType', p.docType);
+    setVal('ewbDocNo', p.docNo);
+    setVal('ewbDocDate', p.docDate);
+    setVal('ewbTransType', p.transactionType);
+    setVal('ewbTotalValue', p.totalValue);
+    setVal('ewbHsnCode', p.hsnCode);
+    setVal('ewbHsnDesc', p.hsnDesc);
+    setVal('ewbReason', p.reasonForTrans);
+    setVal('ewbTransporter', p.transporter);
+    setVal('ewbMode', p.mode);
+    setVal('ewbVehicleNo', p.vehicleNo);
+    setVal('ewbVehicleDocNo', p.vehicleDocNo);
+    setVal('ewbFromPlace', p.fromPlace);
+    setVal('ewbEnteredDate', p.enteredDate);
+    setVal('ewbEnteredBy', p.enteredBy);
+
+    showToast('Loaded exact Ponmuneeswari sample bill data!', 'success');
+  }
+
+  function suggestEwbNumber() {
+    const input = document.getElementById('ewbNumberInput');
+    if (input) {
+      const rand8 = Math.floor(10000000 + Math.random() * 90000000).toString();
+      input.value = '5420' + rand8;
+      showToast(`Suggested 12-digit E-Way Bill Number: ${input.value}`, 'info');
+    }
+  }
+
+  function generateEwbIrnHash() {
+    const docNo = (document.getElementById('ewbDocNo')?.value || 'PNFW-POS-0011').replace(/[^a-zA-Z0-9]/g, '');
+    const gstin = (document.getElementById('ewbSupplierGstin')?.value || '33ABKFP0985E1Z6');
+    const raw = `IRN_${gstin}_${docNo}_${Date.now()}`;
+    let hash = '';
+    for (let i = 0; i < 64; i++) {
+      const code = (raw.charCodeAt(i % raw.length) * (i + 13) * 7) % 16;
+      hash += code.toString(16);
+    }
+    const irnEl = document.getElementById('ewbIrnInput');
+    if (irnEl) irnEl.value = hash;
+    showToast('Generated 64-char IRN hash', 'info');
+  }
+
+  function submitEWayBillForm(e, andView = false, andDownload = false) {
+    if (e && e.preventDefault) e.preventDefault();
+
+    const getVal = (id) => (document.getElementById(id)?.value || '').trim();
+
+    const editId = getVal('ewbEditId');
+    const ewayNo = getVal('ewbNumberInput');
+    const ewayDate = getVal('ewbDateInput') || new Date().toLocaleString();
+    const distanceKm = Number(getVal('ewbDistanceInput')) || 35;
+    const validFrom = getVal('ewbValidFromInput') || ewayDate;
+    const validUntil = getVal('ewbValidUntilInput') || calculateEwbValidity(validFrom, distanceKm);
+    const irn = getVal('ewbIrnInput');
+    const ackNo = getVal('ewbAckNoInput');
+    const ackDate = getVal('ewbAckDateInput') || ewayDate;
+    const supplierGstin = getVal('ewbSupplierGstin');
+    const supplierName = getVal('ewbSupplierName');
+    const placeOfDispatch = getVal('ewbPlaceOfDispatch');
+    const recipientGstin = getVal('ewbRecipientGstin');
+    const recipientName = getVal('ewbRecipientName');
+    const placeOfDelivery = getVal('ewbPlaceOfDelivery');
+    const docType = getVal('ewbDocType') || 'Tax Invoice';
+    const docNo = getVal('ewbDocNo');
+    const docDate = getVal('ewbDocDate') || new Date().toISOString().slice(0, 10);
+    const transactionType = getVal('ewbTransType') || 'Regular';
+    const totalValue = Number(getVal('ewbTotalValue')) || 0;
+    const hsnCode = getVal('ewbHsnCode') || '36041000';
+    const hsnDesc = getVal('ewbHsnDesc') || 'Fireworks & Pyrotechnics';
+    const reasonForTrans = getVal('ewbReason') || 'Outward - Supply';
+    const transporter = getVal('ewbTransporter') || '-';
+    const mode = getVal('ewbMode') || 'Road';
+    const vehicleNo = getVal('ewbVehicleNo');
+    const vehicleDocNo = getVal('ewbVehicleDocNo') || (vehicleNo ? `${vehicleNo} & ${docDate}` : '-');
+    const fromPlace = getVal('ewbFromPlace') || 'Sivakasi';
+    const enteredDate = getVal('ewbEnteredDate') || ewayDate;
+    const enteredBy = getVal('ewbEnteredBy') || supplierGstin;
+
+    if (!ewayNo) {
+      showToast('Please enter the 12-digit E-Way Bill Number', 'warning');
+      document.getElementById('ewbNumberInput')?.focus();
+      return;
+    }
+
+    if (ewayNo.length !== 12 || !/^\d+$/.test(ewayNo)) {
+      if (!confirm(`Note: Official E-Way Bill numbers are 12 digits (you entered "${ewayNo}"). Do you wish to continue anyway?`)) {
+        return;
+      }
+    }
+
+    if (!supplierGstin || !supplierName) {
+      showToast('Please provide Supplier GSTIN & Name', 'warning');
+      return;
+    }
+
+    if (!recipientName) {
+      showToast('Please enter the Recipient / Customer name', 'warning');
+      return;
+    }
+
+    if (!docNo) {
+      showToast('Please enter the Document Number (e.g. Invoice No)', 'warning');
+      return;
+    }
+
+    if (totalValue <= 0) {
+      showToast('Please enter the Value of Goods (₹)', 'warning');
+      return;
+    }
+
+    if (!Array.isArray(db.ewayBills)) db.ewayBills = [];
+
+    let savedRecord = null;
+    if (editId) {
+      const idx = db.ewayBills.findIndex(x => x.id === editId);
+      if (idx >= 0) {
+        savedRecord = Object.assign({}, db.ewayBills[idx], {
+          ewayBillNo: ewayNo,
+          ewayBillDate,
+          distanceKm,
+          validFrom,
+          validUntil,
+          irn,
+          ackNo,
+          ackDate,
+          supplierGstin,
+          supplierName,
+          generatedByGstin: supplierGstin,
+          generatedByName: supplierName,
+          placeOfDispatch,
+          recipientGstin,
+          recipientName,
+          placeOfDelivery,
+          docType,
+          docNo,
+          docDate,
+          transactionType,
+          totalValue,
+          hsnCode,
+          hsnDesc,
+          reasonForTrans,
+          transporter,
+          mode,
+          vehicleNo,
+          vehicleDocNo,
+          fromPlace,
+          enteredDate,
+          enteredBy,
+          updatedAt: new Date().toISOString()
+        });
+        db.ewayBills[idx] = savedRecord;
+        showToast(`E-Way Bill ${ewayNo} updated successfully!`, 'success');
+      }
+    }
+
+    if (!savedRecord) {
+      savedRecord = {
+        id: 'EWB-' + Date.now(),
+        ewayBillNo: ewayNo,
+        ewayBillDate,
+        distanceKm,
+        validFrom,
+        validUntil,
+        irn,
+        ackNo,
+        ackDate,
+        supplierGstin,
+        supplierName,
+        generatedByGstin: supplierGstin,
+        generatedByName: supplierName,
+        placeOfDispatch,
+        recipientGstin,
+        recipientName,
+        placeOfDelivery,
+        docType,
+        docNo,
+        docDate,
+        transactionType,
+        totalValue,
+        hsnCode,
+        hsnDesc,
+        reasonForTrans,
+        transporter,
+        mode,
+        vehicleNo,
+        vehicleDocNo,
+        fromPlace,
+        enteredDate,
+        enteredBy,
+        cewbNo: '-',
+        multiVehInfo: '-',
+        status: 'ACTIVE',
+        createdAt: new Date().toISOString()
+      };
+      db.ewayBills.unshift(savedRecord);
+      showToast(`E-Way Bill ${ewayNo} created successfully!`, 'success');
+    }
+
+    saveDatabase();
+    closeModal();
+    renderCurrentPage();
+
+    if (andDownload) {
+      downloadEWayPdf(savedRecord.id);
+    } else if (andView) {
+      setTimeout(() => openEWayPreviewModal(savedRecord), 100);
+    }
+  }
+
+  function downloadEWayPdf(ewbId) {
+    const ewb = (db.ewayBills || []).find(e => e.id === ewbId);
+    if (!ewb) {
+      showToast('E-Way Bill record not found', 'error');
+      return;
+    }
+
+    if (typeof html2pdf === 'undefined') {
+      showToast('html2pdf library is unavailable. Printing document instead...', 'warning');
+      printEWayBill(ewbId);
+      return;
+    }
+
+    showToast('Rendering official A4 E-Way Bill PDF...', 'info');
+
+    // Create single-page isolated export container
+    const exportWrapper = document.createElement('div');
+    exportWrapper.id = 'exportA4EwayElement';
+    exportWrapper.className = 'eway-bill-sheet export-pdf-mode';
+    exportWrapper.style.position = 'fixed';
+    exportWrapper.style.left = '-9999px';
+    exportWrapper.style.top = '0';
+    exportWrapper.style.width = '794px';
+    exportWrapper.style.minWidth = '794px';
+    exportWrapper.style.maxWidth = '794px';
+    exportWrapper.style.background = '#ffffff';
+    exportWrapper.style.boxSizing = 'border-box';
+    exportWrapper.style.padding = '24px 30px';
+    exportWrapper.style.margin = '0';
+    exportWrapper.style.borderRadius = '0';
+    exportWrapper.style.boxShadow = 'none';
+    exportWrapper.style.transform = 'none';
+    exportWrapper.style.zIndex = '99999';
+
+    exportWrapper.innerHTML = generateEWayBillHtml(ewb, true);
+    document.body.appendChild(exportWrapper);
+
+    // Render QR Code in export container
+    const qrContainer = exportWrapper.querySelector('.eway-qr-box');
+    if (qrContainer && typeof QRCode !== 'undefined') {
+      qrContainer.innerHTML = '';
+      const qrPayload = JSON.stringify({
+        ewbNo: ewb.ewayBillNo,
+        ewbDt: ewb.ewayBillDate,
+        genGstin: ewb.generatedByGstin || ewb.supplierGstin,
+        docNo: ewb.docNo,
+        docDt: ewb.docDate,
+        totVal: Number(ewb.totalValue || 0).toFixed(2),
+        recGstin: ewb.recipientGstin,
+        hsn: ewb.hsnCode || '36041000',
+        irn: ewb.irn || ''
+      });
+      new QRCode(qrContainer, {
+        text: qrPayload,
+        width: 130,
+        height: 130,
+        colorDark: '#000000',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    }
+
+    // Determine filename: Ponmuneeswari_eWayBill_PNFW-POS-0011.pdf
+    let cleanSupplier = (ewb.supplierName || 'Adhira').trim().split(/\s+/)[0].replace(/[^a-zA-Z0-9]/g, '');
+    if (!cleanSupplier) cleanSupplier = 'EWayBill';
+    const cleanDoc = (ewb.docNo || ewb.ewayBillNo || 'bill').replace(/[^a-zA-Z0-9\-_]/g, '_');
+    const filename = `${cleanSupplier}_eWayBill_${cleanDoc}.pdf`;
+
+    const opt = {
+      margin: [0, 0, 0, 0],
+      filename: filename,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        windowWidth: 794,
+        scrollX: 0,
+        scrollY: 0
+      },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    setTimeout(() => {
+      html2pdf().set(opt).from(exportWrapper).save().then(() => {
+        exportWrapper.remove();
+        showToast(`Downloaded: ${filename}`, 'success');
+      }).catch(err => {
+        exportWrapper.remove();
+        console.error('PDF export error:', err);
+        showToast('Error downloading PDF. Opening print dialog...', 'error');
+        printEWayBill(ewbId);
+      });
+    }, 120);
+  }
+
+  function printEWayBill(ewbId) {
+    const ewb = (db.ewayBills || []).find(e => e.id === ewbId);
+    if (!ewb) return;
+
+    if (!state.viewingEwayBill || state.viewingEwayBill.id !== ewbId) {
+      openEWayPreviewModal(ewb);
+    }
+
+    setTimeout(() => {
+      window.print();
+    }, 200);
+  }
+
+  function deleteEWayBill(ewbId) {
+    if (!confirm('Are you sure you want to delete this E-Way Bill permanently?')) return;
+    const idx = (db.ewayBills || []).findIndex(e => e.id === ewbId);
+    if (idx >= 0) {
+      db.ewayBills.splice(idx, 1);
+      saveDatabase();
+      showToast('E-Way Bill deleted', 'info');
+      renderCurrentPage();
+    }
+  }
+
+  function loadPonmuneeswariSample() {
+    if (!Array.isArray(db.ewayBills)) db.ewayBills = [];
+    let sample = db.ewayBills.find(e => e.ewayBillNo === '542075380011' || e.id === 'EWB-PNFW-0011');
+    if (!sample) {
+      sample = structuredClone(PONMUNEESWARI_SAMPLE_EWAY_BILL);
+      db.ewayBills.unshift(sample);
+      saveDatabase();
+      renderCurrentPage();
+    }
+    openEWayPreviewModal(sample);
+    showToast('Loaded Ponmuneeswari official sample E-Way Bill', 'success');
+  }
+
+  function shareEWayWhatsApp(ewbId) {
+    const ewb = (db.ewayBills || []).find(e => e.id === ewbId);
+    if (!ewb) return;
+    const msg = `🚚 *GST E-WAY BILL*\n` +
+      `*E-Way Bill No:* ${ewb.ewayBillNo}\n` +
+      `*Date:* ${ewb.ewayBillDate}\n` +
+      `*Generated By:* ${ewb.supplierGstin} - ${ewb.supplierName}\n` +
+      `*Recipient:* ${ewb.recipientGstin || ''} - ${ewb.recipientName}\n` +
+      `*Document No:* ${ewb.docNo} (${ewb.docDate})\n` +
+      `*Value of Goods:* ₹${Number(ewb.totalValue || 0).toLocaleString('en-IN')}\n` +
+      `*Vehicle:* ${ewb.vehicleDocNo || ewb.vehicleNo || 'Road'}\n` +
+      `*Valid Until:* ${ewb.validUntil}\n\n` +
+      `_Adhira Pyrotech Commercial GST Billing System_`;
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+    window.open(url, '_blank');
+  }
+
+  function setEwbScale(scale) {
+    state.zoomScale = Math.max(0.3, Math.min(2.0, scale));
+    const sheet = document.getElementById('printableA4EwayDocument');
+    const label = document.getElementById('ewbZoomScaleLabel');
+    if (sheet) {
+      sheet.style.transform = `scale(${state.zoomScale})`;
+      sheet.style.transformOrigin = 'top center';
+    }
+    if (label) label.textContent = `${Math.round(state.zoomScale * 100)}%`;
+  }
+
+  function fitEwbToScreen() {
+    const isMobile = window.innerWidth <= 768;
+    const autoScale = isMobile ? Math.min(1.0, Math.max(0.35, (window.innerWidth - 20) / 800)) : 1.0;
+    setEwbScale(autoScale);
+  }
+
+  function zoomEwb(delta) {
+    setEwbScale((state.zoomScale || 1.0) + delta);
+  }
+
+  // ==========================================================================
   // MODULE 5: CUSTOMER / SHOP MASTER
   // ==========================================================================
 
@@ -8750,6 +10217,27 @@
               <div style="font-size:11px;color:var(--text-muted)">${inv.date} • ${formatMoney(inv.grandTotal)}</div>
             </div>
             <span class="badge badge-${(inv.paymentStatus || 'paid').toLowerCase()}">${inv.paymentStatus || 'Paid'}</span>
+          </div>
+        `;
+      });
+    }
+
+    const matchedEway = (db.ewayBills || []).filter(x =>
+      (x.ewayBillNo && x.ewayBillNo.toLowerCase().includes(q)) ||
+      (x.recipientName && x.recipientName.toLowerCase().includes(q)) ||
+      (x.docNo && x.docNo.toLowerCase().includes(q))
+    ).slice(0, 4);
+
+    if (matchedEway.length > 0) {
+      html += `<div class="search-group-title">E-Way Bills (${matchedEway.length})</div>`;
+      matchedEway.forEach(ewb => {
+        html += `
+          <div class="search-result-item" onclick="window.adhiraApp.viewEWayBill('${ewb.id}'); window.adhiraApp.closeModal();">
+            <div>
+              <b>🚚 EWB ${escapeHtml(ewb.ewayBillNo)}</b> — ${escapeHtml(ewb.recipientName)}
+              <div style="font-size:11px;color:var(--text-muted)">Doc: ${escapeHtml(ewb.docNo)} • ₹${Number(ewb.totalValue || 0).toLocaleString('en-IN')} • Valid: ${escapeHtml(ewb.validUntil)}</div>
+            </div>
+            <span class="badge badge-active" style="background:#0284c7;color:#fff">Active</span>
           </div>
         `;
       });
@@ -10860,7 +12348,30 @@
       if (window.adhiraVoice && typeof window.adhiraVoice.openAssistant === 'function') {
         window.adhiraVoice.openAssistant();
       }
-    }
+    },
+    openCreateEWayBillModal: (id) => openCreateEWayBillModal(id),
+    viewEWayBill: (id) => {
+      const e = (db.ewayBills || []).find(x => x.id === id);
+      if (e) openEWayPreviewModal(e);
+      else showToast('E-Way Bill not found', 'error');
+    },
+    downloadEWayPdf: (id) => downloadEWayPdf(id),
+    printEWayBill: (id) => printEWayBill(id),
+    deleteEWayBill: (id) => deleteEWayBill(id),
+    loadPonmuneeswariSample: () => loadPonmuneeswariSample(),
+    onEwbCustomerSelect: (custId) => onEwbCustomerSelect(custId),
+    onEwbInvoiceSelect: (invId) => onEwbInvoiceSelect(invId),
+    onEwbSupplierChange: (key) => onEwbSupplierChange(key),
+    onEwbDistanceChange: (kmVal) => onEwbDistanceChange(kmVal),
+    fillEwbPonmuneeswariSampleModal: () => fillEwbPonmuneeswariSampleModal(),
+    suggestEwbNumber: () => suggestEwbNumber(),
+    generateEwbIrnHash: () => generateEwbIrnHash(),
+    submitEWayBillForm: (e, andView = false, andDownload = false) => submitEWayBillForm(e, andView, andDownload),
+    shareEWayWhatsApp: (id) => shareEWayWhatsApp(id),
+    setEwbScale: (scale) => setEwbScale(scale),
+    fitEwbToScreen: () => fitEwbToScreen(),
+    zoomEwb: (delta) => zoomEwb(delta),
+    copyText: (text, msg) => copyToClipboard(text, msg)
   };
 
   // Helper to inspect database in browser console

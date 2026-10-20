@@ -199,6 +199,18 @@ assert(isValidGstin('36JNYPS8775N1Z5'), 'Customer GSTIN valid');
 assert(!isValidGstin('INVALID_GSTIN'), 'Invalid GSTIN rejected');
 console.log('✓ Test 7 Passed: 15-character Indian GSTIN regex validation verified.');
 
+// 8. Test E-Way Bill System and Ponmuneeswari Reference Specification
+assert(Array.isArray(db.ewayBills) && db.ewayBills.length >= 1, 'E-Way Bills array initialized in DB');
+const sampleEwb = db.ewayBills.find(e => e.ewayBillNo === '542075380011');
+assert(sampleEwb, 'Ponmuneeswari sample E-Way Bill 542075380011 is present in database');
+assert.strictEqual(sampleEwb.supplierGstin, '33ABKFP0985E1Z6', 'Supplier GSTIN matches Ponmuneeswari sample');
+assert.strictEqual(sampleEwb.recipientGstin, '33QRQPS0659E1Z4', 'Recipient GSTIN matches Athira Traders');
+assert.strictEqual(sampleEwb.docNo, 'PNFW-POS-0011', 'Document number matches PNFW-POS-0011');
+assert.strictEqual(sampleEwb.totalValue, 23600.00, 'Total goods value matches ₹23,600.00');
+assert.strictEqual(sampleEwb.hsnCode, '36041000', 'Fireworks HSN code matches 36041000');
+assert(sampleEwb.ewayBillNo.length === 12 && /^\d{12}$/.test(sampleEwb.ewayBillNo), 'E-Way Bill Number is strictly 12 digits');
+console.log('✓ Test 8 Passed: Official GST E-Way Bill & Ponmuneeswari PNFW-POS-0011 specification verified.');
+
 console.log('\n======================================================');
-console.log('ALL VERIFICATION TESTS PASSED SUCCESSFULLY! (7/7)');
+console.log('ALL VERIFICATION TESTS PASSED SUCCESSFULLY! (8/8)');
 console.log('======================================================');
