@@ -1,11 +1,14 @@
 {
   "name": "adhira-traders",
   "version": "1.0.0",
-  "description": "Athira Crackers / Adhira Traders - Sivakasi E-Commerce",
-  "main": "server.js",
+  "description": "Athira Crackers / Adhira Pyrotech Traders - Sivakasi E-Commerce Storefront",
+  "main": "local-server.js",
   "scripts": {
     "start": "node local-server.js",
-    "build": "echo \"Static assets ready\"",
-    "deploy": "wrangler deploy"
+    "seed:supabase": "node seed-supabase.js",
+    "build": "echo \"Assets ready for deployment\""
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

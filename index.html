@@ -14,7 +14,7 @@
     <!-- Google Roboto Font & FontAwesome 6 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,300;0,400;0,500;0,700;0,900;1,400;1,700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Tamil:wght@400;500;600;700;800&family=Roboto:ital,wght@0,300;0,400;0,500;0,700;0,900;1,400;1,700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <!-- Supabase Cloud DB Client (Cloudflare Pages Ready) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -37,7 +37,7 @@
             --tbl-row-hover: #fbfbfc;
             --tbl-price-red: #dc2626;
             --tbl-price-del: #94a3b8;
-            --tbl-font: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            --tbl-font: 'Roboto', 'Noto Sans Tamil', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             --header-offset: 72px;
             --filter-bar-height: 52px;
             --tbl-th-height: 40px;
@@ -578,6 +578,95 @@
 
         .prod-price-inline {
             display: none;
+        }
+
+        /* =========================================================
+           MOBILE RESPONSIVE: Product table for screens <= 600px
+           - Hide separate price column (show price inline in name cell)
+           - Hide subtotal column on very small screens
+           - Make qty stepper compact
+           ========================================================= */
+        @media (max-width: 600px) {
+            /* Show inline price under product name */
+            .prod-price-inline {
+                display: block;
+                margin-top: 4px;
+            }
+            /* Hide the separate price column header & cells */
+            .th-price, .td-price {
+                display: none !important;
+            }
+            /* Shrink image column */
+            .th-image, .td-image {
+                width: 70px;
+                min-width: 70px;
+                max-width: 70px;
+            }
+            .prod-thumb-wrap {
+                width: 58px;
+                height: 58px;
+            }
+            .video-demo-badge {
+                width: 58px;
+            }
+            /* Shrink qty column */
+            .th-qty, .td-qty {
+                width: 96px;
+                min-width: 96px;
+                max-width: 96px;
+            }
+            .btn-qty {
+                width: 26px;
+                height: 26px;
+                min-width: 26px;
+                font-size: 14px;
+            }
+            .input-qty {
+                width: 26px;
+                font-size: 14px;
+            }
+            .qty-stepper {
+                gap: 3px;
+            }
+            /* Shrink subtotal column */
+            .th-subtotal, .td-subtotal {
+                width: 72px;
+                min-width: 72px;
+                max-width: 72px;
+                padding: 8px 3px !important;
+            }
+            .subtotal-box {
+                font-size: 13px;
+                min-width: 48px;
+            }
+            /* Product name font */
+            .prod-name {
+                font-size: 14px;
+            }
+            .prod-desc {
+                font-size: 11px;
+            }
+            /* Table row padding */
+            .product-row td {
+                padding: 8px 6px;
+            }
+            /* Out-of-stock pill compact */
+            .out-of-stock-pill {
+                font-size: 10px;
+                padding: 4px 6px;
+            }
+        }
+
+        @media (max-width: 380px) {
+            /* Even smaller: hide subtotal column too, show total inline */
+            .th-subtotal, .td-subtotal {
+                display: none !important;
+            }
+            .th-qty, .td-qty {
+                width: 90px;
+                min-width: 90px;
+                max-width: 90px;
+            }
         }
 
         /* Price Cell */
@@ -1427,66 +1516,52 @@
                 font-size: 12px;
             }
 
-            /* Table Container (Seamless Continuous Table) */
+            /* Hide Desktop Table Header */
+            .master-table-header-wrap {
+                display: none !important;
+            }
+
+            /* Category Container */
             .category-block-list {
-                gap: 0 !important;
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 16px !important;
             }
 
             .category-table-wrap {
+                border: none !important;
                 border-radius: 0 !important;
-                border-left: 1px solid #d1d5db !important;
-                border-right: 1px solid #d1d5db !important;
-                border-top: none !important;
-                border-bottom: none !important;
-                overflow: hidden !important;
-                width: 100% !important;
-                max-width: 100% !important;
+                background: transparent !important;
                 box-shadow: none !important;
-            }
-
-            .robo-category-block:last-child .category-table-wrap {
-                border-bottom: 1px solid #d1d5db !important;
-                border-radius: 0 0 8px 8px !important;
-            }
-
-            .robo-product-table, .master-product-table-head {
+                overflow: visible !important;
                 width: 100% !important;
                 max-width: 100% !important;
-                table-layout: fixed !important;
-                border-collapse: collapse !important;
+                padding: 0 !important;
             }
 
-            /* 5-Column Table Header (#de162c Background, White Text) */
-            .master-product-table-head th {
-                background: #de162c !important;
-                color: #ffffff !important;
-                font-size: 11px !important;
-                font-weight: 900 !important;
-                letter-spacing: 0.3px !important;
-                text-transform: uppercase !important;
-                padding: 9px 3px !important;
-                text-align: center !important;
-                box-sizing: border-box !important;
+            .robo-product-table {
+                display: block !important;
+                width: 100% !important;
+                border-collapse: separate !important;
+                background: transparent !important;
+                border: none !important;
             }
 
-            /* 5-Column Widths */
-            .th-image, .td-image     { width: 56px !important; min-width: 56px !important; max-width: 56px !important; text-align: center !important; }
-            .th-name, .td-name       { width: auto !important; text-align: left !important; padding-left: 6px !important; }
-            .th-price, .td-price     { width: 56px !important; min-width: 56px !important; max-width: 56px !important; text-align: center !important; }
-            .th-qty, .td-qty         { width: 88px !important; min-width: 88px !important; max-width: 88px !important; text-align: center !important; }
-            .th-subtotal, .td-subtotal { width: 50px !important; min-width: 50px !important; max-width: 50px !important; text-align: center !important; padding: 8px 2px !important; }
+            .robo-product-table tbody {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 10px !important;
+                width: 100% !important;
+            }
 
-            /* Category Header on Mobile (Seamless Touch Top & Bottom) */
+            /* Category Header Ribbon */
             .sticky-cat-header {
                 position: static !important;
                 top: auto !important;
                 padding: 0 !important;
-                margin: 0 !important;
-                background: #E0E722 !important;
-                border-left: 1px solid #d1d5db !important;
-                border-right: 1px solid #d1d5db !important;
-                border-top: 1px solid #d1d5db !important;
-                border-bottom: 1px solid #d1d5db !important;
+                margin-bottom: 8px !important;
+                background: transparent !important;
+                border: none !important;
                 display: flex !important;
                 align-items: center !important;
             }
@@ -1496,217 +1571,278 @@
                 align-items: center !important;
                 background: #c61d23 !important;
                 color: #ffffff !important;
-                font-size: 11.5px !important;
+                font-size: 12px !important;
                 font-weight: 800 !important;
                 letter-spacing: 0.5px !important;
                 text-transform: uppercase !important;
-                padding: 6px 22px 6px 10px !important;
+                padding: 6px 20px 6px 10px !important;
                 margin: 0 !important;
                 border-radius: 0 !important;
                 clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%) !important;
                 box-shadow: 0 2px 5px rgba(198, 29, 35, 0.25) !important;
             }
 
-            /* Product Rows */
+            /* PRODUCT CARD (Matching User Image) */
+            .product-row {
+                display: grid !important;
+                grid-template-columns: 58px minmax(0, 1fr) auto !important;
+                grid-template-rows: auto auto !important;
+                grid-template-areas:
+                    "img name subtotal"
+                    "img name stepper" !important;
+                background: #ffffff !important;
+                border: 1.5px solid #d1d5db !important;
+                border-radius: 14px !important;
+                padding: 12px 14px !important;
+                margin: 0 !important;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+                column-gap: 12px !important;
+                row-gap: 2px !important;
+                align-items: center !important;
+                opacity: 1 !important;
+                transform: none !important;
+                box-sizing: border-box !important;
+                transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+            }
+
+            .product-row:hover {
+                border-color: #94a3b8 !important;
+            }
+
+            .product-row.has-qty {
+                background: #ffffff !important;
+                border-color: #cbd5e1 !important;
+            }
+
             .product-row td {
-                border: 1px solid #e5e7eb !important;
+                border: none !important;
+                padding: 0 !important;
+                background: transparent !important;
                 vertical-align: middle !important;
                 box-sizing: border-box !important;
             }
 
-            /* Column 1: Image */
+            /* 1. Thumbnail Image (Left) */
             .td-image {
-                padding: 4px 2px !important;
+                grid-area: img !important;
+                width: 58px !important;
+                min-width: 58px !important;
+                max-width: 58px !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                align-self: center !important;
                 text-align: center !important;
+                padding: 0 !important;
             }
 
             .prod-thumb-wrap {
-                width: 48px !important;
-                height: 48px !important;
+                width: 56px !important;
+                height: 56px !important;
+                border-radius: 6px !important;
                 border: 1px solid #e2e8f0 !important;
                 background: #ffffff !important;
-                border-radius: 6px !important;
                 padding: 2px !important;
-                display: inline-flex !important;
+                display: flex !important;
                 align-items: center !important;
                 justify-content: center !important;
                 overflow: hidden !important;
-                -webkit-tap-highlight-color: transparent;
+                box-shadow: 0 1px 2px rgba(0,0,0,0.04) !important;
             }
 
             .prod-thumb-img {
-                max-width: 100%;
-                max-height: 100%;
-                width: auto;
-                height: auto;
-                object-fit: contain;
-                image-rendering: -webkit-optimize-contrast;
-                image-rendering: high-quality;
-                -ms-interpolation-mode: bicubic;
+                width: 100% !important;
+                height: 100% !important;
+                max-width: 100% !important;
+                max-height: 100% !important;
+                object-fit: contain !important;
+                border-radius: 4px !important;
             }
 
-            .prod-thumb-fallback {
-                width: 100%;
-                height: 100%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                background: #f8fafc;
-                color: #cbd5e1;
-                font-size: 12px;
+            .prod-img-video-wrapper {
+                width: 58px !important;
+            }
+            .video-demo-badge {
+                width: 56px !important;
+                font-size: 8.5px !important;
+                padding: 2px 0 !important;
             }
 
-            /* Column 2: Product Name */
+            /* 2. Product Name & Pricing (Center) */
             .td-name {
-                padding: 5px 6px !important;
+                grid-area: name !important;
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: center !important;
+                min-width: 0 !important;
                 text-align: left !important;
+                padding: 0 4px 0 0 !important;
             }
 
             .prod-name {
-                font-size: 12px !important;
-                line-height: 1.25 !important;
+                font-family: var(--tbl-font) !important;
+                font-size: 14.5px !important;
                 font-weight: 700 !important;
                 color: #0f172a !important;
-                margin-bottom: 2px !important;
+                line-height: 1.3 !important;
+                margin: 0 0 3px 0 !important;
                 word-break: break-word !important;
             }
 
-            .prod-desc {
-                font-size: 10px !important;
+            .prod-price-inline {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 1px !important;
+                margin: 0 !important;
+            }
+
+            .prod-price-inline .price-original {
+                order: 1 !important;
+                font-size: 13px !important;
+                font-weight: 500 !important;
                 color: #64748b !important;
+                text-decoration: line-through !important;
+                display: block !important;
                 line-height: 1.2 !important;
             }
 
-            .prod-price-inline {
+            .prod-price-inline .price-current {
+                order: 2 !important;
+                font-size: 14.5px !important;
+                font-weight: 800 !important;
+                color: #0f172a !important;
+                display: block !important;
+                line-height: 1.25 !important;
+            }
+
+            .prod-desc {
+                font-size: 12px !important;
+                font-weight: 500 !important;
+                color: #475569 !important;
+                line-height: 1.25 !important;
+                margin-top: 2px !important;
+            }
+
+            /* Hide Desktop Price Column */
+            .td-price {
                 display: none !important;
             }
 
-            /* Column 3: Price */
-            .td-price {
-                padding: 5px 2px !important;
-                text-align: center !important;
-                white-space: nowrap !important;
+            /* 3. Subtotal Total Price (Top Right) */
+            .td-subtotal {
+                grid-area: subtotal !important;
+                width: auto !important;
+                text-align: right !important;
+                justify-self: end !important;
+                align-self: start !important;
+                padding: 0 !important;
+                margin: 0 !important;
             }
 
-            .td-price .price-current {
-                font-size: 12px !important;
+            .product-row:not(.has-qty) .td-subtotal {
+                display: none !important;
+                visibility: hidden !important;
+            }
+
+            .product-row.has-qty .td-subtotal {
+                display: block !important;
+                visibility: visible !important;
+            }
+
+            .subtotal-box {
+                font-size: 15.5px !important;
                 font-weight: 800 !important;
                 color: #dc2626 !important;
-                line-height: 1.1 !important;
+                display: inline-block !important;
+                text-align: right !important;
+                line-height: 1.2 !important;
+                white-space: nowrap !important;
+                margin: 0 !important;
+                padding: 0 !important;
             }
 
-            .td-price .price-original {
-                font-size: 9.5px !important;
-                color: #94a3b8 !important;
-                text-decoration: line-through !important;
-                font-weight: 500 !important;
-                display: block !important;
-            }
-
-            /* Column 4: Quantity Stepper */
+            /* 4. Quantity Stepper (Bottom Right) */
             .td-qty {
-                padding: 5px 2px !important;
-                text-align: center !important;
+                grid-area: stepper !important;
+                width: auto !important;
+                text-align: right !important;
+                justify-self: end !important;
+                align-self: end !important;
+                padding: 0 !important;
+                margin-top: 2px !important;
             }
 
             .qty-stepper {
                 display: inline-flex !important;
                 align-items: center !important;
                 justify-content: center !important;
-                gap: 3px !important;
-                border: none !important;
-                border-radius: 0 !important;
-                background: transparent !important;
-                height: auto !important;
-                width: auto !important;
-                max-width: none !important;
-                box-shadow: none !important;
+                height: 28px !important;
+                border-radius: 3px !important;
+                overflow: hidden !important;
+                background: #e8eef8 !important;
+                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
             }
 
             .btn-qty {
-                width: 23px !important;
-                height: 23px !important;
-                min-width: 23px !important;
-                background: #ffffff !important;
-                color: #1e293b !important;
-                font-size: 13px !important;
-                font-weight: 800 !important;
-                border: 1px solid #cbd5e1 !important;
-                border-radius: 50% !important;
+                width: 28px !important;
+                height: 28px !important;
+                min-width: 28px !important;
+                background: #4970c6 !important;
+                color: #ffffff !important;
+                font-size: 15px !important;
+                font-weight: 700 !important;
+                border: none !important;
+                border-radius: 0 !important;
                 cursor: pointer !important;
                 display: flex !important;
                 align-items: center !important;
                 justify-content: center !important;
                 padding: 0 !important;
-                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06) !important;
-                -webkit-tap-highlight-color: transparent;
-                transition: background 0.1s ease;
+                line-height: 1 !important;
+                transition: background 0.15s ease !important;
             }
-            .btn-minus,
-            .btn-plus {
-                border-radius: 50% !important;
-            }
+
             .btn-qty:active {
-                background: #de162c !important;
+                background: #3655a5 !important;
                 color: #ffffff !important;
-                border-color: #de162c !important;
+            }
+
+            .btn-minus {
+                border-radius: 3px 0 0 3px !important;
+            }
+
+            .btn-plus {
+                border-radius: 0 3px 3px 0 !important;
             }
 
             .input-qty {
-                width: 20px !important;
-                height: 22px !important;
-                font-size: 12.5px !important;
-                font-weight: 800 !important;
-                color: #0f172a !important;
+                width: 44px !important;
+                height: 28px !important;
+                background: #edf2f7 !important;
                 border: none !important;
-                border-bottom: 1.5px solid #94a3b8 !important;
                 border-radius: 0 !important;
-                outline: none !important;
+                font-size: 13px !important;
+                font-weight: 700 !important;
+                color: #1e293b !important;
                 text-align: center !important;
-                background: transparent !important;
                 padding: 0 !important;
-                -moz-appearance: textfield !important;
-                appearance: none !important;
-                box-shadow: none !important;
-            }
-            .input-qty:focus {
-                border-bottom-color: #de162c !important;
                 outline: none !important;
                 box-shadow: none !important;
+                -moz-appearance: textfield !important;
             }
 
-            .input-qty::-webkit-outer-spin-button,
-            .input-qty::-webkit-inner-spin-button {
-                -webkit-appearance: none !important;
-                margin: 0 !important;
+            .input-qty::placeholder {
+                color: #7b93b2 !important;
+                font-weight: 700 !important;
+                font-size: 12px !important;
+                letter-spacing: 0.3px !important;
             }
 
             .out-of-stock-pill {
-                padding: 3px 4px !important;
-                font-size: 8px !important;
+                padding: 4px 8px !important;
+                font-size: 9px !important;
                 border-radius: 4px !important;
                 white-space: nowrap !important;
-            }
-
-            /* Column 5: Subtotal Box (Centered) */
-            .td-subtotal {
-                padding: 4px 2px !important;
-                text-align: center !important;
-            }
-
-            .subtotal-box {
-                display: inline-block !important;
-                min-width: 0 !important;
-                border: none !important;
-                background: transparent !important;
-                padding: 3px 2px !important;
-                text-align: center !important;
-                font-size: 11.5px !important;
-                font-weight: 800 !important;
-                color: #1e293b !important;
-                box-sizing: border-box !important;
-                white-space: nowrap !important;
-                margin: 0 auto !important;
             }
 
             /* Floating Cart Trigger */
@@ -1743,32 +1879,6 @@
                 --header-offset: 60px;
                 --filter-bar-height: 48px;
             }
-
-            .th-image, .td-image { width: 50px !important; min-width: 50px !important; }
-            .prod-thumb-wrap { width: 44px !important; height: 44px !important; }
-            .prod-name    { font-size: 11.5px !important; }
-            .th-price, .td-price { width: 50px !important; min-width: 50px !important; }
-            .td-price .price-current { font-size: 11.5px !important; }
-            .th-qty, .td-qty { width: 80px !important; min-width: 80px !important; max-width: 80px !important; }
-            .qty-stepper  { max-width: none !important; height: auto !important; gap: 2px !important; }
-            .btn-qty      { width: 21px !important; height: 21px !important; min-width: 21px !important; font-size: 12px !important; border-radius: 50% !important; }
-            .input-qty    { width: 18px !important; height: 20px !important; font-size: 11.5px !important; border: none !important; border-bottom: 1.5px solid #94a3b8 !important; border-radius: 0 !important; background: transparent !important; }
-            .th-subtotal, .td-subtotal { width: 48px !important; min-width: 48px !important; max-width: 48px !important; }
-            .subtotal-box { font-size: 11px !important; padding: 2px 3px !important; }
-        }
-
-        @media (max-width: 360px) {
-            .th-image, .td-image { width: 46px !important; min-width: 46px !important; }
-            .prod-thumb-wrap { width: 40px !important; height: 40px !important; }
-            .prod-name    { font-size: 11px !important; }
-            .th-price, .td-price { width: 46px !important; min-width: 46px !important; }
-            .td-price .price-current { font-size: 11px !important; }
-            .th-qty, .td-qty { width: 74px !important; min-width: 74px !important; max-width: 74px !important; }
-            .qty-stepper  { max-width: none !important; gap: 2px !important; }
-            .btn-qty      { width: 19px !important; height: 19px !important; min-width: 19px !important; font-size: 11px !important; border-radius: 50% !important; }
-            .input-qty    { width: 17px !important; height: 18px !important; font-size: 11px !important; border: none !important; border-bottom: 1.5px solid #94a3b8 !important; border-radius: 0 !important; background: transparent !important; }
-            .th-subtotal, .td-subtotal { width: 44px !important; min-width: 44px !important; max-width: 44px !important; }
-            .subtotal-box { font-size: 10.5px !important; padding: 2px 2px !important; }
         }
     </style>
 
@@ -3748,7 +3858,7 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { clo
 
                     <div class="min-order-notice" id="minOrderNoticeBar">
                 <i class="fa-solid fa-circle-info"></i>
-                <span>Minimum Order Requirement: <strong id="minOrderAmt">₹4,500</strong>. Add crackers to your list to proceed.</span>
+                <span>Minimum Order Requirement: <strong id="minOrderAmt">₹1,000</strong>. Add crackers to your list to proceed.</span>
             </div>
         
         <!-- No Results Fallback Message -->
@@ -11028,7 +11138,7 @@ OLD RTO OFFICE, opposite SIVAKASI, Parapatti, Sivakasi, Tamil Nadu 626123</div>
         <div class="cart-sidebar-footer">
             <div id="cartMinOrderNotice" class="cart-min-order-warning" style="display: none;">
                 <i class="fa-solid fa-circle-exclamation"></i>
-                <span>Min order required: <strong>₹4,500</strong>. Add <strong>₹<span id="cartShortBy">0</span></strong> more to proceed.</span>
+                <span>Min order required: <strong id="cartMinOrderReqVal">₹1,000</strong>. Add <strong>₹<span id="cartShortBy">0</span></strong> more to proceed.</span>
             </div>
             <div class="cart-sidebar-summary-rows">
                 <div class="cart-summary-row">
@@ -12598,7 +12708,7 @@ document.addEventListener('keydown', function(e) {
     <script>
     (function() {
         var csrfToken = document.querySelector('meta[name="csrf-token"]') ? document.querySelector('meta[name="csrf-token"]').getAttribute('content') : '';
-        var minOrderAmount = 4500;
+        var minOrderAmount = (typeof window.__minOrderAmount === 'number' && !isNaN(window.__minOrderAmount)) ? window.__minOrderAmount : 1000;
         var debounceTimers = {};
         var activeCategoryFilter = 'all';
 
@@ -12660,7 +12770,7 @@ document.addEventListener('keydown', function(e) {
                         totalSavings += (origPrice - salePrice) * qty;
                     }
                     row.classList.add('has-qty');
-                    if (subtotalBox) subtotalBox.textContent = Math.round(lineTotal).toLocaleString('en-IN');
+                    if (subtotalBox) subtotalBox.textContent = '₹' + lineTotal.toFixed(2);
 
                     cartItemsList.push({
                         id: productId,
@@ -12674,6 +12784,7 @@ document.addEventListener('keydown', function(e) {
                 } else {
                     row.classList.remove('has-qty');
                     if (subtotalBox) subtotalBox.textContent = '0';
+                    if (input && (input.value === '0' || input.value === '')) input.value = '';
                 }
             });
 
@@ -12698,12 +12809,23 @@ document.addEventListener('keydown', function(e) {
             if (sumSave) sumSave.textContent = '₹' + Math.round(totalSavings).toLocaleString('en-IN');
             if (sumTotal) sumTotal.textContent = '₹' + Math.round(totalAmount).toLocaleString('en-IN');
 
-            // Minimum Order Validation for Checkout Button
+            // Minimum Order Validation for Checkout Button (Dynamically synced with admin settings)
+            if (typeof window.__minOrderAmount === 'number' && !isNaN(window.__minOrderAmount)) {
+                minOrderAmount = window.__minOrderAmount;
+            } else if (window.__wpSettings && window.__wpSettings.min_order_amount !== undefined) {
+                minOrderAmount = parseFloat(window.__wpSettings.min_order_amount) || 0;
+            }
+
             var checkoutBtn = document.getElementById('btnSidebarCheckout');
             var minNotice = document.getElementById('cartMinOrderNotice');
             var shortBySpan = document.getElementById('cartShortBy');
+            var reqValEl = document.getElementById('cartMinOrderReqVal');
             var meetsMin = minOrderAmount <= 0 || totalAmount >= minOrderAmount;
             var shortBy = meetsMin ? 0 : (minOrderAmount - totalAmount);
+
+            if (reqValEl) {
+                reqValEl.textContent = '₹' + Math.round(minOrderAmount).toLocaleString('en-IN');
+            }
 
             if (numItems > 0 && meetsMin) {
                 if (checkoutBtn) {
@@ -13001,6 +13123,13 @@ document.addEventListener('keydown', function(e) {
 
         document.addEventListener('DOMContentLoaded', function() {
             initProductScrollAnimations();
+
+            // Set placeholder for all inputs and clear initial 0
+            document.querySelectorAll('.input-qty').forEach(function(inp) {
+                inp.placeholder = 'QTY';
+                if (!inp.value || inp.value === '0') inp.value = '';
+            });
+
             var rows = document.querySelectorAll('.product-row');
 
             rows.forEach(function(row) {
@@ -13027,7 +13156,7 @@ document.addEventListener('keydown', function(e) {
                         var current = parseInt(input.value, 10) || 0;
                         if (current > 0) {
                             var next = current - 1;
-                            input.value = next;
+                            input.value = next > 0 ? next : '';
                             calculateSummary();
                             debouncedSync(productId, next);
                         }
@@ -13036,17 +13165,25 @@ document.addEventListener('keydown', function(e) {
 
                 if (input) {
                     input.addEventListener('input', function() {
-                        var val = parseInt(this.value, 10);
+                        var raw = this.value.trim();
+                        if (raw === '' || raw === '0') {
+                            this.value = '';
+                            calculateSummary();
+                            debouncedSync(productId, 0);
+                            return;
+                        }
+                        var val = parseInt(raw, 10);
                         if (isNaN(val) || val < 0) val = 0;
-                        this.value = val;
+                        this.value = val > 0 ? val : '';
                         calculateSummary();
                         debouncedSync(productId, val);
                     });
 
                     input.addEventListener('change', function() {
-                        var val = parseInt(this.value, 10);
+                        var raw = this.value.trim();
+                        var val = parseInt(raw, 10);
                         if (isNaN(val) || val < 0) val = 0;
-                        this.value = val;
+                        this.value = val > 0 ? val : '';
                         calculateSummary();
                         syncCartItem(productId, val);
                     });
@@ -13182,9 +13319,10 @@ document.addEventListener('keydown', function(e) {
                         return;
                     }
 
-                    if (minOrderAmount > 0 && total < minOrderAmount) {
+                    var currentMinOrder = (typeof window.__minOrderAmount === 'number' && !isNaN(window.__minOrderAmount)) ? window.__minOrderAmount : minOrderAmount;
+                    if (currentMinOrder > 0 && total < currentMinOrder) {
                         e.preventDefault();
-                        alert('Minimum order value is ₹' + Math.round(minOrderAmount).toLocaleString('en-IN') + '. Your current cart value is ₹' + Math.round(total).toLocaleString('en-IN') + '. Please add more items.');
+                        alert('Minimum order value is ₹' + Math.round(currentMinOrder).toLocaleString('en-IN') + '. Your current cart value is ₹' + Math.round(total).toLocaleString('en-IN') + '. Please add more items.');
                         return;
                     }
                 });
@@ -13503,11 +13641,15 @@ document.addEventListener('keydown', function(e) {
           }
 
           // ── Dynamic Minimum Order ──
-          var minOrder = parseFloat(data.settings.min_order_amount || 0);
+          var minOrder = parseFloat(data.settings.min_order_amount !== undefined ? data.settings.min_order_amount : 1000);
+          if (isNaN(minOrder)) minOrder = 1000;
           window.__minOrderAmount = minOrder;
-          if (minOrder > 0) {
-            var minEl = document.getElementById('minOrderAmt');
-            if (minEl) minEl.textContent = '₹' + Math.round(minOrder).toLocaleString('en-IN');
+          var minEl = document.getElementById('minOrderAmt');
+          if (minEl) minEl.textContent = '₹' + Math.round(minOrder).toLocaleString('en-IN');
+          var cartMinEl = document.getElementById('cartMinOrderReqVal');
+          if (cartMinEl) cartMinEl.textContent = '₹' + Math.round(minOrder).toLocaleString('en-IN');
+          if (typeof window.calculateSummary === 'function') {
+            window.calculateSummary();
           }
 
           // ── Dynamic Footer: Phones ──
@@ -13540,7 +13682,15 @@ document.addEventListener('keydown', function(e) {
           // ── Dynamic Footer: Google Map ──
           if (data.settings.map_embed) {
             var mapIframe = document.getElementById('roboFooterMapIframe');
-            if (mapIframe) mapIframe.src = data.settings.map_embed;
+            if (mapIframe) {
+              var rawMap = String(data.settings.map_embed).trim();
+              var matchSrc = rawMap.match(/src=["']([^"']+)["']/i);
+              var cleanMapUrl = matchSrc ? matchSrc[1] : (rawMap.indexOf('"') !== -1 ? rawMap.split('"')[0].trim() : rawMap);
+              if (/^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/.test(cleanMapUrl)) {
+                cleanMapUrl = 'https://maps.google.com/maps?q=' + encodeURIComponent(cleanMapUrl.replace(/\s+/g, '')) + '&t=&z=15&ie=UTF8&iwloc=&output=embed';
+              }
+              if (cleanMapUrl) mapIframe.src = cleanMapUrl;
+            }
           }
         }
 
@@ -13623,28 +13773,89 @@ document.addEventListener('keydown', function(e) {
             // Compute prices based on active store discount
             var origPrice = parseFloat(p.orig_price || 0);
             var salePrice = parseFloat(p.sale_price || 0);
-            if (disc2 > 0 && origPrice > 0) {
+            if ((salePrice <= 0 || isNaN(salePrice)) && disc2 > 0 && origPrice > 0) {
               salePrice = Math.round(origPrice * (1 - disc2 / 100));
             }
 
             if (row) {
-              // Update existing row
-              if (p.video) row.setAttribute('data-video', p.video);
+              // Update existing row product name (with Tamil support)
+              var pName = p.display_name || p.name || '';
+              if (pName) {
+                row.setAttribute('data-display-name', pName);
+                row.setAttribute('data-name', pName.toLowerCase());
+                var nameEl = row.querySelector('.prod-name');
+                if (nameEl) nameEl.textContent = pName;
+                var thumbImg = row.querySelector('.prod-thumb-img');
+                if (thumbImg) thumbImg.alt = pName;
+              }
+
+              // Update description / package unit
+              var pDesc = (p.desc !== undefined ? p.desc : (p.description !== undefined ? p.description : null));
+              if (pDesc !== null) {
+                row.setAttribute('data-desc', pDesc);
+                var descEl = row.querySelector('.prod-desc');
+                if (descEl) {
+                  descEl.textContent = pDesc;
+                  descEl.style.display = pDesc ? 'block' : 'none';
+                } else if (pDesc) {
+                  var newDesc = document.createElement('div');
+                  newDesc.className = 'prod-desc';
+                  newDesc.textContent = pDesc;
+                  var tdName = row.querySelector('.td-name');
+                  if (tdName) {
+                    var priceInline = tdName.querySelector('.prod-price-inline');
+                    if (priceInline) tdName.insertBefore(newDesc, priceInline.nextSibling);
+                    else tdName.appendChild(newDesc);
+                  }
+                }
+              }
+
+              if (p.video !== undefined) row.setAttribute('data-video', p.video || '');
               if (p.img) {
                 row.setAttribute('data-img', p.img);
                 var imgEl = row.querySelector('.prod-thumb-img');
                 if (imgEl) imgEl.src = p.img;
               }
+
               if (salePrice > 0) {
                 row.setAttribute('data-sale-price', salePrice);
-                row.querySelectorAll('.sale-price').forEach(function(el) { el.textContent = '₹' + salePrice.toFixed(2); });
-                row.querySelectorAll('.price-current').forEach(function(el) { el.textContent = '₹' + Math.round(salePrice); });
+                var sFmt = '₹' + salePrice.toFixed(2);
+                row.querySelectorAll('.sale-price').forEach(function(el) { el.textContent = sFmt; });
+                row.querySelectorAll('.price-current').forEach(function(el) { el.textContent = sFmt; });
               }
               if (origPrice > 0) {
                 row.setAttribute('data-orig-price', origPrice);
-                row.querySelectorAll('.orig-price').forEach(function(el) { el.textContent = '₹' + origPrice.toFixed(2); });
-                row.querySelectorAll('.price-original').forEach(function(el) { el.textContent = '₹' + Math.round(origPrice); });
+                var oFmt = '₹' + origPrice.toFixed(2);
+                row.querySelectorAll('.orig-price').forEach(function(el) { el.textContent = oFmt; });
+                row.querySelectorAll('.price-original').forEach(function(el) { el.textContent = oFmt; });
               }
+
+              // Update out-of-stock status
+              var isOos = !!p.out_of_stock;
+              row.setAttribute('data-out-of-stock', isOos ? '1' : '0');
+              var tdQty = row.querySelector('.td-qty');
+              if (tdQty) {
+                if (isOos) {
+                  row.classList.add('is-outofstock');
+                  tdQty.innerHTML = '<span class="out-of-stock-pill"><i class="fa-solid fa-ban"></i> Out of Stock</span>';
+                } else if (!tdQty.querySelector('.qty-stepper')) {
+                  row.classList.remove('is-outofstock');
+                  tdQty.innerHTML = `
+                    <div class="qty-stepper">
+                      <button type="button" class="btn-qty btn-minus" aria-label="Decrease quantity">-</button>
+                      <input type="number" name="qty_${p.id}" class="input-qty" value="" placeholder="QTY" min="0" max="9999" aria-label="Product quantity">
+                      <button type="button" class="btn-qty btn-plus" aria-label="Increase quantity">+</button>
+                    </div>`;
+                  if (window.bindDynamicRowSteppers) window.bindDynamicRowSteppers(row.closest('.robo-category-block') || row.parentNode);
+                }
+              }
+
+              var curInp = row.querySelector('.input-qty');
+              if (curInp) {
+                curInp.placeholder = 'QTY';
+                if (!curInp.value || curInp.value === '0') curInp.value = '';
+              }
+
               // Move to correct position in tbody
               if (tbody) tbody.appendChild(row);
             } else if (tbody) {
@@ -13654,7 +13865,7 @@ document.addEventListener('keydown', function(e) {
               var desc = p.desc || p.description || '';
               var video = p.video || '';
               var newRow = document.createElement('tr');
-              newRow.className = 'product-row anim-right-to-left is-visible';
+              newRow.className = 'product-row anim-right-to-left is-visible' + (p.out_of_stock ? ' is-outofstock' : '');
               newRow.style.cssText = 'opacity:1 !important; transform:none !important; visibility:visible !important;';
               newRow.setAttribute('data-product-id', p.id);
               newRow.setAttribute('data-cat-id', p.cat_id || '');
@@ -13665,7 +13876,7 @@ document.addEventListener('keydown', function(e) {
               newRow.setAttribute('data-desc', desc);
               newRow.setAttribute('data-img', img);
               newRow.setAttribute('data-video', video);
-              newRow.setAttribute('data-out-of-stock', '0');
+              newRow.setAttribute('data-out-of-stock', p.out_of_stock ? '1' : '0');
               newRow.innerHTML = `
                 <td class="td-image">
                   <div class="prod-thumb-wrap" role="button" tabindex="0" title="Click to view image & video">
@@ -13675,22 +13886,23 @@ document.addEventListener('keydown', function(e) {
                 </td>
                 <td class="td-name">
                   <div class="prod-name">${displayName}</div>
-                  ${desc ? '<div class="prod-desc">' + desc + '</div>' : ''}
                   <div class="prod-price-inline">
-                    <span class="price-current">₹${Math.round(salePrice)}</span>
-                    ${origPrice > salePrice ? '<span class="price-original">₹' + Math.round(origPrice) + '</span>' : ''}
+                    <span class="price-original">₹${origPrice.toFixed(2)}</span>
+                    <span class="price-current">₹${salePrice.toFixed(2)}</span>
                   </div>
+                  ${desc ? '<div class="prod-desc">' + desc + '</div>' : ''}
                 </td>
                 <td class="td-price">
-                  <span class="price-current">₹${Math.round(salePrice)}</span>
-                  ${origPrice > salePrice ? '<span class="price-original">₹' + Math.round(origPrice) + '</span>' : ''}
+                  <span class="price-original">₹${origPrice.toFixed(2)}</span>
+                  <span class="price-current">₹${salePrice.toFixed(2)}</span>
                 </td>
                 <td class="td-qty">
+                  ${p.out_of_stock ? '<span class="out-of-stock-pill"><i class="fa-solid fa-ban"></i> Out of Stock</span>' : `
                   <div class="qty-stepper">
                     <button type="button" class="btn-qty btn-minus" aria-label="Decrease quantity">-</button>
-                    <input type="number" name="qty_${p.id}" class="input-qty" value="0" min="0" max="9999" aria-label="Product quantity">
+                    <input type="number" name="qty_${p.id}" class="input-qty" value="" placeholder="QTY" min="0" max="9999" aria-label="Product quantity">
                     <button type="button" class="btn-qty btn-plus" aria-label="Increase quantity">+</button>
-                  </div>
+                  </div>`}
                 </td>
                 <td class="td-subtotal"><span class="subtotal-box">0</span></td>
               `;
@@ -13751,9 +13963,10 @@ document.addEventListener('keydown', function(e) {
     async function initSiteData() {
       var data = null;
       var isCloudflare = window.location.hostname.includes('workers.dev') || window.location.hostname.includes('pages.dev');
+      var isRender = window.location.hostname.includes('onrender.com') || window.location.hostname.includes('render.com');
 
       // 1. On cPanel / Apache / PHP hosts: Fetch directly from api.php (MySQL database)
-      if (!isCloudflare) {
+      if (!isCloudflare && !isRender) {
         try {
           var resPhp = await fetch('api.php?action=site-data');
           if (resPhp.ok) {
@@ -13766,7 +13979,7 @@ document.addEventListener('keydown', function(e) {
       }
 
       // 2. On Cloudflare: Supabase API
-      if (!data && (isCloudflare || (window.SupabaseAPI && window.SupabaseAPI.isSupabaseMode && window.SupabaseAPI.isSupabaseMode()))) {
+      if (!data && (isCloudflare || isRender || (window.SupabaseAPI && window.SupabaseAPI.isSupabaseMode && window.SupabaseAPI.isSupabaseMode()))) {
         if (window.SupabaseAPI) {
           try {
             var sData = await window.SupabaseAPI.getSiteData();
@@ -13836,6 +14049,12 @@ document.addEventListener('keydown', function(e) {
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', initSiteData);
     }
+
+    // Live polling: refresh product data every 30 seconds so admin edits
+    // (name, price, offer, Tamil names) appear on website automatically.
+    setInterval(function() {
+      initSiteData();
+    }, 30000);
 
     // Render Changing Banner Carousel Images
     function renderWebsiteBanners(banners) {
@@ -14138,17 +14357,25 @@ document.addEventListener('keydown', function(e) {
             var current = parseInt(input.value, 10) || 0;
             if (current > 0) {
               var next = current - 1;
-              input.value = next;
+              input.value = next > 0 ? next : '';
               if (window.calculateSummary) window.calculateSummary();
             }
           });
         }
 
         if (input) {
+          input.placeholder = 'QTY';
+          if (!input.value || input.value === '0') input.value = '';
           input.addEventListener('input', function() {
-            var val = parseInt(this.value, 10);
+            var raw = this.value.trim();
+            if (raw === '' || raw === '0') {
+              this.value = '';
+              if (window.calculateSummary) window.calculateSummary();
+              return;
+            }
+            var val = parseInt(raw, 10);
             if (isNaN(val) || val < 0) val = 0;
-            this.value = val;
+            this.value = val > 0 ? val : '';
             if (window.calculateSummary) window.calculateSummary();
           });
         }

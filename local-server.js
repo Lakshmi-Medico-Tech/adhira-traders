@@ -3,9 +3,35 @@ const fs = require('fs');
 const path = require('path');
 const url = require('url');
 
-const PORT = 4000;
+const PORT = process.env.PORT || 4000;
 const ROOT = __dirname;
 const DB_FILE = path.join(ROOT, 'database.json');
+
+// Auto-load .env or .env.local if present
+const envFiles = ['.env', '.env.local'];
+for (const envFile of envFiles) {
+  const envPath = path.join(ROOT, envFile);
+  if (fs.existsSync(envPath)) {
+    try {
+      const lines = fs.readFileSync(envPath, 'utf8').split('\n');
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed && !trimmed.startsWith('#')) {
+          const eqIdx = trimmed.indexOf('=');
+          if (eqIdx !== -1) {
+            const k = trimmed.substring(0, eqIdx).trim();
+            const v = trimmed.substring(eqIdx + 1).trim().replace(/^['"]|['"]$/g, '');
+            if (!process.env[k]) process.env[k] = v;
+          }
+        }
+      }
+    } catch (e) {}
+  }
+}
+
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '';
+
 
 // MIME TYPES
 const MIME_TYPES = {
@@ -102,8 +128,17 @@ const server = http.createServer(async (req, res) => {
   // REST API ROUTES
   // -------------------------------------------------------------
 
-  // 1. GET /api/site-data (Public Storefront & Price list data - strips admin password for security)
-  if (pathname === '/api/site-data' && method === 'GET') {
+  // 0. GET /api/config (Public config for Supabase URL & Anon Key)
+  if ((pathname === '/api/config' || (pathname === '/api.php' && parsedUrl.query && parsedUrl.query.action === 'config')) && method === 'GET') {
+    return sendJson(res, 200, {
+      success: true,
+      supabase_url: SUPABASE_URL,
+      supabase_anon_key: SUPABASE_ANON_KEY
+    });
+  }
+
+  // 1. GET /api/site-data & api.php?action=site-data (Public Storefront & Price list data - strips admin password for security)
+  if ((pathname === '/api/site-data' || (pathname === '/api.php' && parsedUrl.query && parsedUrl.query.action === 'site-data')) && method === 'GET') {
     const db = readDb();
     const publicSettings = { ...(db.settings || {}) };
     delete publicSettings.admin_password;
@@ -397,6 +432,18 @@ define('ADMIN_PASS', 'admin123');
     const maxId = db.products.reduce((max, p) => (p.id > max ? p.id : max), 0);
     const catId = parseInt(body.cat_id || 1, 10);
     const prodsInCat = (db.products || []).filter(p => Number(p.cat_id) === catId);
+    const desiredPos = parseInt(body.position || (prodsInCat.length + 1), 10);
+
+    // Shift existing products in same category at >= desiredPos up by 1 (insert-at-position)
+    const positionTaken = prodsInCat.some(p => p.position === desiredPos);
+    if (positionTaken) {
+      db.products.forEach(p => {
+        if (Number(p.cat_id) === catId && p.position >= desiredPos) {
+          p.position += 1;
+        }
+      });
+    }
+
     const newProduct = {
       id: maxId + 1,
       cat_id: catId,
@@ -406,7 +453,7 @@ define('ADMIN_PASS', 'admin123');
       sale_price: parseFloat(body.sale_price || 0),
       img: (body.img || '').trim(),
       video: (body.video || '').trim(),
-      position: parseInt(body.position || (prodsInCat.length + 1), 10),
+      position: desiredPos,
       out_of_stock: !!body.out_of_stock
     };
     db.products.push(newProduct);
@@ -420,16 +467,32 @@ define('ADMIN_PASS', 'admin123');
     const db = readDb();
     const idx = db.products.findIndex(p => p.id === id);
     if (idx !== -1) {
+      const newCatId = body.cat_id !== undefined ? parseInt(body.cat_id, 10) : db.products[idx].cat_id;
+      const newPos = body.position !== undefined ? parseInt(body.position, 10) : (db.products[idx].position || id);
+      const oldPos = db.products[idx].position;
+
+      // Shift other products in same category if position changed and is already taken
+      if (newPos !== oldPos || newCatId !== db.products[idx].cat_id) {
+        const positionTaken = db.products.some(p => p.id !== id && Number(p.cat_id) === newCatId && p.position === newPos);
+        if (positionTaken) {
+          db.products.forEach(p => {
+            if (p.id !== id && Number(p.cat_id) === newCatId && p.position >= newPos) {
+              p.position += 1;
+            }
+          });
+        }
+      }
+
       db.products[idx] = {
         ...db.products[idx],
         name: body.name !== undefined ? body.name.trim() : db.products[idx].name,
-        cat_id: body.cat_id !== undefined ? parseInt(body.cat_id, 10) : db.products[idx].cat_id,
+        cat_id: newCatId,
         desc: body.desc !== undefined ? body.desc.trim() : db.products[idx].desc,
         orig_price: body.orig_price !== undefined ? parseFloat(body.orig_price) : db.products[idx].orig_price,
         sale_price: body.sale_price !== undefined ? parseFloat(body.sale_price) : db.products[idx].sale_price,
         img: body.img !== undefined ? body.img.trim() : db.products[idx].img,
         video: body.video !== undefined ? body.video.trim() : db.products[idx].video,
-        position: body.position !== undefined ? parseInt(body.position, 10) : (db.products[idx].position || id),
+        position: newPos,
         out_of_stock: body.out_of_stock !== undefined ? !!body.out_of_stock : db.products[idx].out_of_stock
       };
       writeDb(db);
@@ -469,10 +532,20 @@ define('ADMIN_PASS', 'admin123');
     const body = await parseRequestBody(req);
     const db = readDb();
     const maxId = db.categories.reduce((max, c) => (c.id > max ? c.id : max), 0);
+    const desiredPos = parseInt(body.position || (maxId + 1), 10);
+
+    // Shift existing categories at >= desiredPos up by 1 (insert-at-position)
+    const positionTaken = (db.categories || []).some(c => c.position === desiredPos);
+    if (positionTaken) {
+      db.categories.forEach(c => {
+        if (c.position >= desiredPos) c.position += 1;
+      });
+    }
+
     const newCat = {
       id: maxId + 1,
       name: (body.name || 'New Category').trim(),
-      position: parseInt(body.position || (maxId + 1), 10)
+      position: desiredPos
     };
     db.categories.push(newCat);
     writeDb(db);
@@ -486,7 +559,20 @@ define('ADMIN_PASS', 'admin123');
     const idx = db.categories.findIndex(c => c.id === id);
     if (idx !== -1) {
       if (body.name !== undefined) db.categories[idx].name = body.name.trim();
-      if (body.position !== undefined) db.categories[idx].position = parseInt(body.position, 10);
+      if (body.position !== undefined) {
+        const newPos = parseInt(body.position, 10);
+        const oldPos = db.categories[idx].position;
+        // Shift other categories if position changed and already taken
+        if (newPos !== oldPos) {
+          const positionTaken = db.categories.some(c => c.id !== id && c.position === newPos);
+          if (positionTaken) {
+            db.categories.forEach(c => {
+              if (c.id !== id && c.position >= newPos) c.position += 1;
+            });
+          }
+        }
+        db.categories[idx].position = newPos;
+      }
       writeDb(db);
       return sendJson(res, 200, { success: true, category: db.categories[idx] });
     }
@@ -874,7 +960,7 @@ define('ADMIN_PASS', 'admin123');
   }
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log('');
   console.log('================================================================');
   console.log(' ATHIRA CRACKERS / ADHIRA PYROTECH - E-COMMERCE SERVER RUNNING');

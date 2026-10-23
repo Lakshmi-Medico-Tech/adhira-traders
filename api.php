@@ -45,6 +45,183 @@ try {
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES => false,
     ]);
+
+    // Auto-create all tables on first request (safe: uses IF NOT EXISTS)
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS `settings` (
+          `id` INT AUTO_INCREMENT PRIMARY KEY,
+          `setting_key` VARCHAR(100) UNIQUE NOT NULL,
+          `setting_value` LONGTEXT,
+          `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+        CREATE TABLE IF NOT EXISTS `categories` (
+          `id` INT AUTO_INCREMENT PRIMARY KEY,
+          `name` VARCHAR(255) NOT NULL,
+          `sort_order` INT DEFAULT 0,
+          `position` INT DEFAULT 0,
+          `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+        CREATE TABLE IF NOT EXISTS `products` (
+          `id` INT AUTO_INCREMENT PRIMARY KEY,
+          `cat_id` INT NOT NULL DEFAULT 0,
+          `name` VARCHAR(255) NOT NULL,
+          `description` TEXT DEFAULT '',
+          `orig_price` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+          `sale_price` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+          `img` VARCHAR(500) DEFAULT '',
+          `video` VARCHAR(500) DEFAULT '',
+          `position` INT DEFAULT 0,
+          `out_of_stock` TINYINT(1) DEFAULT 0,
+          `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+        CREATE TABLE IF NOT EXISTS `banners` (
+          `id` INT AUTO_INCREMENT PRIMARY KEY,
+          `img` VARCHAR(500) NOT NULL DEFAULT '',
+          `title` VARCHAR(255) DEFAULT '',
+          `subtitle` VARCHAR(255) DEFAULT '',
+          `link` VARCHAR(500) DEFAULT '',
+          `sort_order` INT DEFAULT 0,
+          `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+        CREATE TABLE IF NOT EXISTS `combos` (
+          `id` INT AUTO_INCREMENT PRIMARY KEY,
+          `name` VARCHAR(255) NOT NULL,
+          `items` TEXT,
+          `rate` DECIMAL(10,2) DEFAULT 0.00,
+          `orig_price` DECIMAL(10,2) DEFAULT 0.00,
+          `sale_price` DECIMAL(10,2) DEFAULT 0.00,
+          `img` VARCHAR(500) DEFAULT '',
+          `video` VARCHAR(500) DEFAULT '',
+          `position` INT DEFAULT 0,
+          `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+        CREATE TABLE IF NOT EXISTS `giftboxes` (
+          `id` INT AUTO_INCREMENT PRIMARY KEY,
+          `name` VARCHAR(255) NOT NULL,
+          `items` TEXT,
+          `rate` DECIMAL(10,2) DEFAULT 0.00,
+          `orig_price` DECIMAL(10,2) DEFAULT 0.00,
+          `sale_price` DECIMAL(10,2) DEFAULT 0.00,
+          `img` VARCHAR(500) DEFAULT '',
+          `video` VARCHAR(500) DEFAULT '',
+          `position` INT DEFAULT 0,
+          `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+        CREATE TABLE IF NOT EXISTS `orders` (
+          `id` INT AUTO_INCREMENT PRIMARY KEY,
+          `order_number` VARCHAR(50) UNIQUE NOT NULL,
+          `customer_name` VARCHAR(255) NOT NULL DEFAULT '',
+          `customer_phone` VARCHAR(50) NOT NULL DEFAULT '',
+          `customer_email` VARCHAR(255) DEFAULT '',
+          `customer_address` TEXT,
+          `city` VARCHAR(100) DEFAULT '',
+          `state` VARCHAR(100) DEFAULT 'Tamil Nadu',
+          `pincode` VARCHAR(20) DEFAULT '',
+          `items_json` LONGTEXT NOT NULL DEFAULT '[]',
+          `subtotal` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+          `discount_amount` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+          `total_amount` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+          `payment_method` VARCHAR(50) DEFAULT 'COD',
+          `status` VARCHAR(50) DEFAULT 'Pending',
+          `notes` TEXT,
+          `order_type` VARCHAR(50) DEFAULT 'website',
+          `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    ");
+
+    // Auto-seed initial data from database.json if MySQL products table is completely empty
+    $checkProdCount = (int)$pdo->query("SELECT COUNT(*) FROM `products`")->fetchColumn();
+    if ($checkProdCount === 0 && file_exists($jsonDbFile)) {
+        $seedData = json_decode(file_get_contents($jsonDbFile), true);
+        if (!empty($seedData['settings'])) {
+            $stmt = $pdo->prepare("INSERT INTO settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value)");
+            foreach ($seedData['settings'] as $k => $v) {
+                $val = is_array($v) ? json_encode($v) : (string)$v;
+                $stmt->execute([$k, $val]);
+            }
+        }
+        if (!empty($seedData['categories'])) {
+            $stmt = $pdo->prepare("INSERT INTO categories (id, name, sort_order, position) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE name=VALUES(name)");
+            foreach ($seedData['categories'] as $c) {
+                $stmt->execute([
+                    $c['id'],
+                    $c['name'],
+                    $c['sort_order'] ?? 0,
+                    $c['position'] ?? ($c['sort_order'] ?? 0)
+                ]);
+            }
+        }
+        if (!empty($seedData['products'])) {
+            $stmt = $pdo->prepare("INSERT INTO products (id, cat_id, name, description, orig_price, sale_price, img, video, position, out_of_stock) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE name=VALUES(name)");
+            foreach ($seedData['products'] as $p) {
+                $stmt->execute([
+                    $p['id'],
+                    $p['cat_id'],
+                    $p['name'],
+                    $p['description'] ?? ($p['desc'] ?? ''),
+                    $p['orig_price'] ?? 0,
+                    $p['sale_price'] ?? 0,
+                    $p['img'] ?? '',
+                    $p['video'] ?? '',
+                    $p['position'] ?? $p['id'],
+                    !empty($p['out_of_stock']) ? 1 : 0
+                ]);
+            }
+        }
+        if (!empty($seedData['combos'])) {
+            $stmt = $pdo->prepare("INSERT INTO combos (id, name, items, rate, orig_price, sale_price, img, video, position) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE name=VALUES(name)");
+            foreach ($seedData['combos'] as $cb) {
+                $stmt->execute([
+                    $cb['id'],
+                    $cb['name'],
+                    $cb['items'] ?? '',
+                    $cb['rate'] ?? ($cb['sale_price'] ?? 0),
+                    $cb['orig_price'] ?? 0,
+                    $cb['sale_price'] ?? ($cb['rate'] ?? 0),
+                    $cb['img'] ?? '',
+                    $cb['video'] ?? '',
+                    $cb['position'] ?? $cb['id']
+                ]);
+            }
+        }
+        if (!empty($seedData['giftboxes'])) {
+            $stmt = $pdo->prepare("INSERT INTO giftboxes (id, name, items, rate, orig_price, sale_price, img, video, position) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE name=VALUES(name)");
+            foreach ($seedData['giftboxes'] as $gb) {
+                $stmt->execute([
+                    $gb['id'],
+                    $gb['name'],
+                    $gb['items'] ?? '',
+                    $gb['rate'] ?? ($gb['sale_price'] ?? 0),
+                    $gb['orig_price'] ?? 0,
+                    $gb['sale_price'] ?? ($gb['rate'] ?? 0),
+                    $gb['img'] ?? '',
+                    $gb['video'] ?? '',
+                    $gb['position'] ?? $gb['id']
+                ]);
+            }
+        }
+        if (!empty($seedData['banners'])) {
+            $stmt = $pdo->prepare("INSERT INTO banners (id, img, title, subtitle, link, sort_order) VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE img=VALUES(img)");
+            foreach ($seedData['banners'] as $b) {
+                $stmt->execute([
+                    $b['id'],
+                    $b['img'] ?? '',
+                    $b['title'] ?? '',
+                    $b['subtitle'] ?? '',
+                    $b['link'] ?? '',
+                    $b['sort_order'] ?? 0
+                ]);
+            }
+        }
+    }
+
 } catch (Exception $e) {
     // MySQL not configured or offline - fallback to database.json
     $pdo = null;
@@ -610,12 +787,32 @@ if ($action === 'products') {
     $position = (int)($input['position'] ?? 0);
 
     if ($pdo) {
+        // Shift products in same category at >= desired position up by 1 (insert-at-position)
+        if ($position > 0) {
+            try {
+                $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM products WHERE cat_id=? AND position=?");
+                $checkStmt->execute([$cat_id, $position]);
+                if ($checkStmt->fetchColumn() > 0) {
+                    $shiftStmt = $pdo->prepare("UPDATE products SET position=position+1 WHERE cat_id=? AND position>=?");
+                    $shiftStmt->execute([$cat_id, $position]);
+                }
+            } catch (Exception $eShift) {}
+        }
         $stmt = $pdo->prepare("INSERT INTO products (cat_id, name, description, orig_price, sale_price, img, video, out_of_stock, position) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
         $stmt->execute([$cat_id, $name, $desc, $orig_price, $sale_price, $img, $video, $out_of_stock, $position]);
         $newId = (int)$pdo->lastInsertId();
 
         // Also keep JSON mirror updated
         $data = readJsonDb();
+        // Shift in JSON mirror too
+        if ($position > 0) {
+            foreach ($data['products'] as &$jp) {
+                if ((int)$jp['cat_id'] === $cat_id && (int)($jp['position'] ?? 0) >= $position) {
+                    $jp['position'] = (int)$jp['position'] + 1;
+                }
+            }
+            unset($jp);
+        }
         $data['products'][] = [
             'id' => $newId,
             'cat_id' => $cat_id,
@@ -636,6 +833,15 @@ if ($action === 'products') {
             if ($p['id'] > $maxId) $maxId = $p['id'];
         }
         $newId = $maxId + 1;
+        // Shift in JSON-only mode
+        if ($position > 0) {
+            foreach ($data['products'] as &$jp) {
+                if ((int)$jp['cat_id'] === $cat_id && (int)($jp['position'] ?? 0) >= $position) {
+                    $jp['position'] = (int)$jp['position'] + 1;
+                }
+            }
+            unset($jp);
+        }
         $newProduct = [
             'id' => $newId,
             'cat_id' => $cat_id,
@@ -688,6 +894,23 @@ if ($action === 'update-product') {
 
     if ($pdo) {
         try {
+            // Shift other products in same category if position changed and already taken
+            $oldPosition = (int)($currentProduct['position'] ?? $id);
+            if ($position !== $oldPosition || $cat_id !== (int)($currentProduct['cat_id'] ?? 0)) {
+                $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM products WHERE cat_id=? AND position=? AND id!=?");
+                $checkStmt->execute([$cat_id, $position, $id]);
+                if ($checkStmt->fetchColumn() > 0) {
+                    $shiftStmt = $pdo->prepare("UPDATE products SET position=position+1 WHERE cat_id=? AND position>=? AND id!=?");
+                    $shiftStmt->execute([$cat_id, $position, $id]);
+                    // Shift in JSON mirror
+                    foreach ($data['products'] as &$jp) {
+                        if ($jp['id'] !== $id && (int)$jp['cat_id'] === $cat_id && (int)($jp['position'] ?? 0) >= $position) {
+                            $jp['position'] = (int)$jp['position'] + 1;
+                        }
+                    }
+                    unset($jp);
+                }
+            }
             $stmt = $pdo->prepare("UPDATE products SET cat_id=?, name=?, description=?, orig_price=?, sale_price=?, img=?, video=?, out_of_stock=?, position=? WHERE id=?");
             $stmt->execute([$cat_id, $name, $desc, $orig_price, $sale_price, $img, $video, $out_of_stock, $position, $id]);
         } catch (Exception $e) {
@@ -959,6 +1182,15 @@ if ($action === 'categories') {
 
     if ($pdo) {
         try {
+            // Shift categories at >= desired position up by 1 (insert-at-position)
+            if ($position > 0) {
+                $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM categories WHERE position=?");
+                $checkStmt->execute([$position]);
+                if ($checkStmt->fetchColumn() > 0) {
+                    $shiftStmt = $pdo->prepare("UPDATE categories SET position=position+1 WHERE position>=?");
+                    $shiftStmt->execute([$position]);
+                }
+            }
             $stmt = $pdo->prepare("INSERT INTO categories (name, sort_order, position) VALUES (?, 0, ?)");
             $stmt->execute([$name, $position]);
             $newId = (int)$pdo->lastInsertId();
@@ -968,6 +1200,15 @@ if ($action === 'categories') {
             $newId = (int)$pdo->lastInsertId();
         }
         $data = readJsonDb();
+        // Shift in JSON mirror too
+        if ($position > 0) {
+            foreach ($data['categories'] as &$jc) {
+                if ((int)($jc['position'] ?? 0) >= $position) {
+                    $jc['position'] = (int)$jc['position'] + 1;
+                }
+            }
+            unset($jc);
+        }
         $data['categories'][] = ['id' => $newId, 'name' => $name, 'position' => $position ?: $newId];
         writeJsonDb($data);
     } else {
@@ -977,6 +1218,15 @@ if ($action === 'categories') {
             if ($c['id'] > $maxId) $maxId = $c['id'];
         }
         $newId = $maxId + 1;
+        // Shift in JSON-only mode
+        if ($position > 0) {
+            foreach ($data['categories'] as &$jc) {
+                if ((int)($jc['position'] ?? 0) >= $position) {
+                    $jc['position'] = (int)$jc['position'] + 1;
+                }
+            }
+            unset($jc);
+        }
         $data['categories'][] = ['id' => $newId, 'name' => $name, 'position' => $position ?: $newId];
         writeJsonDb($data);
     }
@@ -999,9 +1249,26 @@ if ($action === 'update-category') {
     }
     $name = isset($input['name']) ? trim($input['name']) : ($currentCat['name'] ?? '');
     $position = isset($input['position']) ? (int)$input['position'] : (int)($currentCat['position'] ?? $id);
+    $oldPosition = (int)($currentCat['position'] ?? $id);
 
     if ($pdo) {
         try {
+            // Shift other categories if position changed and already taken
+            if ($position !== $oldPosition) {
+                $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM categories WHERE position=? AND id!=?");
+                $checkStmt->execute([$position, $id]);
+                if ($checkStmt->fetchColumn() > 0) {
+                    $shiftStmt = $pdo->prepare("UPDATE categories SET position=position+1 WHERE position>=? AND id!=?");
+                    $shiftStmt->execute([$position, $id]);
+                    // Shift in JSON mirror
+                    foreach ($data['categories'] as &$jc) {
+                        if ($jc['id'] !== $id && (int)($jc['position'] ?? 0) >= $position) {
+                            $jc['position'] = (int)$jc['position'] + 1;
+                        }
+                    }
+                    unset($jc);
+                }
+            }
             $stmt = $pdo->prepare("UPDATE categories SET name=?, position=? WHERE id=?");
             $stmt->execute([$name, $position, $id]);
         } catch (Exception $e) {

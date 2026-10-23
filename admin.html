@@ -9,6 +9,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" />
+  <!-- Leaflet CSS & JS for Interactive Location Map Picker -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <!-- Supabase Cloud DB Client (Cloudflare Pages Ready) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="supabase-client.js"></script>
@@ -921,35 +924,92 @@
     .bill-preview-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.9);
-      backdrop-filter: blur(12px);
+      background: rgba(10, 12, 20, 0.95);
+      backdrop-filter: blur(14px);
       z-index: 10001;
       display: none;
       flex-direction: column;
       align-items: center;
-      padding: 20px;
+      padding: 12px 8px 30px 8px;
       overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
     }
     .bill-preview-overlay.is-active { display: flex; }
     .bill-preview-actions {
       display: flex;
-      gap: 12px;
-      margin-bottom: 20px;
+      gap: 10px;
+      margin-bottom: 12px;
       flex-wrap: wrap;
       justify-content: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(10px);
+      padding: 10px 16px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      max-width: 100%;
+    }
+    .bill-mobile-hint {
+      font-size: 11.5px;
+      color: #f59e0b;
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: 20px;
+      padding: 5px 14px;
+      margin-bottom: 10px;
+      display: none;
+      align-items: center;
+      gap: 6px;
+      text-align: center;
+    }
+    .bill-paper-scroll-wrapper {
+      width: 100%;
+      max-width: 900px;
+      overflow-x: auto;
+      overflow-y: visible;
+      -webkit-overflow-scrolling: touch;
+      display: block;
+      padding-bottom: 24px;
+      /* Ensure scroll wrapper itself is scrollable on mobile */
+      scroll-behavior: smooth;
     }
     .bill-paper {
       background: #fff;
       color: #111;
-      width: 100%;
+      width: 820px;
+      min-width: 820px;
       max-width: 820px;
       padding: 30px 36px 40px 36px;
       border-radius: 6px;
       font-family: 'Roboto', 'Arial', sans-serif;
       position: relative;
-      overflow: hidden;
+      overflow: visible;
       box-shadow: 0 20px 50px rgba(0,0,0,0.6);
       border: 1px solid #ddd;
+      box-sizing: border-box;
+      margin: 0 auto;
+    }
+    @media (max-width: 860px) {
+      .bill-mobile-hint { display: flex; }
+      .bill-paper-scroll-wrapper {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        width: 100%;
+        padding-bottom: 24px;
+      }
+      .bill-paper {
+        width: 820px;
+        min-width: 820px;
+        max-width: 820px;
+        margin: 0;
+        padding: 20px 18px 30px 18px !important;
+      }
     }
     .bill-watermark-logo {
       position: absolute;
@@ -1210,48 +1270,132 @@
       color: #10b981;
     }
 
-    /* Print Styles for PDF / Invoice */
+    /* Print Styles for PDF / Multi-Page Invoice */
     @media print {
+      @page {
+        size: A4 portrait;
+        margin: 8mm 6mm;
+      }
+      *, *::before, *::after {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      html, body {
+        width: 100% !important;
+        height: auto !important;
+        min-height: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+        color: #000 !important;
+        overflow: visible !important;
+      }
       body * {
         visibility: hidden !important;
       }
-      #billPreviewOverlay, #billPaper, #billPaper * {
+      #billPreviewOverlay, 
+      #billPreviewOverlay * {
         visibility: visible !important;
       }
       #billPreviewOverlay {
-        position: absolute !important;
-        left: 0 !important;
-        top: 0 !important;
+        position: static !important;
+        display: block !important;
         width: 100% !important;
         height: auto !important;
         padding: 0 !important;
         margin: 0 !important;
         background: #fff !important;
         backdrop-filter: none !important;
-        display: block !important;
+        overflow: visible !important;
+        z-index: auto !important;
       }
-      .bill-preview-actions {
+      .bill-preview-actions,
+      .bill-mobile-hint,
+      .mobile-header,
+      .sidebar,
+      #toastContainer {
         display: none !important;
+      }
+      .bill-paper-scroll-wrapper {
+        width: 100% !important;
+        max-width: 100% !important;
+        display: block !important;
+        overflow: visible !important;
+        padding: 0 !important;
+        margin: 0 !important;
       }
       #billPaper {
         width: 100% !important;
         max-width: 100% !important;
+        min-width: 0 !important;
         box-shadow: none !important;
         border: none !important;
-        padding: 10px 20px !important;
+        padding: 4mm 2mm !important;
         margin: 0 !important;
-      .bill-watermark-logo, .bill-watermark-text, .bill-watermark {
-        opacity: 0.12 !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
+        overflow: visible !important;
+        background: #fff !important;
+        color: #000 !important;
+      }
+      .bill-watermark-logo {
+        position: fixed !important;
+        top: 40% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        width: 320px !important;
+        height: 320px !important;
+        opacity: 0.08 !important;
         display: block !important;
         visibility: visible !important;
+        z-index: 0 !important;
+        pointer-events: none !important;
       }
-      .bill-items-table th {
-        background-color: #c61d23 !important;
-        color: #fff !important;
+      .bill-watermark-text {
+        position: fixed !important;
+        top: 45% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) rotate(-25deg) !important;
+        font-size: 65px !important;
+        opacity: 0.07 !important;
+        display: block !important;
+        visibility: visible !important;
+        z-index: 0 !important;
+        pointer-events: none !important;
+      }
+      .bill-content {
+        position: relative !important;
+        z-index: 1 !important;
+        width: 100% !important;
+      }
+      .bill-table-ssc {
+        width: 100% !important;
+        page-break-inside: auto !important;
+        break-inside: auto !important;
+      }
+      .bill-table-ssc thead {
+        display: table-header-group !important; /* Repeats table header cleanly on 2nd, 3rd page */
+      }
+      .bill-table-ssc th {
+        background-color: #f5a623 !important;
+        color: #111 !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
+      }
+      .bill-table-ssc tbody tr {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+      .bill-table-ssc tfoot {
+        display: table-footer-group !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+      .bill-two-col-box,
+      .bill-summary-wrap,
+      .bill-words-box,
+      .bill-terms-block,
+      .bill-signoff-row {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
       }
     }
   </style>
@@ -1829,15 +1973,26 @@
 
               <!-- ===== GOOGLE MAPS LOCATION SECTION ===== -->
               <div class="form-group" style="margin-top: 16px;">
-                <label style="font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px;">
-                  <i class="fa-solid fa-map-location-dot" style="color: var(--primary);"></i> Google Maps Location Embed / Coordinates
-                </label>
-                <input type="text" id="setting_map_embed" class="form-control no-icon" placeholder="https://maps.google.com/maps?q=... or leave blank to auto-embed from Factory Address" oninput="updateAdminMapPreview(this.value)">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 8px;">
+                  <label style="font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px; margin: 0;">
+                    <i class="fa-solid fa-map-location-dot" style="color: var(--primary);"></i> Store &amp; Factory Location (Google Maps &amp; GPS)
+                  </label>
+                  <button type="button" class="btn btn-primary" style="padding: 6px 14px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;" onclick="openLocationPickerModal()">
+                    <i class="fa-solid fa-location-crosshairs"></i> Open Location Map &amp; Pin
+                  </button>
+                </div>
+                
+                <div style="display: flex; gap: 8px;">
+                  <input type="text" id="setting_map_embed" class="form-control no-icon" placeholder="https://maps.google.com/maps?q=... or coordinates (e.g. 9.4533, 77.7974)" oninput="updateAdminMapPreview(this.value)" style="flex: 1;">
+                  <button type="button" class="btn btn-secondary" onclick="openLocationPickerModal()" style="font-size: 12px; white-space: nowrap;">
+                    <i class="fa-solid fa-map-pin"></i> Pin Location
+                  </button>
+                </div>
                 <small style="color: var(--text-muted); font-size: 11.5px; margin-top: 5px; display: block;">
-                  Enter Google Maps embed iframe URL or location query. This will show an interactive map on the customer website footer.
+                  Click <strong>Open Location Map &amp; Pin</strong> to show your current location and pin any factory or shop location on the map. This immediately updates the website footer map.
                 </small>
                 <div id="adminMapPreviewWrap" style="margin-top: 10px; border-radius: 8px; overflow: hidden; display: none; border: 1px solid var(--border-color);">
-                  <iframe id="adminMapIframe" src="" width="100%" height="150" style="border:0;" loading="lazy"></iframe>
+                  <iframe id="adminMapIframe" src="" width="100%" height="160" style="border:0;" loading="lazy"></iframe>
                 </div>
               </div>
 
@@ -2790,8 +2945,57 @@
       </button>
     </div>
     
-    <div class="bill-paper" id="billPaper">
-      <!-- Injected via JS generateBill(orderId) -->
+    <div class="bill-mobile-hint" id="billMobileHint">
+      <i class="fa-solid fa-arrows-left-right"></i> Swipe left/right to view full invoice &bull; Scroll down for all items
+    </div>
+
+    <div class="bill-paper-scroll-wrapper" id="billPaperScrollWrapper">
+      <div class="bill-paper" id="billPaper">
+        <!-- Injected via JS generateBill(orderId) -->
+      </div>
+    </div>
+  </div>
+
+  <!-- LOCATION PICKER MODAL (Leaflet + GPS + Draggable Pin) -->
+  <div id="locationPickerModal" style="display: none; position: fixed; inset: 0; background: rgba(5,7,14,0.85); backdrop-filter: blur(8px); z-index: 10002; align-items: center; justify-content: center; padding: 16px;">
+    <div style="background: #111827; border: 1px solid var(--border-color); border-radius: 14px; width: 100%; max-width: 760px; overflow: hidden; display: flex; flex-direction: column; max-height: 92vh; box-shadow: 0 24px 60px rgba(0,0,0,0.8);">
+      <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.02);">
+        <h3 style="font-size: 16px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px; margin: 0;">
+          <i class="fa-solid fa-map-location-dot" style="color: var(--primary);"></i> Pin Store / Factory Location
+        </h3>
+        <button type="button" onclick="closeLocationPickerModal()" style="background: transparent; border: none; color: #94a3b8; font-size: 20px; cursor: pointer; padding: 4px; line-height: 1;" title="Close">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div style="padding: 12px 20px; background: rgba(255,255,255,0.03); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+          <button type="button" class="btn btn-secondary" onclick="detectUserCurrentLocation()" style="padding: 6px 12px; font-size: 12px; background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3);">
+            <i class="fa-solid fa-crosshairs"></i> Detect Current GPS
+          </button>
+          <div style="display: flex; gap: 4px;">
+            <input type="text" id="locPickerSearchInput" placeholder="Search area/city..." style="background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); border-radius: 6px; padding: 5px 10px; font-size: 12px; color: #fff; width: 160px;" onkeydown="if(event.key==='Enter'){event.preventDefault();searchAddressOnMap();}">
+            <button type="button" class="btn btn-secondary" onclick="searchAddressOnMap()" style="padding: 5px 10px; font-size: 12px;">
+              <i class="fa-solid fa-search"></i>
+            </button>
+          </div>
+        </div>
+        <div id="locPickerStatus" style="font-size: 12px; color: #cbd5e1; font-weight: 500;">
+          Click map or drag the pin to set location
+        </div>
+      </div>
+      <div id="locationPickerMap" style="width: 100%; height: 380px; background: #1e293b; position: relative;"></div>
+      <div style="padding: 14px 20px; border-top: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; background: rgba(255,255,255,0.02);">
+        <div>
+          <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8;">Selected Coordinates:</div>
+          <div style="font-size: 13px; font-weight: 700; color: #f59e0b;" id="locPickerCoords">9.453300, 77.797400</div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="btn btn-secondary" onclick="closeLocationPickerModal()">Cancel</button>
+          <button type="button" class="btn btn-primary" onclick="confirmLocationSelection()">
+            <i class="fa-solid fa-check"></i> Apply &amp; Save to Website
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -2842,8 +3046,9 @@
     // Detect API Base:
     // When running on local node dev server (port 4000) without backend=php, use /api.
     // In all other environments (cPanel hosting, Apache, Nginx, or when accessing .php), default to api.php.
-    const isNodeServer = (window.location.port === '4000') && !window.location.search.includes('backend=php');
-    const isPhp = !isNodeServer || window.location.pathname.endsWith('.php') || window.location.search.includes('backend=php');
+    const isRenderHost = window.location.hostname.includes('onrender.com') || window.location.hostname.includes('render.com');
+    const isNodeServer = ((window.location.port === '4000') || isRenderHost) && !window.location.search.includes('backend=php');
+    const isPhp = !isRenderHost && (!isNodeServer || window.location.pathname.endsWith('.php') || window.location.search.includes('backend=php'));
     const apiBase = isPhp ? 'api.php' : '/api';
     const isSupabaseActive = () => !!(window.SupabaseAPI && typeof window.SupabaseAPI.isSupabaseMode === 'function' && window.SupabaseAPI.isSupabaseMode());
 
@@ -3524,10 +3729,14 @@
       });
 
       // Sort products category-wise like the website, then by position within that category
+      // Use cat_id as a stable tiebreaker so products from the same category always stay grouped
+      // even if two categories share the same position number
       prods = [...prods].sort((a, b) => {
         const catA = catOrder[a.cat_id] !== undefined ? catOrder[a.cat_id] : 9999;
         const catB = catOrder[b.cat_id] !== undefined ? catOrder[b.cat_id] : 9999;
         if (catA !== catB) return catA - catB;
+        // Same category position: group by cat_id first, then by product position
+        if (Number(a.cat_id) !== Number(b.cat_id)) return Number(a.cat_id) - Number(b.cat_id);
         return (Number(a.position !== undefined ? a.position : a.id) - Number(b.position !== undefined ? b.position : b.id));
       });
 
@@ -4283,7 +4492,7 @@
         offerValue += lineTotal;
 
         return `
-          <tr>
+          <tr style="page-break-inside: avoid; break-inside: avoid;">
             <td style="text-align: center; font-weight: 600;">${idx + 1}</td>
             <td style="text-align: center; padding: 4px;">
               <img src="${itemImg}" style="width: 36px; height: 36px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd;" onerror="this.src='./storage/settings/adhira-logo.jpg'">
@@ -4378,8 +4587,8 @@
           </div>
 
           <!-- Exact SSC-2026-1 Items Table -->
-          <table class="bill-table-ssc">
-            <thead>
+          <table class="bill-table-ssc" style="page-break-inside: auto; break-inside: auto;">
+            <thead style="display: table-header-group;">
               <tr>
                 <th style="width: 35px;">S.NO</th>
                 <th style="width: 48px;">IMAGE</th>
@@ -4395,8 +4604,8 @@
             <tbody>
               ${itemsHtml || '<tr><td colspan="9" style="text-align:center; padding:15px;">No itemized details</td></tr>'}
             </tbody>
-            <tfoot>
-              <tr style="background: #fdf6e9; font-weight: 800; border-top: 2px solid #e09418;">
+            <tfoot style="display: table-footer-group; page-break-inside: avoid; break-inside: avoid;">
+              <tr style="background: #fdf6e9; font-weight: 800; border-top: 2px solid #e09418; page-break-inside: avoid; break-inside: avoid;">
                 <td colspan="3" style="text-align: right; padding: 6px 8px;">Subtotal :</td>
                 <td style="text-align: center; padding: 6px 8px;">${totalQty}</td>
                 <td colspan="4"></td>
@@ -4406,7 +4615,7 @@
           </table>
 
           <!-- Right Aligned Summary Block -->
-          <div class="bill-summary-wrap">
+          <div class="bill-summary-wrap" style="page-break-inside: avoid; break-inside: avoid;">
             <table class="bill-summary-table">
               <tr>
                 <td class="sum-label">Total Qty:</td>
@@ -4438,12 +4647,12 @@
           </div>
 
           <!-- Amount In Words -->
-          <div class="bill-words-box">
+          <div class="bill-words-box" style="page-break-inside: avoid; break-inside: avoid;">
             Amount In Words : <strong>${amountToWords(Math.round(netAmount))}</strong>
           </div>
 
           <!-- 10 Terms & Conditions -->
-          <div style="margin-top: 14px; border-top: 1px dashed #ccc; padding-top: 10px;">
+          <div class="bill-terms-block" style="margin-top: 14px; border-top: 1px dashed #ccc; padding-top: 10px; page-break-inside: avoid; break-inside: avoid;">
             <div class="bill-terms-title">Terms &amp; Conditions :</div>
             <ol class="bill-terms-list">
               <li>Order execution is subject to product availability at the time of parcel packing.</li>
@@ -4460,7 +4669,7 @@
           </div>
 
           <!-- Signoff Section -->
-          <div class="bill-signoff-row">
+          <div class="bill-signoff-row" style="page-break-inside: avoid; break-inside: avoid;">
             <div style="font-style: italic; color: #555;">
               Assuring you of our best and prompt services at all times.
             </div>
@@ -4563,11 +4772,187 @@ Wish you a Happy & Safe Diwali! 💥`;
       }
     }
 
+    // =========================================================================
+    // INTERACTIVE LOCATION MAP PICKER (Leaflet + HTML5 Geolocation + Draggable Pin)
+    // =========================================================================
+    let locMapInstance = null;
+    let locMarkerInstance = null;
+    let currentPinnedLat = 9.4533;
+    let currentPinnedLng = 77.7974;
+
+    function openLocationPickerModal() {
+      const modal = document.getElementById('locationPickerModal');
+      if (!modal) return;
+      modal.style.display = 'flex';
+
+      const currentVal = (document.getElementById('setting_map_embed')?.value || '').trim();
+      const coordMatch = currentVal.match(/(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)/);
+      if (coordMatch) {
+        currentPinnedLat = parseFloat(coordMatch[1]);
+        currentPinnedLng = parseFloat(coordMatch[2]);
+      } else if (currentData.settings && currentData.settings.latitude && currentData.settings.longitude) {
+        currentPinnedLat = parseFloat(currentData.settings.latitude);
+        currentPinnedLng = parseFloat(currentData.settings.longitude);
+      }
+
+      setTimeout(() => {
+        initOrUpdateLocationMap();
+        detectUserCurrentLocation();
+      }, 150);
+    }
+
+    function closeLocationPickerModal() {
+      const modal = document.getElementById('locationPickerModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function initOrUpdateLocationMap() {
+      const mapContainer = document.getElementById('locationPickerMap');
+      if (!mapContainer || typeof L === 'undefined') return;
+
+      if (!locMapInstance) {
+        locMapInstance = L.map('locationPickerMap').setView([currentPinnedLat, currentPinnedLng], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '&copy; OpenStreetMap'
+        }).addTo(locMapInstance);
+
+        locMarkerInstance = L.marker([currentPinnedLat, currentPinnedLng], {
+          draggable: true
+        }).addTo(locMapInstance);
+
+        locMarkerInstance.on('dragend', function(e) {
+          const pos = e.target.getLatLng();
+          setPinnedCoordinates(pos.lat, pos.lng, 'Pinned via marker drag');
+        });
+
+        locMapInstance.on('click', function(e) {
+          const lat = e.latlng.lat;
+          const lng = e.latlng.lng;
+          if (locMarkerInstance) {
+            locMarkerInstance.setLatLng([lat, lng]);
+          }
+          setPinnedCoordinates(lat, lng, 'Pinned via map click');
+        });
+      } else {
+        locMapInstance.invalidateSize();
+        locMapInstance.setView([currentPinnedLat, currentPinnedLng], 15);
+        if (locMarkerInstance) {
+          locMarkerInstance.setLatLng([currentPinnedLat, currentPinnedLng]);
+        }
+      }
+      setPinnedCoordinates(currentPinnedLat, currentPinnedLng);
+    }
+
+    function setPinnedCoordinates(lat, lng, statusMsg) {
+      currentPinnedLat = Number(lat);
+      currentPinnedLng = Number(lng);
+      const coordsDisplay = document.getElementById('locPickerCoords');
+      if (coordsDisplay) {
+        coordsDisplay.textContent = `${currentPinnedLat.toFixed(6)}, ${currentPinnedLng.toFixed(6)}`;
+      }
+      const statusEl = document.getElementById('locPickerStatus');
+      if (statusEl && statusMsg) {
+        statusEl.innerHTML = `<span style="color:#10b981;"><i class="fa-solid fa-location-dot"></i> ${statusMsg}</span>`;
+      }
+    }
+
+    function detectUserCurrentLocation() {
+      const statusEl = document.getElementById('locPickerStatus');
+      if (!navigator.geolocation) {
+        if (statusEl) statusEl.innerHTML = '<span style="color:#f59e0b;">GPS not supported by browser. Click map to pin.</span>';
+        return;
+      }
+      if (statusEl) statusEl.innerHTML = '<span style="color:#38bdf8;"><i class="fa-solid fa-spinner fa-spin"></i> Detecting your current GPS location...</span>';
+
+      navigator.geolocation.getCurrentPosition(
+        function(position) {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          currentPinnedLat = lat;
+          currentPinnedLng = lng;
+
+          if (locMapInstance && locMarkerInstance) {
+            locMapInstance.setView([lat, lng], 16);
+            locMarkerInstance.setLatLng([lat, lng]);
+            locMarkerInstance.bindPopup('<b>Current Location Detected!</b><br>You can drag this pin to adjust.').openPopup();
+          }
+          setPinnedCoordinates(lat, lng, 'Current GPS location detected!');
+        },
+        function(err) {
+          console.warn('Geolocation error:', err.message);
+          if (statusEl) {
+            statusEl.innerHTML = '<span style="color:#f59e0b;">GPS prompt dismissed. Click map or drag pin to position.</span>';
+          }
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    }
+
+    async function searchAddressOnMap() {
+      const query = (document.getElementById('locPickerSearchInput')?.value || '').trim();
+      const statusEl = document.getElementById('locPickerStatus');
+      if (!query) {
+        alert('Please enter a place name or city to search.');
+        return;
+      }
+      if (statusEl) statusEl.innerHTML = `<span style="color:#38bdf8;"><i class="fa-solid fa-spinner fa-spin"></i> Searching "${query}"...</span>`;
+
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        if (data && data.length > 0) {
+          const lat = parseFloat(data[0].lat);
+          const lng = parseFloat(data[0].lon);
+          currentPinnedLat = lat;
+          currentPinnedLng = lng;
+          if (locMapInstance && locMarkerInstance) {
+            locMapInstance.setView([lat, lng], 16);
+            locMarkerInstance.setLatLng([lat, lng]);
+            locMarkerInstance.bindPopup(`<b>${data[0].display_name.split(',')[0]}</b>`).openPopup();
+          }
+          setPinnedCoordinates(lat, lng, `Found: ${data[0].display_name.split(',')[0]}`);
+        } else {
+          if (statusEl) statusEl.innerHTML = `<span style="color:#ef4444;">No places found for "${query}".</span>`;
+        }
+      } catch (e) {
+        if (statusEl) statusEl.innerHTML = '<span style="color:#ef4444;">Search request failed. Please click map directly.</span>';
+      }
+    }
+
+    async function confirmLocationSelection() {
+      const embedUrl = `https://maps.google.com/maps?q=${currentPinnedLat.toFixed(6)},${currentPinnedLng.toFixed(6)}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
+      const embedInput = document.getElementById('setting_map_embed');
+      if (embedInput) {
+        embedInput.value = embedUrl;
+      }
+      updateAdminMapPreview(embedUrl);
+      closeLocationPickerModal();
+
+      showToast('Location applied! Updating settings and website map...', 'info');
+      try {
+        await saveSettingsForm();
+        showToast('Store location updated and live on website!', 'success');
+      } catch(e) {
+        showToast('Location pinned. Click Save Settings below to finalize.', 'warning');
+      }
+    }
+
     function updateAdminMapPreview(val) {
       const wrap = document.getElementById('adminMapPreviewWrap');
       const iframe = document.getElementById('adminMapIframe');
       const addr = document.getElementById('setting_address')?.value || 'Sivakasi, Tamil Nadu';
-      const targetUrl = val ? val.trim() : `https://maps.google.com/maps?q=${encodeURIComponent(addr)}&t=&z=14&ie=UTF8&iwloc=&output=embed`;
+      let targetUrl = '';
+      if (val && val.trim()) {
+        let raw = val.trim();
+        const match = raw.match(/src=["']([^"']+)["']/i);
+        targetUrl = match ? match[1] : (raw.includes('"') ? raw.split('"')[0].trim() : raw);
+        if (/^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/.test(targetUrl)) {
+          targetUrl = `https://maps.google.com/maps?q=${encodeURIComponent(targetUrl.replace(/\s+/g, ''))}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
+        }
+      } else {
+        targetUrl = `https://maps.google.com/maps?q=${encodeURIComponent(addr)}&t=&z=14&ie=UTF8&iwloc=&output=embed`;
+      }
       if (iframe && wrap) {
         iframe.src = targetUrl;
         wrap.style.display = 'block';
@@ -4590,6 +4975,10 @@ Wish you a Happy & Safe Diwali! 💥`;
       const annPreview = document.getElementById('announcementPreviewText');
       if (annPreview) annPreview.innerText = s.notice_text || 'No live announcement set';
 
+      if (s.latitude && s.longitude) {
+        currentPinnedLat = parseFloat(s.latitude);
+        currentPinnedLng = parseFloat(s.longitude);
+      }
       if (s.map_embed || s.address) {
         updateAdminMapPreview(s.map_embed || '');
       }
@@ -4630,7 +5019,9 @@ Wish you a Happy & Safe Diwali! 💥`;
         branch: branch,
         upi_id: upi,
         bank_details: `Account Name: ${accName || 'Athira Crackers'}\nBank: ${bankName || 'State Bank of India'}\nA/C No: ${accNo || '38920192837'}\nIFSC: ${ifsc || 'SBIN0001234'}\nBranch: ${branch || 'Sivakasi Town Branch'}`,
-        map_embed: mapEmbed
+        map_embed: mapEmbed,
+        latitude: currentPinnedLat,
+        longitude: currentPinnedLng
       };
 
       try {
@@ -5826,6 +6217,1645 @@ Wish you a Happy & Safe Diwali! 💥`;
 
     // Start App
     checkAuth();
+
+
+    // ============================================================
+    // 🎤 ADHIRA AI VOICE BILL ASSISTANT — TAMIL & ENGLISH SUPPORT
+    // Continuous "Hey Adhira" wake word, single-shot full bill parsing,
+    // Website catalog rate fallback / admin override rate,
+    // Database auto-saving, Simple Bill & Shop Order modes,
+    // Real-time interactive summary & instant WhatsApp / PDF dispatch
+    // ============================================================
+
+    const VBS = {
+      IDLE: 'idle',
+      LISTENING: 'listening',
+      CONFIRM_OR_MORE: 'confirm_or_more',
+      SAVING: 'saving',
+      DONE: 'done'
+    };
+
+    let vbsState = VBS.IDLE;
+    let vbsLang = 'en-IN'; // 'ta-IN' or 'en-IN'
+    let vbsBillMode = 'shop_order'; // 'shop_order' or 'simple'
+    let vbsRecognition = null;
+    let wakeRecognition = null;
+    let wakeActive = false;
+    let vbsSession = {
+      cust_name: '',
+      cust_phone: '',
+      cust_addr: '',
+      cust_city: '',
+      cust_pincode: '',
+      payment: 'Cash on Delivery',
+      bill_mode: 'shop_order',
+      items: []
+    };
+    let vbsSpeaking = false;
+
+    /* ---------- Prompts & Audio ---------- */
+    const vbsPrompts = {
+      ta: {
+        welcome: 'வணக்கம்! அதிரா வாய்ஸ் பில் அசிஸ்டண்ட் தயார். வாடிக்கையாளர் பெயர், பட்டாசு மற்றும் பில் விவரங்களை சொல்லுங்க.',
+        ask_more: 'மேலும் பொருட்கள் சேர்க்க வேண்டுமா? ஆம் அல்லது இல்லை சொல்லுங்க. பில் சேமிக்க save அல்லது confirm சொல்லுங்க.',
+        confirm: 'பில் சேமிக்கவா? ஆம் சொல்லுங்க.',
+        saved: 'பில் வெற்றிகரமாக சேமிக்கப்பட்டது! PDF மற்றும் வாட்ஸ்அப் தயாராக உள்ளது.',
+        cancel: 'பில் ரத்து செய்யப்பட்டது. மீண்டும் பேச Hey Adhira சொல்லுங்க.',
+        not_found: 'பொருள் அடையாளம் காண முடியவில்லை. மீண்டும் தெளிவாக சொல்லுங்க.',
+        error: 'சேமிப்பதில் பிழை ஏற்பட்டது. மீண்டும் முயற்சிக்கவும்.'
+      },
+      en: {
+        welcome: 'Hello! Adhira Voice Bill Assistant ready. Please tell the customer name, products, quantities and rates.',
+        ask_more: 'Would you like to add more items, or should I save this bill? Say save or confirm to complete.',
+        confirm: 'Shall I confirm and save this bill now?',
+        saved: 'Bill saved successfully! Opening preview and WhatsApp.',
+        cancel: 'Bill creation cancelled. Say "Hey Adhira" to start again.',
+        not_found: 'Could not match cracker item. Please speak clearly.',
+        error: 'An error occurred while saving. Please try again.'
+      }
+    };
+
+    function vbsT(key) {
+      const lang = vbsLang === 'ta-IN' ? 'ta' : 'en';
+      return (vbsPrompts[lang] && vbsPrompts[lang][key]) || vbsPrompts.en[key] || key;
+    }
+
+    // Pleasant two-tone chime when "Hey Adhira" is detected
+    function vbsPlayChime() {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+        osc.frequency.setValueAtTime(880.00, ctx.currentTime + 0.12); // A5
+        gain.gain.setValueAtTime(0.18, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.4);
+      } catch (e) {}
+    }
+
+    /* ---------- Text-to-Speech (Human Voice with Echo Protection) ---------- */
+    function vbsSpeak(text, onEnd) {
+      if (!window.speechSynthesis) { if (onEnd) onEnd(); return; }
+      try {
+        window.speechSynthesis.cancel();
+        // Pause microphone while bot speaks to prevent mic feedback loops
+        if (vbsRecognition) {
+          try { vbsRecognition.stop(); } catch (e) {}
+        }
+        const u = new SpeechSynthesisUtterance(text);
+        window.vbsCurrentUtterance = u; // Keep reference to prevent GC in Chrome
+        u.lang = vbsLang;
+        u.rate = 0.96;
+        u.pitch = 1.02;
+        const voices = window.speechSynthesis.getVoices();
+        const match = voices.find(v => v.lang === vbsLang) ||
+                      voices.find(v => v.lang.startsWith(vbsLang.slice(0, 2))) ||
+                      voices.find(v => v.lang.includes('IN'));
+        if (match) u.voice = match;
+        vbsSpeaking = true;
+        u.onend = () => {
+          vbsSpeaking = false;
+          // Wait 350ms so ambient speaker sound finishes before mic activates
+          if (onEnd) setTimeout(onEnd, 350);
+        };
+        u.onerror = () => {
+          vbsSpeaking = false;
+          if (onEnd) setTimeout(onEnd, 350);
+        };
+        window.speechSynthesis.speak(u);
+        vbsAddMessage('bot', text);
+      } catch (err) {
+        vbsSpeaking = false;
+        if (onEnd) onEnd();
+      }
+    }
+
+    /* =================================================================
+       HUMAN-LIKE NLP ENGINE
+       Understands full natural sentences like a real human assistant.
+       Extracts: customer name, phone, city, pincode, payment, products
+       (with qty + custom admin rate OR website catalog rate).
+       Replies conversationally with exactly what it understood.
+    ================================================================= */
+
+    /* ---------- Spoken number normalizer (handles composite like "one hundred fifty") ---------- */
+    function vbsSpokenToNumber(s) {
+      if (!s) return NaN;
+      s = String(s).toLowerCase().trim();
+
+      // Direct digit extraction first
+      const directDigit = s.replace(/[^\d.]/g, '');
+      if (directDigit && /^\d+(\.\d+)?$/.test(directDigit)) return parseFloat(directDigit);
+
+      const tamilMap = {
+        'ஒன்று':1,'ஒரு':1,'ஒன்னு':1,'இரண்டு':2,'ரெண்டு':2,'ரண்டு':2,'மூன்று':3,'மூணு':3,
+        'நான்கு':4,'நாலு':4,'ஐந்து':5,'அஞ்சு':5,'ஆறு':6,'ஏழு':7,'எட்டு':8,
+        'ஒன்பது':9,'ஒம்பது':9,'பத்து':10,'பதினொன்று':11,'பன்னிரண்டு':12,
+        'பதிமூன்று':13,'பதினான்கு':14,'பதினைந்து':15,'பதினாறு':16,'பதினேழு':17,
+        'பதினெட்டு':18,'பத்தொன்பது':19,'இருபது':20,'முப்பது':30,'நாற்பது':40,
+        'ஐம்பது':50,'அறுபது':60,'எழுபது':70,'எண்பது':80,'தொண்ணூறு':90,
+        'நூறு':100,'இருநூறு':200,'முந்நூறு':300,'நான்கு நூறு':400,'ஐந்நூறு':500,
+        'ஆயிரம்':1000,'இரண்டாயிரம்':2000,'ஐந்தாயிரம்':5000,'பத்தாயிரம்':10000
+      };
+      for (const [w, n] of Object.entries(tamilMap)) {
+        if (s.includes(w)) return n;
+      }
+
+      // English composite number parsing ("one hundred fifty" -> 150)
+      const engMap = {
+        'zero':0,'one':1,'two':2,'three':3,'four':4,'five':5,'six':6,'seven':7,
+        'eight':8,'nine':9,'ten':10,'eleven':11,'twelve':12,'thirteen':13,
+        'fourteen':14,'fifteen':15,'sixteen':16,'seventeen':17,'eighteen':18,
+        'nineteen':19,'twenty':20,'thirty':30,'forty':40,'fifty':50,
+        'sixty':60,'seventy':70,'eighty':80,'ninety':90
+      };
+      let total = 0, current = 0;
+      const words = s.split(/[\s-]+/);
+      for (const w of words) {
+        if (engMap[w] !== undefined) {
+          current += engMap[w];
+        } else if (w === 'hundred') {
+          current = (current || 1) * 100;
+        } else if (w === 'thousand') {
+          total += (current || 1) * 1000;
+          current = 0;
+        }
+      }
+      total += current;
+      if (total > 0) return total;
+      return NaN;
+    }
+
+    /* ---------- Product Matching (Fuzzy, Catalog, Combos & Giftboxes) ---------- */
+    function vbsCleanWord(str) {
+      return (str || '').toLowerCase()
+        .replace(/[^a-z0-9\u0B80-\u0BFF\s]/gi, ' ')
+        .replace(/\b(crackers?|pattasu|வெடி|பட்டாசு|box|boxes|pkt|pkts|packet|packets|piece|pieces|case|cases)\b/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function vbsFindProduct(spoken) {
+      if (!spoken) return null;
+      const cleanSpoken = vbsCleanWord(spoken);
+      if (!cleanSpoken || cleanSpoken.length < 2) return null;
+
+      const allItems = [
+        ...(currentData.products || []),
+        ...(currentData.combos || []).map(c => ({ ...c, isCombo: true })),
+        ...(currentData.giftboxes || []).map(g => ({ ...g, isGift: true }))
+      ];
+
+      // 0. High priority colloquial Sivakasi cracker aliases
+      if (cleanSpoken.includes('chorsa') || cleanSpoken.includes('giant') || cleanSpoken.includes('gaint')) {
+        const chorsa = allItems.find(p => /28\s*(?:gaint|giant|chorsa)/i.test(p.name));
+        if (chorsa) return chorsa;
+      }
+      if (cleanSpoken.includes('kuruvi') || cleanSpoken.includes('குருவி')) {
+        const kuruvi = allItems.find(p => /kuruvi|குருவி/i.test(p.name));
+        if (kuruvi) return kuruvi;
+      }
+      if (cleanSpoken.includes('gold laxmi') || cleanSpoken.includes('gold lakshmi') || cleanSpoken.includes('கோல்டு லட்சுமி')) {
+        const gl = allItems.find(p => /gold\s*la[kx]mi|கோல்டு\s*லட்சுமி/i.test(p.name));
+        if (gl) return gl;
+      }
+      if (cleanSpoken.includes('delux laxmi') || cleanSpoken.includes('delux lakshmi') || cleanSpoken.includes('deluxe')) {
+        const dl = allItems.find(p => /delux.*la[kx]mi/i.test(p.name));
+        if (dl) return dl;
+      }
+
+      // 1. Exact cleaned match
+      let exact = allItems.find(p => vbsCleanWord(p.name) === cleanSpoken);
+      if (exact) return exact;
+
+      // 2. Contains match
+      let contains = allItems.find(p => {
+        const cName = vbsCleanWord(p.name);
+        return cName.includes(cleanSpoken) || cleanSpoken.includes(cName);
+      });
+      if (contains) return contains;
+
+      // 3. Word-by-word match including Tamil inside parentheses
+      let tamilMatch = allItems.find(p => {
+        const full = (p.name || '').toLowerCase();
+        return spoken.split(/\s+/).some(w => w.length > 2 && full.includes(w.toLowerCase()));
+      });
+      if (tamilMatch) return tamilMatch;
+
+      // 4. Token overlap score with numeric boost
+      const spokenTokens = cleanSpoken.split(/\s+/).filter(t => t.length > 1);
+      let bestItem = null, bestScore = 0;
+      for (const p of allItems) {
+        const pTokens = vbsCleanWord(p.name).split(/\s+/).filter(t => t.length > 1);
+        let score = 0;
+        for (const st of spokenTokens) {
+          if (pTokens.some(pt => pt.includes(st) || st.includes(pt))) score += 2;
+        }
+        // Number matching boost (e.g. "28", "1000", "2000")
+        const spokenNums = cleanSpoken.match(/\b\d+\b/g) || [];
+        const pNums = (p.name || '').match(/\b\d+\b/g) || [];
+        for (const sn of spokenNums) {
+          if (pNums.includes(sn)) score += 4;
+        }
+        if (score > bestScore) { bestScore = score; bestItem = p; }
+      }
+      if (bestScore >= 2) return bestItem;
+      return null;
+    }
+
+    /* ---------- Natural Language Speech Parser ---------- */
+    function vbsParseNaturalSpeech(transcript, alts = []) {
+      // fullText combines primary transcript + all speech alternatives for maximum coverage
+      const fullText = [transcript, ...alts].join(' ');
+      const lower = transcript.toLowerCase().trim();
+
+      let extracted = {
+        hasData: false,
+        name: null,
+        phone: null,
+        addr: null,
+        city: null,
+        pincode: null,
+        payment: null,
+        billMode: null,
+        products: []
+      };
+
+      // ── Auto-detect Tamil ──
+      if (/[\u0B80-\u0BFF]/.test(fullText) ||
+          /வணக்கம்|பட்டாசு|ரூபாய்|விலை|கஸ்டமர்|சிவகாசி|பெயர்|மொத்தம்/.test(lower)) {
+        vbsLang = 'ta-IN';
+        const lb = document.getElementById('vbsLangBtn');
+        if (lb) lb.innerText = '🇮🇳 தமிழ்';
+      }
+
+      // ── Bill Mode ──
+      if (/simple\s*bill|estimate|சிம்பிள்\s*பில்|எஸ்டிமேட்/i.test(fullText)) {
+        extracted.billMode = 'simple';
+      }
+
+      // ── Phone (10 digits, starts 6-9) ──
+      // Strip spaces/dashes so "98421 00000" is caught
+      const stripped = fullText.replace(/[\s\-]/g, '');
+      const phoneM = stripped.match(/[6-9]\d{9}/);
+      if (phoneM) {
+        extracted.phone = phoneM[0];
+        extracted.hasData = true;
+      }
+
+      // ── Pincode (6 digits starting with 6) ──
+      const pinM = fullText.match(/\b6\d{5}\b/);
+      if (pinM && (!extracted.phone || !extracted.phone.includes(pinM[0]))) {
+        extracted.pincode = pinM[0];
+        extracted.hasData = true;
+      }
+
+      // ── City list (expanded with common Tamil Nadu locations) ──
+      const CITIES = [
+        'sivakasi','madurai','chennai','coimbatore','tirunelveli','virudhunagar',
+        'rajapalayam','sattur','trichy','salem','erode','tiruppur','dindigul',
+        'theni','nagercoil','thanjavur','vellore','tuticorin','thoothukudi',
+        'aruppukottai','tenkasi','kovilpatti','sankarankovil','srivilliputhur',
+        'watrap','tiruchuli','devakottai','paramakudi','rameswaram','karaikudi',
+        'pudukottai','kumbakonam','nagapattinam','cuddalore','villupuram',
+        'kancheepuram','tambaram','avadi','ambattur','tirupati','pondicherry',
+        'புதுக்கோட்டை','சிவகாசி','மதுரை','சென்னை','விருதுநகர்',
+        'ராஜபாளையம்','சாத்தூர்','திருநெல்வேலி','கோவை','ஈரோடு'
+      ];
+      for (const city of CITIES) {
+        if (lower.includes(city.toLowerCase())) {
+          extracted.city = city.charAt(0).toUpperCase() + city.slice(1);
+          extracted.hasData = true;
+          break;
+        }
+      }
+
+      // ── Address keywords ──
+      const addrM = fullText.match(/(?:address|முகவரி|வீடு|street|nagar|colony|road|salai|பாளையம்)\s*[:\-]?\s*([^,\.]{5,50})/i);
+      if (addrM) {
+        extracted.addr = addrM[1].trim();
+        extracted.hasData = true;
+      }
+
+      // ── Customer Name — multiple human-like patterns ──
+      const NAME_PATTERNS = [
+        // "bill for Rajesh" / "name Rajesh" / "customer Karthik"
+        /(?:bill\s+for|name\s+is|customer\s+name|customer|name|party|buyer|company|வாடிக்கையாளர்|பெயர்|கஸ்டமர்)\s*[:\-]?\s*([a-zA-Z\u0B80-\u0BFF][a-zA-Z\u0B80-\u0BFF\s\.]{1,28}?)(?=\s+(?:phone|mobile|number|city|at|rate|\d|cash|upi|gpay|credit|and|,|$))/i,
+        // "create bill for Ravi Traders"
+        /^(?:create\s+(?:a\s+)?bill|new\s+bill|bill)\s+for\s+([a-zA-Z\u0B80-\u0BFF][a-zA-Z\u0B80-\u0BFF\s\.]{1,28})/i,
+        // "Ramesh 9842100000" — name directly followed by phone number
+        /^([a-zA-Z\u0B80-\u0BFF]{2,18})\s+(?:phone|mobile|cell|\b)?\s*[6-9]\d{9}/i,
+        // "Ravi Sivakasi" or "ரமேஷ் சிவகாசி" — name before city
+        /^([a-zA-Z\u0B80-\u0BFF]{2,18}(?:\s+[a-zA-Z\u0B80-\u0BFF]{2,18})?)\s+(?:from\s+)?(?:sivakasi|madurai|chennai|coimbatore|tirunelveli|virudhunagar|rajapalayam|sattur|trichy|salem|erode|tiruppur|dindigul|theni|nagercoil|thanjavur|vellore|tuticorin|thoothukudi|aruppukottai|tenkasi|kovilpatti|சிவகாசி|மதுரை|சென்னை|விருதுநகர்|ராஜபாளையம்|சாத்தூர்|திருநெல்வேலி)/i
+      ];
+      for (const pat of NAME_PATTERNS) {
+        const m = fullText.match(pat);
+        if (m && m[1]) {
+          const raw = m[1].replace(/^(mr\.?|mrs\.?|shree|sri|thiru|tmt|for|is)\s+/i,'').trim();
+          if (raw.length >= 2 && !CITIES.includes(raw.toLowerCase()) && !/^(bill|create|new|hey|adhira|simple|order)$/i.test(raw)) {
+            extracted.name = raw.replace(/\b\w/g, c => c.toUpperCase());
+            extracted.hasData = true;
+            break;
+          }
+        }
+      }
+
+      // ── Payment method ──
+      if (/\b(upi|gpay|google\s*pay|phonepe|paytm|யூபிஐ)\b/i.test(fullText)) {
+        extracted.payment = 'UPI / GPay'; extracted.hasData = true;
+      } else if (/\b(cash|ரொக்க|கேஷ்|cod)\b/i.test(fullText)) {
+        extracted.payment = 'Cash on Delivery'; extracted.hasData = true;
+      } else if (/\b(credit|கடன்)\b/i.test(fullText)) {
+        extracted.payment = 'Credit'; extracted.hasData = true;
+      } else if (/\b(online|card|net\s*banking|கார்டு)\b/i.test(fullText)) {
+        extracted.payment = 'Online / Card'; extracted.hasData = true;
+      }
+
+      // ── Product extraction (handles multi-item compound sentences) ──
+      // Clean extracted customer info out of item text to prevent accidental collisions
+      let itemText = fullText;
+      if (extracted.phone) {
+        itemText = itemText.replace(new RegExp(extracted.phone.split('').join('\\s*'), 'g'), ' ');
+      }
+      if (extracted.pincode) {
+        itemText = itemText.replace(new RegExp('\\b' + extracted.pincode + '\\b', 'g'), ' ');
+      }
+      if (extracted.city) {
+        itemText = itemText.replace(new RegExp('\\b' + extracted.city + '\\b', 'gi'), ' ');
+      }
+      if (extracted.name) {
+        itemText = itemText.replace(new RegExp('\\b' + extracted.name + '\\b', 'gi'), ' ');
+      }
+      // Remove bill setup phrases
+      itemText = itemText.replace(/^(?:create\s+(?:a\s+)?bill|new\s+bill|bill\s+for|bill\s+to|bill|பில்\s*போடு|பில்)\s*/i, ' ');
+      // Insert boundary after rates if followed by next item quantity (e.g. 'rate 120 5 kuruvi' -> 'rate 120 , 5 kuruvi')
+      itemText = itemText.replace(/((?:rate|at|price|rs\.?|₹|ரூபாய்|விலை|ரேட்)\s*\d+(?:\.\d+)?)\s+(\d+)/gi, (m, p1, p2) => p1 + ' , ' + p2);
+
+      // Split into item clauses
+      const clauses = itemText.split(/[,;\n]|\band\b|\balso\b|\bnext\b|\bதேவை\b|\bமற்றும்\b|\bஅடுத்து\b|\bகூட\b|\bதவிர\b|\bவேண்டும்\b/i);
+
+      for (const clause of clauses) {
+        const raw = clause.trim();
+        if (!raw || raw.length < 2) continue;
+
+        let qty = null;
+        let candidateName = '';
+        let explicitPrice = null;
+
+        // Pattern A: "qty productname [rate price]" e.g. "10 28 chorsa rate 120", "5 kuruvi"
+        const patA = raw.match(
+          /^(\d+|ஒன்று|ஒரு|ஒன்னு|இரண்டு|ரெண்டு|மூன்று|மூணு|நான்கு|நாலு|ஐந்து|அஞ்சு|ஆறு|ஏழு|எட்டு|ஒன்பது|பத்து|fifteen|twenty|thirty|forty|fifty|one|two|three|four|five|six|seven|eight|nine|ten)\s+(.+?)(?:\s+(?:rate|at|price|rs\.?|₹|ரூபாய்|விலை|ரேட்)\s*(\d+(?:\.\d+)?))?\s*$/i
+        );
+        // Pattern B: "productname qty [rate price]" e.g. "kuruvi 5 rate 12"
+        const patB = raw.match(
+          /^(.+?)\s+(\d+)\s*(?:(?:rate|at|price|rs\.?|₹|ரூபாய்|விலை|ரேட்)\s*(\d+(?:\.\d+)?))?\s*$/i
+        );
+        // Pattern C: rate embedded after product "10 lakshmi 45" (qty name price)
+        const patC = raw.match(/^(\d+)\s+(.+?)\s+(\d+(?:\.\d+)?)\s*$/);
+
+        if (patA) {
+          qty = vbsSpokenToNumber(patA[1]);
+          candidateName = patA[2].trim();
+          if (patA[3]) explicitPrice = parseFloat(patA[3]);
+        } else if (patC) {
+          qty = parseInt(patC[1], 10);
+          candidateName = patC[2].trim();
+          explicitPrice = parseFloat(patC[3]);
+        } else if (patB) {
+          candidateName = patB[1].trim();
+          qty = parseInt(patB[2], 10);
+          if (patB[3]) explicitPrice = parseFloat(patB[3]);
+        } else {
+          // No qty pattern — extract rate if present, rest is candidate
+          const rateM = raw.match(/(?:rate|at|price|rs\.?|₹|ரூபாய்|விலை|ரேட்)\s*(\d+(?:\.\d+)?)/i);
+          if (rateM) explicitPrice = parseFloat(rateM[1]);
+          candidateName = raw.replace(/(?:rate|at|price|rs\.?|₹|ரூபாய்|விலை|ரேட்)\s*\d+/gi, '').trim();
+        }
+
+        if (!candidateName || candidateName.length < 2) continue;
+
+        // Skip if candidateName is just city/name/phone
+        if (extracted.city && candidateName.toLowerCase() === extracted.city.toLowerCase()) continue;
+        if (extracted.name && candidateName.toLowerCase() === extracted.name.toLowerCase()) continue;
+
+        const foundProd = vbsFindProduct(candidateName);
+        if (foundProd) {
+          const catalogRate = parseFloat(
+            foundProd.sale_price !== undefined ? foundProd.sale_price :
+            (foundProd.rate || foundProd.orig_price || 0)
+          ) || 0;
+          const finalPrice = (explicitPrice !== null && !isNaN(explicitPrice) && explicitPrice > 0)
+            ? explicitPrice : catalogRate;
+          const isOverride = (explicitPrice !== null && !isNaN(explicitPrice) &&
+            explicitPrice > 0 && explicitPrice !== catalogRate);
+          const finalQty = (qty && !isNaN(qty) && qty > 0) ? Math.round(qty) : 1;
+
+          // Merge or append product
+          const alreadyParsed = extracted.products.find(p => p.id === foundProd.id);
+          if (alreadyParsed) {
+            alreadyParsed.qty += finalQty;
+            if (isOverride) alreadyParsed.price = finalPrice;
+            alreadyParsed.lineTotal = alreadyParsed.qty * alreadyParsed.price;
+          } else {
+            extracted.products.push({
+              id: foundProd.id,
+              name: foundProd.name,
+              qty: finalQty,
+              price: finalPrice,
+              catalogRate,
+              isOverride,
+              img: foundProd.img || '',
+              orig_price: foundProd.orig_price || finalPrice,
+              lineTotal: finalPrice * finalQty
+            });
+          }
+          extracted.hasData = true;
+        }
+      }
+
+      return extracted;
+    }
+
+    /* ---------- UI Helpers & Chat Messages ---------- */
+    function vbsAddMessage(who, text) {
+      const log = document.getElementById('vbsChatLog');
+      if (!log) return;
+      const div = document.createElement('div');
+      div.className = 'vbs-msg vbs-msg-' + who;
+      div.innerHTML = (who === 'bot' ? '<span class="vbs-msg-icon">🤖</span> ' : '<span class="vbs-msg-icon">🎤</span> ') +
+        '<span>' + text + '</span>';
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function vbsSetStatus(text, pulse = false) {
+      const el = document.getElementById('vbsStatus');
+      if (!el) return;
+      el.textContent = text;
+      el.className = 'vbs-status' + (pulse ? ' vbs-pulse' : '');
+    }
+
+    function vbsShowPanel(show) {
+      const panel = document.getElementById('vbsPanel');
+      if (panel) panel.style.display = show ? 'flex' : 'none';
+      const wakeBtn = document.getElementById('vbsWakeBtn');
+      if (wakeBtn) {
+        if (show) wakeBtn.classList.add('vbs-active');
+        else wakeBtn.classList.remove('vbs-active');
+      }
+    }
+
+    function vbsToggleLang(lang) {
+      if (lang) vbsLang = lang;
+      else vbsLang = (vbsLang === 'ta-IN') ? 'en-IN' : 'ta-IN';
+      const btn = document.getElementById('vbsLangBtn');
+      if (btn) {
+        btn.innerText = (vbsLang === 'ta-IN') ? '🇮🇳 தமிழ்' : '🇬🇧 English';
+      }
+      showToast('Voice Language: ' + (vbsLang === 'ta-IN' ? 'Tamil' : 'English'));
+    }
+
+    function vbsToggleBillMode(mode) {
+      if (mode) vbsBillMode = mode;
+      else vbsBillMode = (vbsBillMode === 'shop_order') ? 'simple' : 'shop_order';
+      vbsSession.bill_mode = vbsBillMode;
+      const btn = document.getElementById('vbsBillModeBtn');
+      if (btn) {
+        btn.innerHTML = (vbsBillMode === 'simple') ? '📄 Simple Bill' : '🛍️ Shop Order';
+        btn.className = 'vbs-pill-btn ' + (vbsBillMode === 'simple' ? 'vbs-pill-gold' : 'vbs-pill-blue');
+      }
+      vbsRenderSummary();
+      showToast('Billing Mode: ' + (vbsBillMode === 'simple' ? 'Simple Estimate Bill' : 'Shop Order / GST Bill'));
+    }
+
+    /* ---------- Interactive Bill Summary Renderer ---------- */
+    function vbsRenderSummary() {
+      const el = document.getElementById('vbsSummaryBox');
+      if (!el) return;
+      const s = vbsSession;
+      const items = s.items || [];
+      const totalAmount = items.reduce((sum, it) => sum + (it.price * it.qty), 0);
+      const totalQty = items.reduce((sum, it) => sum + it.qty, 0);
+
+      let itemsHtml = '';
+      if (items.length === 0) {
+        itemsHtml = '<div class="vbs-empty-items">No items added yet. Speak cracker name, count and rate.</div>';
+      } else {
+        itemsHtml = items.map((it, idx) => `
+          <div class="vbs-item-row">
+            <div class="vbs-item-info">
+              <span class="vbs-item-num">${idx + 1}.</span>
+              <strong class="vbs-item-name">${it.name}</strong>
+              ${it.isOverride ? '<span class="vbs-override-tag">Admin Rate</span>' : '<span class="vbs-catalog-tag">Website Rate</span>'}
+            </div>
+            <div class="vbs-item-controls">
+              <div class="vbs-qty-box">
+                <button type="button" onclick="vbsAdjustQty(${idx}, -1)">−</button>
+                <span>${it.qty}</span>
+                <button type="button" onclick="vbsAdjustQty(${idx}, 1)">+</button>
+              </div>
+              <div class="vbs-rate-box">
+                @ ₹<input type="number" value="${it.price}" min="0" step="1" onchange="vbsUpdateItemPrice(${idx}, this.value)">
+              </div>
+              <div class="vbs-item-total">₹${(it.price * it.qty).toFixed(2)}</div>
+              <button type="button" class="vbs-item-del" onclick="vbsRemoveItem(${idx})" title="Remove item">✕</button>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      el.innerHTML = `
+        <div class="vbs-summary-card">
+          <!-- Customer Details Box -->
+          <div class="vbs-cust-meta">
+            <div class="vbs-meta-line">
+              <span>👤 <strong>${s.cust_name || 'Counter Customer'}</strong></span>
+              <span>📞 ${s.cust_phone || 'No Phone'}</span>
+            </div>
+            <div class="vbs-meta-line vbs-meta-sub">
+              <span>📍 ${s.cust_city || s.cust_addr || 'Sivakasi'} ${s.cust_pincode ? '(' + s.cust_pincode + ')' : ''}</span>
+              <span>💳 ${s.payment || 'Cash'}</span>
+            </div>
+          </div>
+
+          <!-- Items List -->
+          <div class="vbs-items-list-box">
+            ${itemsHtml}
+          </div>
+
+          <!-- Total Bar -->
+          <div class="vbs-total-bar">
+            <span>Items: <strong>${items.length}</strong> (${totalQty} pcs)</span>
+            <span class="vbs-grand-total">Total: <strong>₹${totalAmount.toFixed(2)}</strong></span>
+          </div>
+
+          <!-- Quick Action Buttons -->
+          ${items.length > 0 ? `
+            <div class="vbs-action-row">
+              <button type="button" class="vbs-btn-save" onclick="vbsSaveBill()">
+                💾 Save Bill (Enter)
+              </button>
+              <button type="button" class="vbs-btn-wa" onclick="vbsQuickWhatsApp()" title="Send bill to WhatsApp">
+                📲 WhatsApp
+              </button>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    function vbsAdjustQty(idx, delta) {
+      if (!vbsSession.items || !vbsSession.items[idx]) return;
+      vbsSession.items[idx].qty = Math.max(1, vbsSession.items[idx].qty + delta);
+      vbsSession.items[idx].lineTotal = vbsSession.items[idx].qty * vbsSession.items[idx].price;
+      vbsRenderSummary();
+    }
+
+    function vbsUpdateItemPrice(idx, val) {
+      if (!vbsSession.items || !vbsSession.items[idx]) return;
+      const num = parseFloat(val);
+      if (!isNaN(num) && num >= 0) {
+        vbsSession.items[idx].price = num;
+        vbsSession.items[idx].isOverride = true;
+        vbsSession.items[idx].lineTotal = vbsSession.items[idx].qty * num;
+        vbsRenderSummary();
+      }
+    }
+
+    function vbsRemoveItem(idx) {
+      if (!vbsSession.items) return;
+      vbsSession.items.splice(idx, 1);
+      vbsRenderSummary();
+    }
+
+    /* ---------- Main Speech Listener ---------- */
+    function vbsStartListening() {
+      if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+        vbsSetStatus('❌ Speech recognition not supported in this browser. Use Google Chrome.');
+        return;
+      }
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (vbsRecognition) {
+        try { vbsRecognition.stop(); } catch (e) {}
+      }
+      vbsRecognition = new SR();
+      vbsRecognition.lang = vbsLang;
+      vbsRecognition.continuous = false;
+      vbsRecognition.interimResults = false;
+      vbsRecognition.maxAlternatives = 3;
+
+      vbsSetStatus('🎤 Listening… Speak bill details or cracker items', true);
+      const micBtn = document.getElementById('vbsMicBtn');
+      if (micBtn) micBtn.classList.add('active');
+
+      vbsRecognition.onresult = (ev) => {
+        const results = Array.from(ev.results[ev.results.length - 1]).map(r => r.transcript);
+        const transcript = results[0] || '';
+        vbsAddMessage('user', transcript);
+        if (micBtn) micBtn.classList.remove('active');
+        vbsSetStatus('⏳ Understanding speech…');
+        vbsHandleInput(transcript, results);
+      };
+
+      vbsRecognition.onerror = (ev) => {
+        if (micBtn) micBtn.classList.remove('active');
+        vbsSetStatus('⚠️ ' + (ev.error === 'not-allowed' ? 'Microphone permission denied.' : 'Tap mic to retry.'));
+      };
+
+      vbsRecognition.onend = () => {
+        if (micBtn) micBtn.classList.remove('active');
+        if (vbsState !== VBS.IDLE && vbsState !== VBS.SAVING) {
+          vbsSetStatus('Tap 🎤 to speak more or click Save');
+        }
+      };
+
+      try { vbsRecognition.start(); } catch (e) {}
+    }
+
+    /* =================================================================
+       HUMAN-LIKE CONVERSATIONAL HANDLER
+       Reads the full sentence naturally, understands everything in it,
+       and gives a spoken confirmation of EXACTLY what was understood.
+    ================================================================= */
+    function vbsHandleInput(transcript, alts = []) {
+      const tLower = (transcript || '').toLowerCase().trim();
+
+      // ── Universal Cancel ──
+      if (/^(cancel|ரத்து|நிறுத்து|stop|quit|reset|close)$/i.test(tLower)) {
+        vbsSpeak(vbsT('cancel'));
+        setTimeout(() => vbsCloseAssistant(), 1200);
+        return;
+      }
+
+      // ── Universal Save / Confirm ──
+      if (/^(save|confirm|done|முடிந்தது|சேமி|save bill|confirm bill|ஆம்|சரி|yes|ok|okay|finish|complete)$/i.test(tLower)) {
+        if ((vbsSession.items || []).length > 0) {
+          vbsSaveBill();
+        } else {
+          const msg = vbsLang === 'ta-IN'
+            ? 'ஒரே ஒரு பொருளாவது சேர்க்கணும். பட்டாசு பொருளின் பெயரை சொல்லுங்க.'
+            : 'Please add at least one cracker item before saving. Say the product name.';
+          vbsSpeak(msg, () => vbsStartListening());
+        }
+        return;
+      }
+
+      // ── Run Full NLP Parse ──
+      const parsed = vbsParseNaturalSpeech(transcript, alts);
+
+      if (parsed.hasData) {
+        // Merge everything into session
+        if (parsed.name)    vbsSession.cust_name    = parsed.name;
+        if (parsed.phone)   vbsSession.cust_phone   = parsed.phone;
+        if (parsed.addr)    vbsSession.cust_addr     = parsed.addr;
+        if (parsed.city)    vbsSession.cust_city    = parsed.city;
+        if (parsed.pincode) vbsSession.cust_pincode = parsed.pincode;
+        if (parsed.payment) vbsSession.payment      = parsed.payment;
+        if (parsed.billMode) vbsToggleBillMode(parsed.billMode);
+
+        // Merge products (accumulate quantities for same product)
+        vbsSession.items = vbsSession.items || [];
+        for (const p of (parsed.products || [])) {
+          const existing = vbsSession.items.find(i => i.id === p.id);
+          if (existing) {
+            existing.qty += p.qty;
+            if (p.isOverride) existing.price = p.price;
+            existing.lineTotal = existing.qty * existing.price;
+          } else {
+            vbsSession.items.push(p);
+          }
+        }
+
+        vbsRenderSummary();
+
+        // ── Build a specific, human-like confirmation ──
+        const total = vbsSession.items.reduce((s, it) => s + it.price * it.qty, 0);
+        const isTa  = vbsLang === 'ta-IN';
+        const parts = [];
+
+        // Confirm customer name
+        if (parsed.name) {
+          parts.push(isTa
+            ? `வாடிக்கையாளர் பெயர் ${parsed.name} — சரிதானா.`
+            : `Customer name noted as ${parsed.name}.`);
+        }
+        // Confirm phone
+        if (parsed.phone) {
+          const digits = parsed.phone.split('').join(' '); // speak digits spaced
+          parts.push(isTa
+            ? `மொபைல் நம்பர் ${digits} — சரிதானா.`
+            : `Phone number ${digits} — got it.`);
+        }
+        // Confirm city
+        if (parsed.city) {
+          parts.push(isTa
+            ? `நகரம் ${parsed.city}.`
+            : `City: ${parsed.city}.`);
+        }
+        // Confirm payment
+        if (parsed.payment) {
+          parts.push(isTa
+            ? `கட்டணம் ${parsed.payment}.`
+            : `Payment: ${parsed.payment}.`);
+        }
+        // Confirm each product added
+        for (const p of (parsed.products || [])) {
+          const rateLabel = p.isOverride
+            ? (isTa ? `நீங்கள் சொன்ன ரேட் ₹${p.price}` : `your rate ₹${p.price}`)
+            : (isTa ? `வெப்சைட் ரேட் ₹${p.price}` : `catalog rate ₹${p.price}`);
+          parts.push(isTa
+            ? `${p.qty} ${p.name} ${rateLabel} — சரிதானா.`
+            : `${p.qty} ${p.name} at ${rateLabel} — noted.`);
+        }
+
+        // Running total
+        if (vbsSession.items.length > 0) {
+          parts.push(isTa
+            ? `இப்போது மொத்தம் ₹${total.toFixed(0)}.`
+            : `Running total is ₹${total.toFixed(0)}.`);
+        }
+
+        // Ask what to do next
+        if (vbsSession.items.length > 0) {
+          parts.push(isTa
+            ? 'மேலும் பொருட்கள் சேர்க்க வேண்டுமா, இல்லை பில் சேமிக்கணுமா? Save சொல்லுங்க.'
+            : 'Any more items? Or say Save to complete the bill.');
+        } else {
+          parts.push(isTa
+            ? 'பட்டாசு பொருட்களின் பெயரும் எண்ணிக்கையும் சொல்லுங்க.'
+            : 'Now please tell me the cracker products with quantities.');
+        }
+
+        vbsState = VBS.CONFIRM_OR_MORE;
+        vbsSpeak(parts.join(' '), () => {
+          setTimeout(() => {
+            if (vbsState !== VBS.SAVING && vbsState !== VBS.IDLE) vbsStartListening();
+          }, 400);
+        });
+        return;
+      }
+
+      // ── Fallback: try a direct product name search ──
+      const fallbackProd = vbsFindProduct(transcript);
+      if (fallbackProd) {
+        const catPrice = parseFloat(
+          fallbackProd.sale_price !== undefined ? fallbackProd.sale_price :
+          (fallbackProd.rate || fallbackProd.orig_price || 0)
+        ) || 0;
+        vbsSession.items = vbsSession.items || [];
+        const existingFb = vbsSession.items.find(i => i.id === fallbackProd.id);
+        if (existingFb) {
+          existingFb.qty += 1;
+          existingFb.lineTotal = existingFb.qty * existingFb.price;
+        } else {
+          vbsSession.items.push({
+            id: fallbackProd.id, name: fallbackProd.name, qty: 1,
+            price: catPrice, catalogRate: catPrice, isOverride: false,
+            img: fallbackProd.img || '',
+            orig_price: fallbackProd.orig_price || catPrice,
+            lineTotal: catPrice
+          });
+        }
+        vbsRenderSummary();
+        const total = vbsSession.items.reduce((s, it) => s + it.price * it.qty, 0);
+        const isTa = vbsLang === 'ta-IN';
+        const reply = isTa
+          ? `${fallbackProd.name} வெப்சைட் ரேட் ₹${catPrice} சேர்க்கப்பட்டது. மொத்தம் ₹${total.toFixed(0)}. வேறு பொருட்கள் வேண்டுமா?`
+          : `${fallbackProd.name} added at catalog rate ₹${catPrice}. Total ₹${total.toFixed(0)}. More items or say Save?`;
+        vbsSpeak(reply, () => vbsStartListening());
+        return;
+      }
+
+      // ── Nothing understood ──
+      const isTa = vbsLang === 'ta-IN';
+      const helpMsg = isTa
+        ? 'மன்னிக்கவும். புரியவில்லை. உதாரணம்: ரமேஷ் 98421 00000 சிவகாசி, 5 குருவி ரேட் 45, 10 லக்ஷ்மி.'
+        : 'Sorry, I did not understand. Try: Ramesh Sivakasi 9842100000, 5 kuruvi rate 45, 10 lakshmi.';
+      vbsSpeak(helpMsg, () => vbsStartListening());
+    }
+
+    /* ---------- Save Bill to Real Database & Launch PDF / WhatsApp ---------- */
+    async function vbsSaveBill() {
+      if ((vbsSession.items || []).length === 0) {
+        vbsSpeak('Please add at least one product before saving.');
+        return;
+      }
+
+      vbsState = VBS.SAVING;
+      vbsSetStatus('💾 Saving bill to Database…', true);
+
+      const s = vbsSession;
+      const subtotal = (s.items || []).reduce((sum, it) => sum + (it.price * it.qty), 0);
+      const isSimple = (s.bill_mode === 'simple');
+
+      const payload = {
+        customer_name: (s.cust_name || 'Voice Customer').trim(),
+        customer_phone: (s.cust_phone || '').trim(),
+        customer_address: (s.cust_addr || '').trim(),
+        city: (s.cust_city || 'Sivakasi').trim(),
+        state: 'Tamil Nadu',
+        pincode: (s.cust_pincode || '626123').trim(),
+        payment_method: s.payment || 'Cash on Delivery',
+        status: 'Confirmed',
+        notes: isSimple ? 'Created via Adhira Voice Assistant (Simple Bill / Estimate)' : 'Created via Adhira Voice Assistant',
+        items: s.items || [],
+        subtotal: subtotal,
+        discount_amount: 0,
+        total_amount: subtotal,
+        order_type: isSimple ? 'simple_bill' : 'manual'
+      };
+
+      try {
+        const url = isPhp ? `${apiBase}?action=create-order` : `${apiBase}/orders`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          vbsState = VBS.DONE;
+          vbsSetStatus('✅ Bill saved in Database!');
+
+          // Confetti celebration
+          if (typeof confetti === 'function') {
+            confetti({ particleCount: 70, spread: 60, origin: { y: 0.7 } });
+          }
+
+          vbsSpeak(vbsT('saved'));
+          vbsAddMessage('bot', `✅ Bill #${(data.order || {}).order_number || ''} saved successfully! Amount: ₹${subtotal.toFixed(2)}`);
+
+          await loadSiteData();
+          const savedOrder = data.order || (currentData.orders && currentData.orders[0]);
+
+          // Open exact PDF Bill Preview
+          if (savedOrder && typeof openBillPreview === 'function') {
+            setTimeout(() => {
+              openBillPreview(savedOrder.id);
+            }, 800);
+          }
+
+          // Auto WhatsApp Dispatch if phone is valid
+          if (s.cust_phone && s.cust_phone.replace(/\D/g, '').length >= 10) {
+            setTimeout(() => {
+              vbsQuickWhatsApp(savedOrder);
+            }, 1400);
+          }
+
+          setTimeout(() => {
+            vbsCloseAssistant();
+          }, 3500);
+
+        } else {
+          vbsState = VBS.CONFIRM_OR_MORE;
+          vbsSpeak(vbsT('error'));
+          vbsSetStatus('❌ ' + (data.error || 'Failed to save bill.'));
+        }
+      } catch (err) {
+        console.error('vbsSaveBill error:', err);
+        vbsState = VBS.CONFIRM_OR_MORE;
+        vbsSpeak(vbsT('error'));
+        vbsSetStatus('❌ Network error. Tap mic or click Save again.');
+      }
+    }
+
+    /* ---------- WhatsApp Instant Bill Dispatcher ---------- */
+    function vbsQuickWhatsApp(customOrder) {
+      const s = vbsSession;
+      const phone = (customOrder ? customOrder.customer_phone : s.cust_phone) || '';
+      const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+
+      const brandName = (currentData.settings && currentData.settings.brand_name) || 'ADHIRA PYROTECH';
+      const items = (customOrder ? customOrder.items : s.items) || [];
+      const subtotal = items.reduce((sum, it) => sum + (it.price * it.qty), 0);
+
+      const itemsList = items.map((it, i) => `${i + 1}. ${it.name} × ${it.qty} = Rs.${(it.price * it.qty).toFixed(2)}`).join('\n');
+
+      const msg =
+`🎆 *${brandName} — BILL / INVOICE* 🎆
+--------------------------------------
+*Customer:* ${customOrder ? customOrder.customer_name : (s.cust_name || 'Valued Customer')}
+*Phone:* ${phone || '—'}
+*City:* ${customOrder ? customOrder.city : (s.cust_city || 'Sivakasi')}
+*Payment:* ${customOrder ? customOrder.payment_method : s.payment}
+*Date:* ${new Date().toLocaleDateString('en-IN')}
+--------------------------------------
+*CRACKER ITEMS:*
+${itemsList || 'Cracker package'}
+--------------------------------------
+*TOTAL AMOUNT: Rs.${subtotal.toFixed(2)}*
+--------------------------------------
+Thank you for choosing ${brandName}!
+Wish you a Happy & Safe Diwali! 💥`;
+
+      const targetUrl = cleanPhone ?
+        `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(msg)}` :
+        `https://wa.me/?text=${encodeURIComponent(msg)}`;
+
+      window.open(targetUrl, '_blank');
+    }
+
+    /* ---------- Background Wake Word Listener ("Hey Adhira") ---------- */
+    function vbsStartWakeListener() {
+      if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) return;
+      if (wakeActive) return;
+
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      try {
+        wakeRecognition = new SR();
+        wakeRecognition.lang = 'ta-IN'; // Picks up both Tamil and phonetic English in India
+        wakeRecognition.continuous = true;
+        wakeRecognition.interimResults = true;
+        wakeRecognition.maxAlternatives = 2;
+
+        wakeRecognition.onresult = (ev) => {
+          for (let i = ev.resultIndex; i < ev.results.length; i++) {
+            const said = (ev.results[i][0].transcript || '').toLowerCase().trim();
+            if (
+              said.includes('hey adhira pattasu kadai') ||
+              said.includes('adhira pattasu kadai') ||
+              said.includes('அதிரா பட்டாசு கடை') ||
+              said.includes('hey adhira') ||
+              said.includes('adhira') ||
+              said.includes('hey adira') ||
+              said.includes('hey athira') ||
+              said.includes('அதிரா') ||
+              said.includes('ஹே அதிரா') ||
+              said.includes('ஹாய் அதிரா') ||
+              said.includes('adhira pattasu') ||
+              said.includes('adhira crackers') ||
+              said.includes('adhira pyrotech') ||
+              said.includes('hi adhira') ||
+              said.includes('create bill') ||
+              said.includes('bill create') ||
+              said.includes('பில் போடு') ||
+              said.includes('பில் கிரியேட்') ||
+              said.includes('simple bill') ||
+              said.includes('voice bill')
+            ) {
+              try { wakeRecognition.stop(); } catch (e) {}
+              wakeActive = false;
+              vbsPlayChime();
+              showToast('🎤 "Hey Adhira Pattasu Kadai" detected! Opening Assistant…');
+              vbsOpenAssistant();
+              break;
+            }
+          }
+        };
+
+        wakeRecognition.onend = () => {
+          wakeActive = false;
+          // Auto-restart background wake listener after 1s if assistant is idle
+          if (vbsState === VBS.IDLE) {
+            setTimeout(() => vbsStartWakeListener(), 1200);
+          }
+        };
+
+        wakeRecognition.onerror = (ev) => {
+          wakeActive = false;
+          if (vbsState === VBS.IDLE && ev.error !== 'not-allowed') {
+            setTimeout(() => vbsStartWakeListener(), 3000);
+          }
+        };
+
+        wakeRecognition.start();
+        wakeActive = true;
+      } catch (e) {
+        wakeActive = false;
+      }
+    }
+
+    /* ---------- Assistant Lifecycle (Open / Close) ---------- */
+    function vbsOpenAssistant() {
+      // Suspend wake recognition while assistant is active
+      try { if (wakeRecognition) wakeRecognition.stop(); } catch (e) {}
+      wakeActive = false;
+
+      vbsSession = {
+        cust_name: '',
+        cust_phone: '',
+        cust_addr: '',
+        cust_city: '',
+        cust_pincode: '',
+        payment: 'Cash on Delivery',
+        bill_mode: vbsBillMode || 'shop_order',
+        items: []
+      };
+
+      vbsState = VBS.LISTENING;
+      vbsShowPanel(true);
+      if (typeof switchTab === 'function') switchTab('orders');
+
+      const log = document.getElementById('vbsChatLog');
+      if (log) log.innerHTML = '';
+      vbsRenderSummary();
+
+      vbsSetStatus('🎤 Listening for your speech…', true);
+      vbsSpeak(vbsT('welcome'), () => {
+        vbsStartListening();
+      });
+    }
+
+    function vbsCloseAssistant() {
+      try { if (vbsRecognition) vbsRecognition.stop(); } catch (e) {}
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
+
+      vbsState = VBS.IDLE;
+      vbsShowPanel(false);
+
+      // Resume wake listener after 1.5s
+      setTimeout(() => vbsStartWakeListener(), 1500);
+    }
+
+    // Auto-start wake listener on first user interaction or load
+    window.addEventListener('load', () => {
+      setTimeout(() => vbsStartWakeListener(), 3000);
+    });
+    document.addEventListener('click', () => {
+      if (!wakeActive && vbsState === VBS.IDLE) {
+        vbsStartWakeListener();
+      }
+    }, { once: true });
+
+  </script>
+
+  <!-- ============================================================ -->
+  <!-- 🎤 VOICE BILL ASSISTANT — MODERN CSS & HTML UI               -->
+  <!-- ============================================================ -->
+  <style>
+    /* Floating Wake Mic Button */
+    #vbsWakeBtn {
+      position: fixed;
+      bottom: 84px;
+      right: 20px;
+      z-index: 9998;
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #f59e0b, #ef4444);
+      border: 2px solid rgba(255,255,255,0.25);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      color: #fff;
+      box-shadow: 0 6px 24px rgba(245, 158, 11, 0.55), 0 0 0 4px rgba(245, 158, 11, 0.15);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      animation: vbs-float 3s ease-in-out infinite;
+    }
+    #vbsWakeBtn:hover {
+      transform: scale(1.12);
+      box-shadow: 0 8px 32px rgba(245, 158, 11, 0.75), 0 0 0 6px rgba(239, 68, 68, 0.25);
+    }
+    #vbsWakeBtn.vbs-active {
+      background: linear-gradient(135deg, #10b981, #059669);
+      box-shadow: 0 0 25px rgba(16, 185, 129, 0.8);
+    }
+    #vbsWakeBtnLabel {
+      position: fixed;
+      bottom: 148px;
+      right: 14px;
+      z-index: 9998;
+      background: rgba(15, 23, 42, 0.95);
+      color: #f59e0b;
+      font-size: 10px;
+      font-weight: 800;
+      border-radius: 8px;
+      padding: 4px 9px;
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      white-space: nowrap;
+      letter-spacing: 0.6px;
+      pointer-events: none;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    }
+    @keyframes vbs-float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-7px); }
+    }
+
+    /* Assistant Panel */
+    #vbsPanel {
+      position: fixed;
+      bottom: 154px;
+      right: 20px;
+      width: 400px;
+      max-width: calc(100vw - 24px);
+      max-height: 80vh;
+      background: rgba(10, 14, 28, 0.98);
+      backdrop-filter: blur(25px);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      border-radius: 20px;
+      box-shadow: 0 25px 70px rgba(0,0,0,0.85), 0 0 0 1px rgba(245, 158, 11, 0.2);
+      z-index: 9997;
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+      animation: vbs-slide-up 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes vbs-slide-up {
+      from { opacity: 0; transform: translateY(28px) scale(0.95); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* Header */
+    .vbs-header {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(239, 68, 68, 0.12));
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .vbs-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #f59e0b, #ef4444);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 19px;
+      flex-shrink: 0;
+      box-shadow: 0 0 12px rgba(245, 158, 11, 0.5);
+    }
+    .vbs-title-block h4 {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: #fff;
+      margin: 0;
+      letter-spacing: 0.3px;
+    }
+    .vbs-title-block span {
+      font-size: 10px;
+      color: #f59e0b;
+      font-weight: 600;
+    }
+    .vbs-header-actions {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .vbs-pill-btn {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: #e2e8f0;
+      border-radius: 20px;
+      padding: 4px 9px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .vbs-pill-btn:hover { background: rgba(255,255,255,0.16); }
+    .vbs-pill-gold {
+      background: rgba(245, 158, 11, 0.2);
+      border-color: #f59e0b;
+      color: #f59e0b;
+    }
+    .vbs-pill-blue {
+      background: rgba(59, 130, 246, 0.2);
+      border-color: #3b82f6;
+      color: #93c5fd;
+    }
+    .vbs-close-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #94a3b8;
+      border-radius: 8px;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    .vbs-close-btn:hover { background: #ef4444; color: #fff; }
+
+    /* Status Bar */
+    .vbs-status {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #f59e0b;
+      padding: 7px 14px;
+      background: rgba(245, 158, 11, 0.08);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      text-align: center;
+      flex-shrink: 0;
+      letter-spacing: 0.3px;
+    }
+    .vbs-status.vbs-pulse {
+      animation: vbs-blink 0.85s ease-in-out infinite;
+    }
+    @keyframes vbs-blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.45; }
+    }
+
+    /* Chat Log */
+    #vbsChatLog {
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 120px;
+      overflow-y: auto;
+      flex-shrink: 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .vbs-msg {
+      font-size: 12px;
+      padding: 6px 11px;
+      border-radius: 10px;
+      max-width: 92%;
+      line-height: 1.4;
+      word-break: break-word;
+      display: flex;
+      gap: 6px;
+      align-items: flex-start;
+    }
+    .vbs-msg-icon { font-size: 13px; flex-shrink: 0; }
+    .vbs-msg-bot {
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.22);
+      color: #fef3c7;
+      align-self: flex-start;
+    }
+    .vbs-msg-user {
+      background: rgba(59, 130, 246, 0.18);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      color: #bfdbfe;
+      align-self: flex-end;
+    }
+
+    /* Interactive Summary Box */
+    #vbsSummaryBox {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 14px;
+      font-size: 12px;
+      min-height: 150px;
+    }
+    .vbs-summary-card {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .vbs-cust-meta {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 8px 12px;
+    }
+    .vbs-meta-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #f1f5f9;
+    }
+    .vbs-meta-sub {
+      margin-top: 3px;
+      font-size: 11px;
+      color: #94a3b8;
+    }
+    .vbs-empty-items {
+      padding: 20px 10px;
+      text-align: center;
+      color: #64748b;
+      font-style: italic;
+    }
+    .vbs-items-list-box {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 170px;
+      overflow-y: auto;
+    }
+    .vbs-item-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
+      padding: 6px 10px;
+    }
+    .vbs-item-info {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+    .vbs-item-num { color: #64748b; font-size: 11px; }
+    .vbs-item-name {
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .vbs-catalog-tag {
+      font-size: 9px;
+      background: rgba(16, 185, 129, 0.15);
+      color: #10b981;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-weight: 700;
+    }
+    .vbs-override-tag {
+      font-size: 9px;
+      background: rgba(245, 158, 11, 0.2);
+      color: #f59e0b;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-weight: 700;
+    }
+    .vbs-item-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .vbs-qty-box {
+      display: flex;
+      align-items: center;
+      background: rgba(0, 0, 0, 0.35);
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .vbs-qty-box button {
+      background: transparent;
+      border: none;
+      color: #f59e0b;
+      font-weight: 800;
+      font-size: 12px;
+      padding: 2px 6px;
+      cursor: pointer;
+    }
+    .vbs-qty-box span {
+      padding: 2px 5px;
+      font-weight: 800;
+      color: #fff;
+      font-size: 11.5px;
+      min-width: 18px;
+      text-align: center;
+    }
+    .vbs-rate-box {
+      font-size: 11px;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+    .vbs-rate-box input {
+      width: 48px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 4px;
+      color: #f59e0b;
+      font-weight: 700;
+      font-size: 11px;
+      padding: 2px 4px;
+      text-align: right;
+    }
+    .vbs-item-total {
+      font-weight: 800;
+      color: #10b981;
+      font-size: 12px;
+      min-width: 55px;
+      text-align: right;
+    }
+    .vbs-item-del {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #ef4444;
+      border-radius: 50%;
+      width: 18px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      cursor: pointer;
+    }
+    .vbs-total-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 10px;
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px dashed rgba(245, 158, 11, 0.3);
+      border-radius: 8px;
+      font-size: 12.5px;
+      color: #e2e8f0;
+    }
+    .vbs-grand-total strong {
+      color: #f59e0b;
+      font-size: 16px;
+      font-weight: 900;
+    }
+    .vbs-action-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .vbs-btn-save {
+      flex: 1;
+      background: linear-gradient(135deg, #10b981, #059669);
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-weight: 800;
+      font-size: 12.5px;
+      padding: 8px 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+      transition: all 0.2s;
+    }
+    .vbs-btn-save:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(16, 185, 129, 0.5); }
+    .vbs-btn-wa {
+      background: rgba(37, 211, 102, 0.18);
+      border: 1px solid rgba(37, 211, 102, 0.4);
+      color: #25d366;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 12px;
+      padding: 8px 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .vbs-btn-wa:hover { background: rgba(37, 211, 102, 0.3); color: #fff; }
+
+    /* Controls */
+    .vbs-controls {
+      display: flex;
+      gap: 8px;
+      padding: 10px 14px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      flex-shrink: 0;
+      background: rgba(12, 16, 28, 0.95);
+    }
+    #vbsMicBtn {
+      flex: 1;
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(239, 68, 68, 0.18));
+      border: 1px solid rgba(245, 158, 11, 0.5);
+      color: #f59e0b;
+      border-radius: 10px;
+      padding: 10px;
+      font-weight: 800;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+    #vbsMicBtn.active {
+      background: linear-gradient(135deg, #f59e0b, #ef4444);
+      color: #fff;
+      box-shadow: 0 0 20px rgba(245, 158, 11, 0.6);
+      animation: vbs-blink 0.6s ease-in-out infinite;
+    }
+    #vbsMicBtn:hover { transform: scale(1.02); }
+    #vbsTypeBtn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #94a3b8;
+      border-radius: 10px;
+      padding: 10px 13px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    #vbsTypeBtn:hover { background: rgba(255, 255, 255, 0.12); color: #fff; }
+
+    /* Type input row */
+    #vbsTypeRow {
+      display: none;
+      gap: 6px;
+      padding: 0 14px 10px;
+      flex-shrink: 0;
+    }
+    #vbsTypeRow.show { display: flex; }
+    #vbsTypeInput {
+      flex: 1;
+      background: rgba(12, 16, 28, 0.95);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: #fff;
+      font-size: 13px;
+      font-family: inherit;
+    }
+    #vbsTypeInput:focus { outline: none; border-color: #f59e0b; }
+    #vbsTypeSend {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      border: none;
+      border-radius: 8px;
+      color: #000;
+      font-weight: 800;
+      font-size: 13px;
+      padding: 8px 14px;
+      cursor: pointer;
+    }
+
+    @media print {
+      #vbsWakeBtn, #vbsWakeBtnLabel, #vbsPanel { display: none !important; }
+    }
+    @media (max-width: 480px) {
+      #vbsPanel { right: 8px; width: calc(100vw - 16px); bottom: 148px; max-height: 82vh; }
+    }
+  </style>
+
+  <!-- Voice Bill Assistant HTML Overlay -->
+  <button id="vbsWakeBtn" onclick="vbsOpenAssistant()" title="Voice Bill Assistant — Say 'Hey Adhira' or tap to start">
+    🎤
+  </button>
+  <div id="vbsWakeBtnLabel">SAY HEY ADHIRA</div>
+
+  <div id="vbsPanel">
+    <!-- Header -->
+    <div class="vbs-header">
+      <div class="vbs-avatar">🤖</div>
+      <div class="vbs-title-block">
+        <h4>Adhira Voice Bill Assistant</h4>
+        <span>Tamil 🇮🇳 & English • Real DB • Auto PDF & WhatsApp</span>
+      </div>
+      <div class="vbs-header-actions">
+        <button id="vbsLangBtn" class="vbs-pill-btn" onclick="vbsToggleLang()" title="Toggle Language (Tamil / English)">
+          🇬🇧 English
+        </button>
+        <button id="vbsBillModeBtn" class="vbs-pill-btn vbs-pill-blue" onclick="vbsToggleBillMode()" title="Toggle Shop Order vs Simple Bill">
+          🛍️ Shop Order
+        </button>
+        <button class="vbs-close-btn" onclick="vbsCloseAssistant()" title="Close Assistant">✕</button>
+      </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="vbs-status" id="vbsStatus">Say "Hey Adhira" or tap 🎤 to create a bill</div>
+
+    <!-- Chat Log -->
+    <div id="vbsChatLog"></div>
+
+    <!-- Interactive Bill Summary -->
+    <div id="vbsSummaryBox"></div>
+
+    <!-- Controls -->
+    <div class="vbs-controls">
+      <button id="vbsMicBtn" onclick="vbsStartListening()">
+        <i class="fa-solid fa-microphone"></i> Tap to Speak
+      </button>
+      <button id="vbsTypeBtn" onclick="vbsToggleTypeMode()">⌨️ Type</button>
+    </div>
+
+    <!-- Type fallback input -->
+    <div id="vbsTypeRow">
+      <input type="text" id="vbsTypeInput" placeholder="e.g. Ramesh Sivakasi 9842100000 10 28 chorsa rate 120 5 kuruvi…" onkeydown="if(event.key==='Enter')vbsSendTyped()">
+      <button id="vbsTypeSend" onclick="vbsSendTyped()">Send</button>
+    </div>
+  </div>
+
+  <script>
+    function vbsToggleTypeMode() {
+      const row = document.getElementById('vbsTypeRow');
+      if (!row) return;
+      row.classList.toggle('show');
+      if (row.classList.contains('show')) document.getElementById('vbsTypeInput')?.focus();
+    }
+    function vbsSendTyped() {
+      const inp = document.getElementById('vbsTypeInput');
+      if (!inp) return;
+      const val = inp.value.trim();
+      if (!val) return;
+      inp.value = '';
+      vbsAddMessage('user', val);
+      vbsHandleInput(val, [val]);
+    }
   </script>
 </body>
 </html>
