@@ -3,9 +3,35 @@ const fs = require('fs');
 const path = require('path');
 const url = require('url');
 
-const PORT = 4000;
+const PORT = process.env.PORT || 4000;
 const ROOT = __dirname;
 const DB_FILE = path.join(ROOT, 'database.json');
+
+// Auto-load .env or .env.local if present
+const envFiles = ['.env', '.env.local'];
+for (const envFile of envFiles) {
+  const envPath = path.join(ROOT, envFile);
+  if (fs.existsSync(envPath)) {
+    try {
+      const lines = fs.readFileSync(envPath, 'utf8').split('\n');
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed && !trimmed.startsWith('#')) {
+          const eqIdx = trimmed.indexOf('=');
+          if (eqIdx !== -1) {
+            const k = trimmed.substring(0, eqIdx).trim();
+            const v = trimmed.substring(eqIdx + 1).trim().replace(/^['"]|['"]$/g, '');
+            if (!process.env[k]) process.env[k] = v;
+          }
+        }
+      }
+    } catch (e) {}
+  }
+}
+
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '';
+
 
 // MIME TYPES
 const MIME_TYPES = {
@@ -101,6 +127,15 @@ const server = http.createServer(async (req, res) => {
   // -------------------------------------------------------------
   // REST API ROUTES
   // -------------------------------------------------------------
+
+  // 0. GET /api/config (Public config for Supabase URL & Anon Key)
+  if ((pathname === '/api/config' || (pathname === '/api.php' && parsedUrl.query && parsedUrl.query.action === 'config')) && method === 'GET') {
+    return sendJson(res, 200, {
+      success: true,
+      supabase_url: SUPABASE_URL,
+      supabase_anon_key: SUPABASE_ANON_KEY
+    });
+  }
 
   // 1. GET /api/site-data & api.php?action=site-data (Public Storefront & Price list data - strips admin password for security)
   if ((pathname === '/api/site-data' || (pathname === '/api.php' && parsedUrl.query && parsedUrl.query.action === 'site-data')) && method === 'GET') {
@@ -925,7 +960,7 @@ define('ADMIN_PASS', 'admin123');
   }
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log('');
   console.log('================================================================');
   console.log(' ATHIRA CRACKERS / ADHIRA PYROTECH - E-COMMERCE SERVER RUNNING');

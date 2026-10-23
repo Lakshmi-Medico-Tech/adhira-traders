@@ -1627,7 +1627,8 @@
         }
 
         // 2. On Cloudflare Pages/Workers, use SupabaseAPI or Direct REST
-        if (isCloudflare || (window.SupabaseAPI && window.SupabaseAPI.isSupabaseMode && window.SupabaseAPI.isSupabaseMode())) {
+        const isRender = window.location.hostname.includes('onrender.com') || window.location.hostname.includes('render.com');
+        if (isCloudflare || isRender || (window.SupabaseAPI && window.SupabaseAPI.isSupabaseMode && window.SupabaseAPI.isSupabaseMode())) {
           try {
             if (window.SupabaseAPI) {
               const data = await window.SupabaseAPI.getSiteData();

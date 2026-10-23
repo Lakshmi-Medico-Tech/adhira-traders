@@ -3046,8 +3046,9 @@
     // Detect API Base:
     // When running on local node dev server (port 4000) without backend=php, use /api.
     // In all other environments (cPanel hosting, Apache, Nginx, or when accessing .php), default to api.php.
-    const isNodeServer = (window.location.port === '4000') && !window.location.search.includes('backend=php');
-    const isPhp = !isNodeServer || window.location.pathname.endsWith('.php') || window.location.search.includes('backend=php');
+    const isRenderHost = window.location.hostname.includes('onrender.com') || window.location.hostname.includes('render.com');
+    const isNodeServer = ((window.location.port === '4000') || isRenderHost) && !window.location.search.includes('backend=php');
+    const isPhp = !isRenderHost && (!isNodeServer || window.location.pathname.endsWith('.php') || window.location.search.includes('backend=php'));
     const apiBase = isPhp ? 'api.php' : '/api';
     const isSupabaseActive = () => !!(window.SupabaseAPI && typeof window.SupabaseAPI.isSupabaseMode === 'function' && window.SupabaseAPI.isSupabaseMode());
 
@@ -6542,20 +6543,22 @@ Wish you a Happy & Safe Diwali! 💥`;
         extracted.hasData = true;
       }
 
-      // ── Customer Name — multiple strong patterns ──
+      // ── Customer Name — multiple human-like patterns ──
       const NAME_PATTERNS = [
-        // "bill for Rajesh" / "name Rajesh"
-        /(?:bill\s+for|name\s+is|customer\s+name|customer|name|party|buyer|வாடிக்கையாளர்|பெயர்|கஸ்டமர்)\s*[:\-]?\s*([a-zA-Z\u0B80-\u0BFF][a-zA-Z\u0B80-\u0BFF\s\.]{1,28}?)(?=\s+(?:phone|mobile|number|city|at|rate|\d|cash|upi|gpay|credit|and|,|$))/i,
+        // "bill for Rajesh" / "name Rajesh" / "customer Karthik"
+        /(?:bill\s+for|name\s+is|customer\s+name|customer|name|party|buyer|company|வாடிக்கையாளர்|பெயர்|கஸ்டமர்)\s*[:\-]?\s*([a-zA-Z\u0B80-\u0BFF][a-zA-Z\u0B80-\u0BFF\s\.]{1,28}?)(?=\s+(?:phone|mobile|number|city|at|rate|\d|cash|upi|gpay|credit|and|,|$))/i,
         // "create bill for Ravi Traders"
         /^(?:create\s+(?:a\s+)?bill|new\s+bill|bill)\s+for\s+([a-zA-Z\u0B80-\u0BFF][a-zA-Z\u0B80-\u0BFF\s\.]{1,28})/i,
-        // "Ravi Sivakasi" — first word is name if no keyword precedes
-        /^([A-Z][a-zA-Z\u0B80-\u0BFF]{1,18}(?:\s+[A-Z][a-zA-Z\u0B80-\u0BFF]{1,18})?)\s+(?:from\s+)?(?:sivakasi|madurai|chennai|coimbatore|tirunelveli|virudhunagar|rajapalayam|sattur)/i
+        // "Ramesh 9842100000" — name directly followed by phone number
+        /^([a-zA-Z\u0B80-\u0BFF]{2,18})\s+(?:phone|mobile|cell|\b)?\s*[6-9]\d{9}/i,
+        // "Ravi Sivakasi" or "ரமேஷ் சிவகாசி" — name before city
+        /^([a-zA-Z\u0B80-\u0BFF]{2,18}(?:\s+[a-zA-Z\u0B80-\u0BFF]{2,18})?)\s+(?:from\s+)?(?:sivakasi|madurai|chennai|coimbatore|tirunelveli|virudhunagar|rajapalayam|sattur|trichy|salem|erode|tiruppur|dindigul|theni|nagercoil|thanjavur|vellore|tuticorin|thoothukudi|aruppukottai|tenkasi|kovilpatti|சிவகாசி|மதுரை|சென்னை|விருதுநகர்|ராஜபாளையம்|சாத்தூர்|திருநெல்வேலி)/i
       ];
       for (const pat of NAME_PATTERNS) {
         const m = fullText.match(pat);
         if (m && m[1]) {
           const raw = m[1].replace(/^(mr\.?|mrs\.?|shree|sri|thiru|tmt|for|is)\s+/i,'').trim();
-          if (raw.length >= 2 && !CITIES.includes(raw.toLowerCase())) {
+          if (raw.length >= 2 && !CITIES.includes(raw.toLowerCase()) && !/^(bill|create|new|hey|adhira|simple|order)$/i.test(raw)) {
             extracted.name = raw.replace(/\b\w/g, c => c.toUpperCase());
             extracted.hasData = true;
             break;
@@ -6574,9 +6577,28 @@ Wish you a Happy & Safe Diwali! 💥`;
         extracted.payment = 'Online / Card'; extracted.hasData = true;
       }
 
-      // ── Product extraction (handles multiple items in one sentence) ──
-      // Split on natural separators
-      const clauses = fullText.split(/[,;]|\band\b|\balso\b|\bnext\b|\bதேவை\b|\bமற்றும்\b|\bகூட\b|\bதவிர\b|\bவேண்டும்\b/i);
+      // ── Product extraction (handles multi-item compound sentences) ──
+      // Clean extracted customer info out of item text to prevent accidental collisions
+      let itemText = fullText;
+      if (extracted.phone) {
+        itemText = itemText.replace(new RegExp(extracted.phone.split('').join('\\s*'), 'g'), ' ');
+      }
+      if (extracted.pincode) {
+        itemText = itemText.replace(new RegExp('\\b' + extracted.pincode + '\\b', 'g'), ' ');
+      }
+      if (extracted.city) {
+        itemText = itemText.replace(new RegExp('\\b' + extracted.city + '\\b', 'gi'), ' ');
+      }
+      if (extracted.name) {
+        itemText = itemText.replace(new RegExp('\\b' + extracted.name + '\\b', 'gi'), ' ');
+      }
+      // Remove bill setup phrases
+      itemText = itemText.replace(/^(?:create\s+(?:a\s+)?bill|new\s+bill|bill\s+for|bill\s+to|bill|பில்\s*போடு|பில்)\s*/i, ' ');
+      // Insert boundary after rates if followed by next item quantity (e.g. 'rate 120 5 kuruvi' -> 'rate 120 , 5 kuruvi')
+      itemText = itemText.replace(/((?:rate|at|price|rs\.?|₹|ரூபாய்|விலை|ரேட்)\s*\d+(?:\.\d+)?)\s+(\d+)/gi, (m, p1, p2) => p1 + ' , ' + p2);
+
+      // Split into item clauses
+      const clauses = itemText.split(/[,;\n]|\band\b|\balso\b|\bnext\b|\bதேவை\b|\bமற்றும்\b|\bஅடுத்து\b|\bகூட\b|\bதவிர\b|\bவேண்டும்\b/i);
 
       for (const clause of clauses) {
         const raw = clause.trim();
@@ -6586,12 +6608,11 @@ Wish you a Happy & Safe Diwali! 💥`;
         let candidateName = '';
         let explicitPrice = null;
 
-        // Pattern A: "qty productname [rate price]" e.g. "5 lakshmi" or "10 kuruvi rate 45"
-        // The qty may be a word or digits
+        // Pattern A: "qty productname [rate price]" e.g. "10 28 chorsa rate 120", "5 kuruvi"
         const patA = raw.match(
           /^(\d+|ஒன்று|ஒரு|ஒன்னு|இரண்டு|ரெண்டு|மூன்று|மூணு|நான்கு|நாலு|ஐந்து|அஞ்சு|ஆறு|ஏழு|எட்டு|ஒன்பது|பத்து|fifteen|twenty|thirty|forty|fifty|one|two|three|four|five|six|seven|eight|nine|ten)\s+(.+?)(?:\s+(?:rate|at|price|rs\.?|₹|ரூபாய்|விலை|ரேட்)\s*(\d+(?:\.\d+)?))?\s*$/i
         );
-        // Pattern B: "productname qty [rate price]" e.g. "lakshmi 5 rate 45"
+        // Pattern B: "productname qty [rate price]" e.g. "kuruvi 5 rate 12"
         const patB = raw.match(
           /^(.+?)\s+(\d+)\s*(?:(?:rate|at|price|rs\.?|₹|ரூபாய்|விலை|ரேட்)\s*(\d+(?:\.\d+)?))?\s*$/i
         );
@@ -6603,12 +6624,12 @@ Wish you a Happy & Safe Diwali! 💥`;
           candidateName = patA[2].trim();
           if (patA[3]) explicitPrice = parseFloat(patA[3]);
         } else if (patC) {
-          qty = parseInt(patC[1]);
+          qty = parseInt(patC[1], 10);
           candidateName = patC[2].trim();
           explicitPrice = parseFloat(patC[3]);
         } else if (patB) {
           candidateName = patB[1].trim();
-          qty = parseInt(patB[2]);
+          qty = parseInt(patB[2], 10);
           if (patB[3]) explicitPrice = parseFloat(patB[3]);
         } else {
           // No qty pattern — extract rate if present, rest is candidate
@@ -6619,7 +6640,7 @@ Wish you a Happy & Safe Diwali! 💥`;
 
         if (!candidateName || candidateName.length < 2) continue;
 
-        // Skip if candidateName is just a city/name/phone we already parsed
+        // Skip if candidateName is just city/name/phone
         if (extracted.city && candidateName.toLowerCase() === extracted.city.toLowerCase()) continue;
         if (extracted.name && candidateName.toLowerCase() === extracted.name.toLowerCase()) continue;
 
@@ -6635,10 +6656,11 @@ Wish you a Happy & Safe Diwali! 💥`;
             explicitPrice > 0 && explicitPrice !== catalogRate);
           const finalQty = (qty && !isNaN(qty) && qty > 0) ? Math.round(qty) : 1;
 
-          // Avoid duplicate product pushes in same parse
+          // Merge or append product
           const alreadyParsed = extracted.products.find(p => p.id === foundProd.id);
           if (alreadyParsed) {
             alreadyParsed.qty += finalQty;
+            if (isOverride) alreadyParsed.price = finalPrice;
             alreadyParsed.lineTotal = alreadyParsed.qty * alreadyParsed.price;
           } else {
             extracted.products.push({
@@ -7157,6 +7179,9 @@ Wish you a Happy & Safe Diwali! 💥`;
           for (let i = ev.resultIndex; i < ev.results.length; i++) {
             const said = (ev.results[i][0].transcript || '').toLowerCase().trim();
             if (
+              said.includes('hey adhira pattasu kadai') ||
+              said.includes('adhira pattasu kadai') ||
+              said.includes('அதிரா பட்டாசு கடை') ||
               said.includes('hey adhira') ||
               said.includes('adhira') ||
               said.includes('hey adira') ||
@@ -7165,13 +7190,20 @@ Wish you a Happy & Safe Diwali! 💥`;
               said.includes('ஹே அதிரா') ||
               said.includes('ஹாய் அதிரா') ||
               said.includes('adhira pattasu') ||
+              said.includes('adhira crackers') ||
+              said.includes('adhira pyrotech') ||
               said.includes('hi adhira') ||
-              said.includes('simple bill')
+              said.includes('create bill') ||
+              said.includes('bill create') ||
+              said.includes('பில் போடு') ||
+              said.includes('பில் கிரியேட்') ||
+              said.includes('simple bill') ||
+              said.includes('voice bill')
             ) {
               try { wakeRecognition.stop(); } catch (e) {}
               wakeActive = false;
               vbsPlayChime();
-              showToast('🎤 "Hey Adhira" detected! Opening Assistant…');
+              showToast('🎤 "Hey Adhira Pattasu Kadai" detected! Opening Assistant…');
               vbsOpenAssistant();
               break;
             }

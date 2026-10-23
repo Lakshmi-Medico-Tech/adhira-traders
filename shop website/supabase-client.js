@@ -9,8 +9,12 @@
 (function(window) {
   'use strict';
 
-  var SUPABASE_URL = 'https://ucbxdisznepjproeylos.supabase.co';
-  var SUPABASE_ANON_KEY = 'sb_publishable_zmSNWU5n5vDmggSj32C44g_-GbubGeo';
+  var SUPABASE_URL = (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.url) ||
+                     localStorage.getItem('athira_supabase_url') ||
+                     'https://ucbxdisznepjproeylos.supabase.co';
+  var SUPABASE_ANON_KEY = (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.anonKey) ||
+                         localStorage.getItem('athira_supabase_key') ||
+                         'sb_publishable_zmSNWU5n5vDmggSj32C44g_-GbubGeo';
 
   var _supabase = null;
   function getClient() {
@@ -25,15 +29,50 @@
     return _supabase;
   }
 
+  function setConfig(url, key) {
+    if (url) {
+      SUPABASE_URL = url.trim().replace(/\/+$/, '');
+      localStorage.setItem('athira_supabase_url', SUPABASE_URL);
+    }
+    if (key) {
+      SUPABASE_ANON_KEY = key.trim();
+      localStorage.setItem('athira_supabase_key', SUPABASE_ANON_KEY);
+    }
+    _supabase = null;
+    return getClient();
+  }
+
+  function getConfig() {
+    return { url: SUPABASE_URL, anonKey: SUPABASE_ANON_KEY };
+  }
+
+  // Auto-fetch config from server if available (e.g. Render / local-server environment variables)
+  (async function initServerConfig() {
+    try {
+      var res = await fetch('/api/config');
+      if (res.ok) {
+        var cfg = await res.json();
+        if (cfg && cfg.supabase_url && cfg.supabase_anon_key) {
+          SUPABASE_URL = cfg.supabase_url.trim().replace(/\/+$/, '');
+          SUPABASE_ANON_KEY = cfg.supabase_anon_key.trim();
+          _supabase = null;
+        }
+      }
+    } catch(e) {}
+  })();
+
   // ── DETECTION ─────────────────────────────────────────────
-  // Detect if running on Cloudflare Pages/Workers, or explicit Supabase mode
+  // Detect if running on Render, Cloudflare Pages/Workers, or explicit Supabase mode
   function isSupabaseMode() {
     var host = window.location.hostname || '';
     var search = window.location.search || '';
     if (search.indexOf('backend=php') !== -1) return false;
     if (search.indexOf('backend=supabase') !== -1) return true;
-    // Only auto-enable for Cloudflare pages.dev and workers.dev domains
+    // Auto-enable for Render, Cloudflare, Vercel, Netlify
+    if (host.indexOf('onrender.com') !== -1 || host.indexOf('render.com') !== -1) return true;
     if (host.indexOf('pages.dev') !== -1 || host.indexOf('workers.dev') !== -1) return true;
+    if (host.indexOf('vercel.app') !== -1 || host.indexOf('netlify.app') !== -1) return true;
+    if (localStorage.getItem('athira_backend') === 'supabase') return true;
     // On cPanel / Apache / custom domain (adhiratraders.digitechmarvels.in), use native PHP/MySQL backend
     return false;
   }
@@ -966,7 +1005,9 @@
     deleteGiftbox: deleteGiftbox,
     reorderGiftboxes: reorderGiftboxes,
     directRestFetch: directRestFetch,
-    uploadFile: uploadFile
+    uploadFile: uploadFile,
+    setConfig: setConfig,
+    getConfig: getConfig
   };
 
   console.log('[SupabaseAPI] Universal Cloudflare/Supabase Bridge active. Target:', SUPABASE_URL);

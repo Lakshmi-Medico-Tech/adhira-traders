@@ -13963,9 +13963,10 @@ document.addEventListener('keydown', function(e) {
     async function initSiteData() {
       var data = null;
       var isCloudflare = window.location.hostname.includes('workers.dev') || window.location.hostname.includes('pages.dev');
+      var isRender = window.location.hostname.includes('onrender.com') || window.location.hostname.includes('render.com');
 
       // 1. On cPanel / Apache / PHP hosts: Fetch directly from api.php (MySQL database)
-      if (!isCloudflare) {
+      if (!isCloudflare && !isRender) {
         try {
           var resPhp = await fetch('api.php?action=site-data');
           if (resPhp.ok) {
@@ -13978,7 +13979,7 @@ document.addEventListener('keydown', function(e) {
       }
 
       // 2. On Cloudflare: Supabase API
-      if (!data && (isCloudflare || (window.SupabaseAPI && window.SupabaseAPI.isSupabaseMode && window.SupabaseAPI.isSupabaseMode()))) {
+      if (!data && (isCloudflare || isRender || (window.SupabaseAPI && window.SupabaseAPI.isSupabaseMode && window.SupabaseAPI.isSupabaseMode()))) {
         if (window.SupabaseAPI) {
           try {
             var sData = await window.SupabaseAPI.getSiteData();
