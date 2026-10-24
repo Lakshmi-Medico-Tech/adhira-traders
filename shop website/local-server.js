@@ -128,6 +128,13 @@ const server = http.createServer(async (req, res) => {
   // REST API ROUTES
   // -------------------------------------------------------------
 
+  // 0a. GET /healthz or /ping (Ultra-fast keep-alive & health check endpoint)
+  if (pathname === '/healthz' || pathname === '/ping' || pathname === '/api/health') {
+    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('OK');
+    return;
+  }
+
   // 0. GET /api/config (Public config for Supabase URL & Anon Key)
   if ((pathname === '/api/config' || (pathname === '/api.php' && parsedUrl.query && parsedUrl.query.action === 'config')) && method === 'GET') {
     return sendJson(res, 200, {

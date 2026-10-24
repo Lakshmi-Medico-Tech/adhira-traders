@@ -7,6 +7,7 @@ services:
     region: singapore # Closest region to India / Tamil Nadu
     buildCommand: ""
     startCommand: node local-server.js
+    healthCheckPath: /healthz
     envVars:
       - key: NODE_ENV
         value: production
