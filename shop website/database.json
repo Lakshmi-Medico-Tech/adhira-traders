@@ -167,242 +167,262 @@
     {
       "id": 1,
       "cat_id": 1,
-      "name": "6\"  Lakshmi",
+      "name": "6\" Lakshmi — 6\" லட்சுமி",
       "desc": "",
       "orig_price": 710,
       "sale_price": 71,
       "img": "",
       "video": "",
       "out_of_stock": false,
-      "position": 10
+      "position": 6,
+      "updated_at": "2026-10-24T20:44:08.873Z"
     },
     {
       "id": 2,
       "cat_id": 1,
-      "name": "5\" Lakshmi",
+      "name": "5\" Lakshmi — 5\" லட்சுமி",
       "desc": "",
       "orig_price": 510,
       "sale_price": 51,
       "img": "./storage/products/Y8z7rruTW3j7bq4ybNp3tZjokssP5PUNoT1LSYlw.jpg",
       "video": "",
       "out_of_stock": false,
-      "position": 6
+      "position": 5,
+      "updated_at": "2026-10-24T20:44:08.873Z"
     },
     {
       "id": 3,
       "cat_id": 1,
-      "name": "4\" Delux Lakshmi",
+      "name": "4\" Delux Lakshmi — 4\" டீலக்ஸ் லட்சுமி",
       "desc": "",
       "orig_price": 260,
       "sale_price": 26,
       "img": "",
       "video": "",
       "out_of_stock": false,
-      "position": 3
+      "position": 3,
+      "updated_at": "2026-10-24T20:44:08.873Z"
     },
     {
       "id": 4,
       "cat_id": 1,
-      "name": "4\" Laxmi",
+      "name": "4\" Laxmi — 4\" லட்சுமி",
       "desc": "",
       "orig_price": 0,
       "sale_price": 0,
       "img": "",
       "video": "",
       "out_of_stock": false,
-      "position": 2
+      "position": 2,
+      "updated_at": "2026-10-24T20:44:08.873Z"
     },
     {
       "id": 5,
       "cat_id": 1,
-      "name": "4\" Gold Laxmi (роХрпЛро▓рпНроЯрпБ ро▓роЯрпНроЪрпБрооро┐)",
+      "name": "4\" Gold Laxmi — 4\" கோல்டு லட்சுமி",
       "desc": "",
       "orig_price": 310,
       "sale_price": 31,
       "img": "",
       "video": "",
       "out_of_stock": false,
-      "position": 4
+      "position": 4,
+      "updated_at": "2026-10-24T20:44:08.873Z"
     },
     {
       "id": 7,
       "cat_id": 1,
-      "name": "2 3/4\"Kuruvi",
+      "name": "2 3/4\" Kuruvi — 2¾\" குருவி",
       "desc": "",
       "orig_price": 80,
       "sale_price": 8,
       "img": "",
       "video": "",
       "out_of_stock": false,
-      "position": 1
+      "position": 1,
+      "updated_at": "2026-10-24T20:44:08.865Z"
     },
     {
       "id": 8,
       "cat_id": 1,
-      "name": "3 1/2\"Lakshmi",
+      "name": "3 1/2\" Lakshmi — 3½\" லட்சுமி",
       "desc": "1 pkt",
       "orig_price": 150,
       "sale_price": 15,
       "img": "./storage/products/6 Laxmi.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 11
+      "position": 7,
+      "updated_at": "2026-10-24T20:44:08.873Z"
     },
     {
       "id": 9,
       "cat_id": 2,
-      "name": "Ground Chakkar Special",
+      "name": "Ground Chakkar Special — கிரவுண்ட் சக்கர் ஸ்பெஷல்",
       "desc": "",
       "orig_price": 640,
       "sale_price": 64,
       "img": "",
       "video": "",
       "out_of_stock": false,
-      "position": 1
+      "position": 1,
+      "updated_at": "2026-10-24T20:44:08.874Z"
     },
     {
       "id": 10,
       "cat_id": 2,
-      "name": "Ground Chakkar Deluxe",
+      "name": "Ground Chakkar Deluxe — கிரவுண்ட் சக்கர் டீலக்ஸ்",
       "desc": "",
       "orig_price": 775,
       "sale_price": 77,
       "img": "",
       "video": "",
       "out_of_stock": false,
-      "position": 2
+      "position": 2,
+      "updated_at": "2026-10-24T20:44:08.874Z"
     },
     {
       "id": 11,
       "cat_id": 2,
-      "name": "Ground Chakkar Delux Spinner",
+      "name": "Ground Chakkar Delux Spinner — கிரவுண்ட் சக்கர் டீலக்ஸ் ஸ்பின்னர்",
       "desc": "",
       "orig_price": 1400,
       "sale_price": 140,
       "img": "",
       "video": "",
       "out_of_stock": false,
-      "position": 3
+      "position": 3,
+      "updated_at": "2026-10-24T20:44:08.874Z"
     },
     {
       "id": 12,
       "cat_id": 2,
-      "name": "Ground Chakkar Special Spinner",
+      "name": "Ground Chakkar Special Spinner — கிரவுண்ட் சக்கர் ஸ்பெஷல் ஸ்பின்னர்",
       "desc": "",
       "orig_price": 750,
       "sale_price": 75,
       "img": "",
       "video": "",
       "out_of_stock": false,
-      "position": 4
+      "position": 4,
+      "updated_at": "2026-10-24T20:44:08.874Z"
     },
     {
       "id": 13,
       "cat_id": 2,
-      "name": "Ground Chakkars 25 Pcs",
+      "name": "Ground Chakkars 25 Pcs — கிரவுண்ட் சக்கர்ஸ் 25 பீசஸ்",
       "desc": "",
       "orig_price": 340,
       "sale_price": 34,
       "img": "",
       "video": "",
       "out_of_stock": false,
-      "position": 5
+      "position": 5,
+      "updated_at": "2026-10-24T20:44:08.874Z"
     },
     {
       "id": 14,
       "cat_id": 2,
-      "name": "Ground Chakkar Big 10 Pcs",
+      "name": "Ground Chakkar Big 10 Pcs — கிரவுண்ட் சக்கர் பிக் 10 பீசஸ்",
       "desc": "",
       "orig_price": 320,
       "sale_price": 32,
       "img": "",
       "video": "",
       "out_of_stock": false,
-      "position": 6
+      "position": 6,
+      "updated_at": "2026-10-24T20:44:08.874Z"
     },
     {
       "id": 15,
       "cat_id": 3,
-      "name": "Flower Pots Big",
+      "name": "Flower Pots Big — ஃப்ளவர் பாட்ஸ் பிக்",
       "desc": "",
       "orig_price": 500,
       "sale_price": 50,
       "img": "",
       "video": "",
       "out_of_stock": false,
-      "position": 2
+      "position": 2,
+      "updated_at": "2026-10-24T20:44:08.874Z"
     },
     {
       "id": 16,
       "cat_id": 3,
-      "name": "Flower Pots Special",
+      "name": "Flower Pots Special — ஃப்ளவர் பாட்ஸ் ஸ்பெஷல்",
       "desc": "",
       "orig_price": 590,
       "sale_price": 59,
       "img": "",
       "video": "",
       "out_of_stock": false,
-      "position": 3
+      "position": 3,
+      "updated_at": "2026-10-24T20:44:08.874Z"
     },
     {
       "id": 17,
       "cat_id": 3,
-      "name": "Flower Pots Ashoka",
+      "name": "Flower Pots Ashoka — ஃப்ளவர் பாட்ஸ் அசோகா",
       "desc": "",
       "orig_price": 750,
       "sale_price": 75,
       "img": "",
       "video": "",
       "out_of_stock": false,
-      "position": 4
+      "position": 4,
+      "updated_at": "2026-10-24T20:44:08.874Z"
     },
     {
       "id": 23,
       "cat_id": 3,
-      "name": "Kanga Jamuna",
+      "name": "Kanga Jamuna — கங்கா ஜமுனா",
       "desc": "",
       "orig_price": 500,
       "sale_price": 50,
       "img": "",
       "video": "",
       "out_of_stock": false,
-      "position": 10
+      "position": 5,
+      "updated_at": "2026-10-24T20:44:08.875Z"
     },
     {
       "id": 25,
       "cat_id": 4,
-      "name": "Bijili Red 100 pcs",
+      "name": "Bijili Red 100 pcs — பிஜிலி ரெட் 100 பீசஸ்",
       "desc": "1 bag",
       "orig_price": 300,
       "sale_price": 30,
       "img": "./storage/products/Red Bijili.jpeg",
       "video": "",
       "out_of_stock": false,
-      "position": 2
+      "position": 1,
+      "updated_at": "2026-10-24T20:44:08.875Z"
     },
     {
       "id": 26,
       "cat_id": 5,
-      "name": "1 1/2\" Twinkling Star",
+      "name": "1 1/2\" Twinkling Star — 1½\" ட்விங்கிளிங் ஸ்டார்",
       "desc": "",
       "orig_price": 190,
       "sale_price": 19,
       "img": "",
       "video": "",
       "out_of_stock": false,
-      "position": 1
+      "position": 1,
+      "updated_at": "2026-10-24T20:44:08.875Z"
     },
     {
       "id": 27,
       "cat_id": 5,
-      "name": "4\" Twinkling Star",
+      "name": "4\" Twinkling Star — 4\" ட்விங்கிளிங் ஸ்டார்",
       "desc": "",
       "orig_price": 580,
       "sale_price": 58,
       "img": "",
       "video": "",
       "out_of_stock": false,
-      "position": 2
+      "position": 2,
+      "updated_at": "2026-10-24T20:44:08.875Z"
     },
     {
       "id": 57,
@@ -758,230 +778,249 @@
     {
       "id": 131,
       "cat_id": 1,
-      "name": "5\" Lakshmi",
+      "name": "5\" Lakshmi — 5\" லட்சுமி",
       "desc": "",
       "orig_price": 100,
       "sale_price": 10,
       "img": "./storage/products/adhira-logo.jpg",
       "video": "",
-      "position": 12,
-      "out_of_stock": false
+      "position": 8,
+      "out_of_stock": false,
+      "updated_at": "2026-10-24T20:44:08.874Z"
     },
     {
       "id": 133,
       "cat_id": 14,
-      "name": "Colour Fog",
+      "name": "Colour Fog — கலர் ஃபாக்",
       "desc": "3 Pcs",
       "orig_price": 900,
       "sale_price": 90,
       "img": "./storage/products/media_6ac336873a2719.25006232.png",
       "video": "",
       "position": 1,
-      "out_of_stock": false
+      "out_of_stock": false,
+      "updated_at": "2026-10-24T20:44:08.875Z"
     },
     {
       "id": 134,
       "cat_id": 14,
-      "name": "Rainbow Peacock",
+      "name": "Rainbow Peacock — ரெயின்போ பீகாக்",
       "desc": "",
       "orig_price": 1000,
       "sale_price": 100,
       "img": "./storage/products/media_6ac33727a13df2.05843547.png",
       "video": "",
       "position": 2,
-      "out_of_stock": false
+      "out_of_stock": false,
+      "updated_at": "2026-10-24T20:44:08.875Z"
     },
     {
       "id": 135,
       "cat_id": 14,
-      "name": "Red Thunder Hand Crackling Shower",
+      "name": "Red Thunder Hand Crackling Shower — ரெட் தண்டர் ஹேண்ட் கிராக்கிளிங் ஷவர்",
       "desc": "3 Pcs",
       "orig_price": 900,
       "sale_price": 90,
       "img": "./storage/products/media_6ac33764aa54c2.30436822.png",
       "video": "",
-      "position": 4,
-      "out_of_stock": false
+      "position": 3,
+      "out_of_stock": false,
+      "updated_at": "2026-10-24T20:44:08.875Z"
     },
     {
       "id": 136,
       "cat_id": 14,
-      "name": "Adhira Money Bank",
+      "name": "Adhira Money Bank — அதிரா மணி பேங்க்",
       "desc": "",
       "orig_price": 800,
       "sale_price": 80,
       "img": "./storage/products/media_6ac338a2466f72.48843087.png",
       "video": "./storage/videos/media_6ac37670b0ec97.95183639.mp4",
-      "position": 5,
-      "out_of_stock": false
+      "position": 4,
+      "out_of_stock": false,
+      "updated_at": "2026-10-24T20:44:08.875Z"
     },
     {
       "id": 137,
       "cat_id": 14,
-      "name": "Welcome Hand Showers",
+      "name": "Welcome Hand Showers — வெல்கம் ஹேண்ட் ஷவர்ஸ்",
       "desc": "",
       "orig_price": 900,
       "sale_price": 90,
       "img": "./storage/products/media_6ac338ce288ff3.47800671.png",
       "video": "",
-      "position": 6,
-      "out_of_stock": false
+      "position": 5,
+      "out_of_stock": false,
+      "updated_at": "2026-10-24T20:44:08.875Z"
     },
     {
       "id": 138,
       "cat_id": 14,
-      "name": "Selfi Stick",
+      "name": "Selfi Stick — செல்ஃபி ஸ்டிக்",
       "desc": "5 Pcs",
       "orig_price": 500,
       "sale_price": 50,
       "img": "./storage/products/media_6ac338f9842174.09601105.png",
       "video": "",
-      "position": 7,
-      "out_of_stock": false
+      "position": 6,
+      "out_of_stock": false,
+      "updated_at": "2026-10-24T20:44:08.875Z"
     },
     {
       "id": 139,
       "cat_id": 14,
-      "name": "Mini Smoke",
+      "name": "Mini Smoke — மினி ஸ்மோக்",
       "desc": "3 Pcs",
       "orig_price": 700,
       "sale_price": 70,
       "img": "./storage/products/media_6ac33930dd99f6.57097985.png",
       "video": "",
-      "position": 8,
-      "out_of_stock": false
+      "position": 7,
+      "out_of_stock": false,
+      "updated_at": "2026-10-24T20:44:08.875Z"
     },
     {
       "id": 140,
       "cat_id": 14,
-      "name": "Adhira Pogaya Podu",
+      "name": "Adhira Pogaya Podu — அதிரா புகைய போடு",
       "desc": "4 Pcs",
       "orig_price": 1300,
       "sale_price": 130,
       "img": "./storage/products/media_6ac339640645a2.54199467.png",
       "video": "",
-      "position": 9,
-      "out_of_stock": false
+      "position": 8,
+      "out_of_stock": false,
+      "updated_at": "2026-10-24T20:44:08.875Z"
     },
     {
       "id": 141,
       "cat_id": 14,
-      "name": "Adhira Crackling",
+      "name": "Adhira Crackling — அதிரா கிராக்கிளிங்",
       "desc": "4 Pcs",
       "orig_price": 1400,
       "sale_price": 140,
       "img": "./storage/products/media_6ac3399235dce4.25957068.png",
       "video": "",
-      "position": 10,
-      "out_of_stock": false
+      "position": 9,
+      "out_of_stock": false,
+      "updated_at": "2026-10-24T20:44:08.875Z"
     },
     {
       "id": 142,
       "cat_id": 14,
-      "name": "Adhira Sword Smoking",
+      "name": "Adhira Sword Smoking — அதிரா ஸ்வோர்டு ஸ்மோக்கிங்",
       "desc": "",
       "orig_price": 700,
       "sale_price": 70,
       "img": "./storage/products/media_6ac339c15d7503.46657654.png",
       "video": "",
-      "position": 11,
-      "out_of_stock": false
+      "position": 10,
+      "out_of_stock": false,
+      "updated_at": "2026-10-24T20:44:08.875Z"
     },
     {
       "id": 143,
       "cat_id": 14,
-      "name": "Adhira Sword Watter",
+      "name": "Adhira Sword Watter — அதிரா ஸ்வோர்டு வாட்டர்",
       "desc": "",
       "orig_price": 900,
       "sale_price": 90,
       "img": "./storage/products/media_6ac339eecf8215.14333115.png",
       "video": "",
-      "position": 12,
-      "out_of_stock": false
+      "position": 11,
+      "out_of_stock": false,
+      "updated_at": "2026-10-24T20:44:08.875Z"
     },
     {
       "id": 144,
       "cat_id": 14,
-      "name": "Bat&Ball",
+      "name": "Bat&Ball — பேட் அண்ட் பால்",
       "desc": "",
       "orig_price": 1500,
       "sale_price": 150,
       "img": "./storage/products/media_6ac33a1aef2371.99900290.png",
       "video": "",
-      "position": 13,
-      "out_of_stock": false
+      "position": 12,
+      "out_of_stock": false,
+      "updated_at": "2026-10-24T20:44:08.875Z"
     },
     {
       "id": 145,
       "cat_id": 14,
-      "name": "Red&Green Thunder Hand Shower",
+      "name": "Red&Green Thunder Hand Shower — ரெட் அண்ட் கிரீன் தண்டர் ஹேண்ட் ஷவர்",
       "desc": "3 Pcs",
       "orig_price": 900,
       "sale_price": 90,
       "img": "",
       "video": "",
-      "position": 14,
-      "out_of_stock": false
+      "position": 13,
+      "out_of_stock": false,
+      "updated_at": "2026-10-24T20:44:08.875Z"
     },
     {
       "id": 146,
       "cat_id": 14,
-      "name": "Drone",
+      "name": "Drone — ட்ரோன்",
       "desc": "5 Pcs",
       "orig_price": 1000,
       "sale_price": 100,
       "img": "",
       "video": "",
-      "position": 15,
-      "out_of_stock": false
+      "position": 14,
+      "out_of_stock": false,
+      "updated_at": "2026-10-24T20:44:08.875Z"
     },
     {
       "id": 147,
       "cat_id": 14,
-      "name": "Rangeela Dhamaka",
+      "name": "Rangeela Dhamaka — ரங்கீலா தமாகா",
       "desc": "3 Pcs",
       "orig_price": 2000,
       "sale_price": 200,
       "img": "",
       "video": "",
-      "position": 16,
-      "out_of_stock": false
+      "position": 15,
+      "out_of_stock": false,
+      "updated_at": "2026-10-24T20:44:08.875Z"
     },
     {
       "id": 148,
       "cat_id": 14,
-      "name": "Adhira Animals",
+      "name": "Adhira Animals — அதிரா அனிமல்ஸ்",
       "desc": "",
       "orig_price": 900,
       "sale_price": 90,
       "img": "",
       "video": "",
-      "position": 17,
-      "out_of_stock": false
+      "position": 16,
+      "out_of_stock": false,
+      "updated_at": "2026-10-24T20:44:08.875Z"
     },
     {
       "id": 149,
       "cat_id": 14,
-      "name": "Naruto Singer",
+      "name": "Naruto Singer — நருடோ சிங்கர்",
       "desc": "5 Pcs",
       "orig_price": 1000,
       "sale_price": 100,
       "img": "",
       "video": "",
-      "position": 18,
-      "out_of_stock": false
+      "position": 17,
+      "out_of_stock": false,
+      "updated_at": "2026-10-24T20:44:08.875Z"
     },
     {
       "id": 150,
       "cat_id": 14,
-      "name": "Spicy Chillis",
+      "name": "Spicy Chillis — ஸ்பைஸி சில்லீஸ்",
       "desc": "25 Pcs",
       "orig_price": 600,
       "sale_price": 60,
       "img": "",
       "video": "",
-      "position": 19,
-      "out_of_stock": false
+      "position": 18,
+      "out_of_stock": false,
+      "updated_at": "2026-10-24T20:44:08.875Z"
     },
     {
       "id": 151,
@@ -1311,14 +1350,15 @@
     {
       "id": 176,
       "cat_id": 4,
-      "name": "Red Bijili",
+      "name": "Red Bijili — ரெட் பிஜிலி",
       "desc": "50 Pcs",
       "orig_price": 160,
       "sale_price": 16,
       "img": "",
       "video": "",
-      "position": 3,
-      "out_of_stock": false
+      "position": 2,
+      "out_of_stock": false,
+      "updated_at": "2026-10-24T20:44:08.875Z"
     },
     {
       "id": 177,
@@ -1557,50 +1597,54 @@
     {
       "id": 195,
       "cat_id": 14,
-      "name": "Moschino",
+      "name": "Moschino — மொஸ்சினோ",
       "desc": "3 Pcs",
       "orig_price": 1400,
       "sale_price": 140,
       "img": "",
       "video": "",
-      "position": 20,
-      "out_of_stock": false
+      "position": 19,
+      "out_of_stock": false,
+      "updated_at": "2026-10-24T20:44:08.875Z"
     },
     {
       "id": 196,
       "cat_id": 14,
-      "name": "Rockey Waterfalls",
+      "name": "Rockey Waterfalls — ராக்கி வாட்டர்ஃபால்ஸ்",
       "desc": "5 Pcs",
       "orig_price": 750,
       "sale_price": 75,
       "img": "",
       "video": "",
-      "position": 21,
-      "out_of_stock": false
+      "position": 20,
+      "out_of_stock": false,
+      "updated_at": "2026-10-24T20:44:08.875Z"
     },
     {
       "id": 197,
       "cat_id": 14,
-      "name": "Sky Colours",
+      "name": "Sky Colours — ஸ்கை கலர்ஸ்",
       "desc": "5 Pcs",
       "orig_price": 800,
       "sale_price": 80,
       "img": "",
       "video": "",
-      "position": 22,
-      "out_of_stock": false
+      "position": 21,
+      "out_of_stock": false,
+      "updated_at": "2026-10-24T20:44:08.875Z"
     },
     {
       "id": 198,
       "cat_id": 14,
-      "name": "Adhira Golders Drops",
+      "name": "Adhira Golders Drops — அதிரா கோல்டர்ஸ் ட்ராப்ஸ்",
       "desc": "5 Pcs",
       "orig_price": 750,
       "sale_price": 75,
       "img": "",
       "video": "",
-      "position": 23,
-      "out_of_stock": false
+      "position": 24,
+      "out_of_stock": false,
+      "updated_at": "2026-10-24T20:44:08.877Z"
     },
     {
       "id": 199,
@@ -2034,26 +2078,28 @@
     {
       "id": 232,
       "cat_id": 1,
-      "name": "2 Sound",
+      "name": "2 Sound — 2 சவுண்ட்",
       "desc": "",
       "orig_price": 430,
       "sale_price": 43,
       "img": "",
       "video": "",
-      "position": 13,
-      "out_of_stock": false
+      "position": 9,
+      "out_of_stock": false,
+      "updated_at": "2026-10-24T20:44:08.874Z"
     },
     {
       "id": 233,
       "cat_id": 3,
-      "name": "Flower pots Small",
+      "name": "Flower Pots Small — ஃப்ளவர் பாட்ஸ் ஸ்மால்",
       "desc": "",
       "orig_price": 460,
       "sale_price": 46,
       "img": "",
       "video": "",
       "position": 1,
-      "out_of_stock": false
+      "out_of_stock": false,
+      "updated_at": "2026-10-24T20:44:08.874Z"
     },
     {
       "id": 234,
@@ -2665,6 +2711,34 @@
       "out_of_stock": false,
       "created_at": "2026-10-24T20:19:17.066Z",
       "updated_at": "2026-10-24T20:19:17.066Z"
+    },
+    {
+      "id": 278,
+      "cat_id": 14,
+      "name": "Red Flare — ரெட் ஃப்ளேர்",
+      "desc": "5 Pcs",
+      "orig_price": 1900,
+      "sale_price": 190,
+      "img": "",
+      "video": "",
+      "position": 22,
+      "out_of_stock": false,
+      "created_at": "2026-10-24T20:44:08.877Z",
+      "updated_at": "2026-10-24T20:44:08.877Z"
+    },
+    {
+      "id": 279,
+      "cat_id": 14,
+      "name": "24 Deluxe — 24 டீலக்ஸ்",
+      "desc": "",
+      "orig_price": 850,
+      "sale_price": 85,
+      "img": "",
+      "video": "",
+      "position": 23,
+      "out_of_stock": false,
+      "created_at": "2026-10-24T20:44:08.877Z",
+      "updated_at": "2026-10-24T20:44:08.877Z"
     }
   ],
   "orders": [
