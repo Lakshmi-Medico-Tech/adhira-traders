@@ -213,6 +213,33 @@ async function runSeed() {
       console.log(`✅ ${giftboxesPayload.length} Giftboxes uploaded.`);
     }
 
+    // 7. Seed Orders (Restored from cPanel)
+    if (Array.isArray(db.orders) && db.orders.length > 0) {
+      console.log(`\n⏳ Uploading ${db.orders.length} Restored Orders...`);
+      const ordersPayload = db.orders.map(o => ({
+        id: Number(o.id),
+        order_number: String(o.order_number || ('ATH-' + o.id)),
+        order_type: o.order_type || 'online',
+        customer_name: o.customer_name || '',
+        customer_phone: o.customer_phone || '',
+        customer_email: o.customer_email || '',
+        customer_address: o.customer_address || '',
+        city: o.city || '',
+        state: o.state || 'Tamil Nadu',
+        pincode: o.pincode || '',
+        status: o.status || 'Pending',
+        items_json: JSON.stringify(o.items || []),
+        subtotal: parseFloat(o.subtotal) || 0,
+        discount_amount: parseFloat(o.discount_amount) || 0,
+        total_amount: parseFloat(o.total_amount) || 0,
+        payment_method: o.payment_method || 'COD',
+        notes: o.notes || '',
+        source: 'cpanel_restored'
+      }));
+      await supabaseRequest('orders', 'POST', ordersPayload, 'id');
+      console.log(`✅ ${ordersPayload.length} Orders uploaded.`);
+    }
+
     console.log('\n================================================================');
     console.log('🎉 SUCCESS! Supabase Database fully seeded with real store data!');
     console.log('================================================================\n');

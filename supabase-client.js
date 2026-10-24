@@ -479,23 +479,47 @@
     var data = null;
     if (sb) {
       try {
-        var res = await sb.from('orders').select('*').order('created_at', { ascending: false });
-        if (res.error && res.error.code === 'PGRST205') return { success: true, orders: [] };
-        if (!res.error && res.data) data = res.data;
+        var res = await sb.from('orders').select('*').order('id', { ascending: false });
+        if (!res.error && res.data && res.data.length > 0) data = res.data;
       } catch (e) {}
     }
-    if (!data) {
+    if (!data || data.length === 0) {
       try {
-        data = await directRestFetch('orders', 'select=*&order=created_at.desc');
+        var r = await directRestFetch('orders', 'select=*&order=id.desc');
+        if (r && Array.isArray(r) && r.length > 0) data = r;
       } catch (e) {}
     }
+    // Zero-downtime / cPanel recovery fallback: If Supabase has 0 orders or tables not yet synced, load local orders
+    if (!data || data.length === 0) {
+      try {
+        var localRes = await fetch('/api/orders');
+        if (localRes.ok) {
+          var lj = await localRes.json();
+          if (lj && lj.success && Array.isArray(lj.orders) && lj.orders.length > 0) data = lj.orders;
+        }
+      } catch (e) {}
+    }
+    if (!data || data.length === 0) {
+      try {
+        var djRes = await fetch('./database.json');
+        if (djRes.ok) {
+          var dj = await djRes.json();
+          if (dj && Array.isArray(dj.orders) && dj.orders.length > 0) data = dj.orders;
+        }
+      } catch (e) {}
+    }
+
     if (data && Array.isArray(data)) {
       var orders = data.map(function(o) {
-        var it = o.items_json;
+        var it = o.items || o.items_json;
         if (typeof it === 'string') {
           try { it = JSON.parse(it); } catch (e) { it = []; }
         }
-        return Object.assign({}, o, { items: it || o.items || [] });
+        return Object.assign({}, o, {
+          id: Number(o.id),
+          order_number: String(o.order_number || ('ATH-' + o.id)),
+          items: Array.isArray(it) ? it : []
+        });
       });
       return { success: true, orders: orders };
     }
@@ -504,27 +528,56 @@
 
   async function createOrder(d) {
     var sb = getClient();
-    if (!sb) return { success: false, error: 'Not initialised' };
-    var { data: mx } = await sb.from('orders').select('order_number').order('order_number', { ascending: false }).limit(1);
-    var oNum = mx && mx.length > 0 ? (Number(mx[0].order_number) + 1) : 1001;
-
-    var { data, error } = await sb.from('orders').insert([{
+    var oNum = d.order_number || ('ATH-' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '-' + Math.floor(1000 + Math.random() * 9000));
+    var payload = {
       order_number: oNum,
+      order_type: d.order_type || 'online',
       customer_name: (d.customer_name || '').trim(),
       customer_phone: (d.customer_phone || '').trim(),
+      customer_email: (d.customer_email || '').trim(),
       customer_address: (d.customer_address || '').trim(),
       city: (d.city || '').trim(),
+      state: d.state || 'Tamil Nadu',
       pincode: (d.pincode || '').trim(),
-      status: d.status || 'pending',
+      status: d.status || 'Pending',
       items_json: JSON.stringify(d.items || []),
       subtotal: parseFloat(d.subtotal) || 0,
       discount_amount: parseFloat(d.discount_amount) || 0,
       total_amount: parseFloat(d.total_amount) || 0,
+      payment_method: d.payment_method || 'COD',
       notes: (d.notes || '').trim(),
       source: d.source || 'website'
-    }]).select().single();
+    };
 
-    return error ? { success: false, error: error.message } : { success: true, order: data };
+    if (!sb) {
+      // Local server fallback
+      try {
+        var lRes = await fetch('/api/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (lRes.ok) return await lRes.json();
+      } catch (e) {}
+      return { success: false, error: 'Database not initialized' };
+    }
+
+    var { data, error } = await sb.from('orders').insert([payload]).select().single();
+    if (error) {
+      console.warn('[Supabase createOrder error]:', error.message);
+      // Fallback to local server if available
+      try {
+        var lRes2 = await fetch('/api/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (lRes2.ok) return await lRes2.json();
+      } catch (e) {}
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, order: data };
   }
 
   async function updateOrder(id, d) {
