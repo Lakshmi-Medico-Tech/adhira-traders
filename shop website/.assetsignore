@@ -13,3 +13,5 @@ package-lock.json
 bun.lockb
 wrangler.jsonc
 *.php
+*.mp4
+storage/videos/**
