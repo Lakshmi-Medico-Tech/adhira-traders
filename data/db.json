@@ -283,7 +283,7 @@
     },
     {
       "id": "P007",
-      "name": "Crackling (Fountain 4”)",
+      "name": "Crackling (Fountain 4\u201d)",
       "shortName": "Crackling Ftn 4\"",
       "hsn": "3604",
       "packing": "1 (3 Pcs)",
@@ -2931,7 +2931,46 @@
       "vehicleNumber": "TN-67-AB-1234"
     }
   ],
-  "ewayBills": [],
+  "ewayBills": [
+    {
+      "id": "EWB-PNFW-0011",
+      "ewayBillNo": "542075380011",
+      "ewayBillDate": "14/10/2026 15:54",
+      "generatedByGstin": "33ABKFP0985E1Z6",
+      "generatedByName": "PONMUNEESWARI FIREWORKS",
+      "validFrom": "14/10/2026 15:54",
+      "distanceKm": 35,
+      "validUntil": "15/10/2026 11:59 PM",
+      "irn": "e1100f45480e67fea8b1fbf6fdfb7b66e12ab09bd9db398fa56ca8998aa380011",
+      "ackNo": "152627221380011",
+      "ackDate": "14/10/2026 15:54",
+      "supplierGstin": "33ABKFP0985E1Z6",
+      "supplierName": "PONMUNEESWARI FIREWORKS",
+      "placeOfDispatch": "NO: 1/185, FIRST STREET, LAKSHMI NARAYANAPURAM, MANGALAM (VILLAGE), SIVAKASI",
+      "recipientGstin": "33QRQPS0659E1Z4",
+      "recipientName": "ATHIRA TRADERS",
+      "placeOfDelivery": "8/444NEAR BY JAISHNAVISTORES GANTHI NAGAR ANAIYUR VIRUTHUNAGAR(DT) TAMILNADU 626 124",
+      "docType": "Tax Invoice",
+      "docNo": "PNFW-POS-0011",
+      "docDate": "14/10/2026",
+      "transactionType": "Regular",
+      "totalValue": 23600.0,
+      "hsnCode": "36041000",
+      "hsnDesc": "Fireworks & Pyrotechnics",
+      "reasonForTrans": "Outward - Supply",
+      "transporter": "-",
+      "mode": "Road",
+      "vehicleDocNo": "TN95P9824 & 14/10/2026",
+      "vehicleNo": "TN95P9824",
+      "fromPlace": "Sivakasi",
+      "enteredDate": "14/10/2026 15:54",
+      "enteredBy": "33ABKFP0985E1Z6",
+      "cewbNo": "-",
+      "multiVehInfo": "-",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-14T15:54:00.000Z"
+    }
+  ],
   "einvoices": [],
   "auditLogs": [
     {
