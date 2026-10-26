@@ -1,20 +1,35 @@
-# Exclude non-web assets from Cloudflare Workers static upload
-node_modules/
-.git/
-.github/
-.wrangler/
-shop website/
-backups/
-data/
+.git
+.git/**
+.wrangler
+.wrangler/**
+node_modules
+node_modules/**
+shop website
+shop website/**
+backups
+backups/**
 *.zip
+*.tar.gz
 *.sql
-*.md
 *.bat
 *.pdf
+*.png
+*.jpg
+!assets/**
+package.json
+package-lock.json
+wrangler.jsonc
 server.js
 test_suite.js
+test_eway_integration.js
 page.tsx
-utils/
+utils
+utils/**
 .env
 .env.local
 .env.production
+products_summary.txt
+HOW_TO_USE_MULTI_DEVICE.md
+CPANEL_DEPLOYMENT_GUIDE.md
+CLOUDFLARE_SUPABASE_DEPLOY.md
+README.md
