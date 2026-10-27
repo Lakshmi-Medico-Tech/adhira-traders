@@ -300,7 +300,12 @@
     var { data: cp } = await sb.from('products').select('position').eq('cat_id', d.cat_id).order('position', { ascending: false }).limit(1);
     var pos = cp && cp.length > 0 ? (Number(cp[0].position) + 1) : 1;
 
+    // Calculate next ID to prevent identity sequence collision
+    var { data: maxRows } = await sb.from('products').select('id').order('id', { ascending: false }).limit(1);
+    var nextId = (maxRows && maxRows.length > 0 && maxRows[0].id) ? (Number(maxRows[0].id) + 1) : 1;
+
     var { data, error } = await sb.from('products').insert([{
+      id: nextId,
       cat_id: Number(d.cat_id),
       name: (d.name || '').trim(),
       description: (d.desc || d.description || '').trim(),
@@ -417,7 +422,10 @@
     if (!sb) return { success: false, error: 'Not initialised' };
     var { data: e } = await sb.from('categories').select('position').order('position', { ascending: false }).limit(1);
     var pos = e && e.length > 0 ? (Number(e[0].position) + 1) : 1;
+    var { data: maxRows } = await sb.from('categories').select('id').order('id', { ascending: false }).limit(1);
+    var nextId = (maxRows && maxRows.length > 0 && maxRows[0].id) ? (Number(maxRows[0].id) + 1) : 1;
     var { data, error } = await sb.from('categories').insert([{
+      id: nextId,
       name: (d.name || 'New Category').trim(),
       position: Number(d.position || pos)
     }]).select().single();
@@ -456,7 +464,10 @@
     if (!sb) return { success: false, error: 'Not initialised' };
     var { data: e } = await sb.from('banners').select('sort_order').order('sort_order', { ascending: false }).limit(1);
     var so = e && e.length > 0 ? (Number(e[0].sort_order) + 1) : 1;
+    var { data: maxRows } = await sb.from('banners').select('id').order('id', { ascending: false }).limit(1);
+    var nextId = (maxRows && maxRows.length > 0 && maxRows[0].id) ? (Number(maxRows[0].id) + 1) : 1;
     var { data, error } = await sb.from('banners').insert([{
+      id: nextId,
       img: (d.img || '').trim(),
       title: (d.title || '').trim(),
       subtitle: (d.subtitle || '').trim(),
@@ -613,8 +624,11 @@
     if (!sb) return { success: false, error: 'Not initialised' };
     var { data: e } = await sb.from('combos').select('position').order('position', { ascending: false }).limit(1);
     var pos = e && e.length > 0 ? (Number(e[0].position) + 1) : 1;
+    var { data: maxRows } = await sb.from('combos').select('id').order('id', { ascending: false }).limit(1);
+    var nextId = (maxRows && maxRows.length > 0 && maxRows[0].id) ? (Number(maxRows[0].id) + 1) : 1;
     var sp = parseFloat(d.sale_price || d.rate || 0);
     var { data, error } = await sb.from('combos').insert([{
+      id: nextId,
       name: (d.name || '').trim(),
       items: (d.items || '').trim(),
       orig_price: parseFloat(d.orig_price) || 0,
@@ -666,8 +680,11 @@
     if (!sb) return { success: false, error: 'Not initialised' };
     var { data: e } = await sb.from('giftboxes').select('position').order('position', { ascending: false }).limit(1);
     var pos = e && e.length > 0 ? (Number(e[0].position) + 1) : 1;
+    var { data: maxRows } = await sb.from('giftboxes').select('id').order('id', { ascending: false }).limit(1);
+    var nextId = (maxRows && maxRows.length > 0 && maxRows[0].id) ? (Number(maxRows[0].id) + 1) : 1;
     var sp = parseFloat(d.sale_price || d.rate || 0);
     var { data, error } = await sb.from('giftboxes').insert([{
+      id: nextId,
       name: (d.name || '').trim(),
       items: (d.items || '').trim(),
       orig_price: parseFloat(d.orig_price) || 0,

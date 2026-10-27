@@ -1,14 +1,14 @@
 /**
  * ATHIRA CRACKERS / ADHIRA PYROTECH
- * Automated Supabase Data Seeder / Synchronizer
+ * Automated Supabase Data Seeder & Synchronizer
  *
- * Reads 100% of data from database.json (22 Categories, 154 Products, Settings, Banners)
- * and uploads it directly to your Supabase PostgreSQL Database via REST API.
+ * Reads 100% of data from database.json (22 Categories, 154 Products, 2 Giftboxes, Settings, Banners)
+ * - Deletes any old / dummy products not present in database.json
+ * - Deletes any old / dummy combos (catalog has 0 combos)
+ * - Upserts all real categories, products, giftboxes, settings, and banners
  *
  * Usage:
  *   node seed-supabase.js
- *   or:
- *   SUPABASE_URL="https://your-id.supabase.co" SUPABASE_KEY="your-anon-or-service-key" node seed-supabase.js
  */
 
 const fs = require('fs');
@@ -43,10 +43,6 @@ for (const f of envFiles) {
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
   console.error('\n❌ ERROR: Supabase credentials missing!');
-  console.log('Please set SUPABASE_URL and SUPABASE_ANON_KEY in your .env file or environment variables.');
-  console.log('Example:');
-  console.log('  SUPABASE_URL=https://your-project-id.supabase.co');
-  console.log('  SUPABASE_ANON_KEY=eyJhbGciOi...\n');
   process.exit(1);
 }
 
@@ -65,11 +61,11 @@ if (!fs.existsSync(dbPath)) {
 const db = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
 
 // Helper: Supabase REST request
-function supabaseRequest(table, method, data, onConflict = '') {
+function supabaseRequest(pathOrTable, method = 'GET', data = null, onConflict = '') {
   return new Promise((resolve, reject) => {
-    let endpoint = `/rest/v1/${table}`;
-    if (onConflict) {
-      endpoint += `?on_conflict=${encodeURIComponent(onConflict)}`;
+    let endpoint = pathOrTable.startsWith('/rest/v1/') ? pathOrTable : `/rest/v1/${pathOrTable}`;
+    if (onConflict && !endpoint.includes('on_conflict=')) {
+      endpoint += (endpoint.includes('?') ? '&' : '?') + `on_conflict=${encodeURIComponent(onConflict)}`;
     }
     const parsedUrl = urlModule.parse(SUPABASE_URL + endpoint);
     const postBody = data ? JSON.stringify(data) : '';
@@ -78,9 +74,11 @@ function supabaseRequest(table, method, data, onConflict = '') {
       'apikey': SUPABASE_KEY,
       'Authorization': `Bearer ${SUPABASE_KEY}`,
       'Content-Type': 'application/json',
-      'Prefer': 'resolution=merge-duplicates,return=representation',
-      'Content-Length': Buffer.byteLength(postBody)
+      'Prefer': method === 'POST' ? 'resolution=merge-duplicates,return=representation' : 'return=representation'
     };
+    if (postBody) {
+      reqHeaders['Content-Length'] = Buffer.byteLength(postBody);
+    }
 
     const options = {
       hostname: parsedUrl.hostname,
@@ -101,7 +99,7 @@ function supabaseRequest(table, method, data, onConflict = '') {
             resolve({});
           }
         } else {
-          reject(new Error(`HTTP ${res.statusCode} on /rest/v1/${table}: ${body}`));
+          reject(new Error(`HTTP ${res.statusCode} on ${endpoint}: ${body}`));
         }
       });
     });
@@ -114,7 +112,36 @@ function supabaseRequest(table, method, data, onConflict = '') {
 
 async function runSeed() {
   try {
-    // 1. Seed Settings
+    // 1. Clean up stray / dummy products not in real 154 database.json
+    console.log('\n🧹 Checking for dummy/stray products in Supabase...');
+    const existingProducts = await supabaseRequest('products?select=id,name');
+    const validProductIds = new Set(db.products.map(p => Number(p.id)));
+
+    if (Array.isArray(existingProducts)) {
+      const stray = existingProducts.filter(p => !validProductIds.has(Number(p.id)));
+      if (stray.length > 0) {
+        console.log(`   Found ${stray.length} stray products to delete:`, stray.map(p => p.id));
+        for (const s of stray) {
+          await supabaseRequest(`products?id=eq.${s.id}`, 'DELETE');
+        }
+        console.log(`✅ Deleted ${stray.length} stray products from Supabase.`);
+      } else {
+        console.log('   No stray products found.');
+      }
+    }
+
+    // 2. Clean up combos (PDF specifies 0 combo packs)
+    console.log('\n🧹 Checking for stray combos in Supabase...');
+    const existingCombos = await supabaseRequest('combos?select=id');
+    if (Array.isArray(existingCombos) && existingCombos.length > 0) {
+      console.log(`   Deleting ${existingCombos.length} old combos...`);
+      for (const c of existingCombos) {
+        await supabaseRequest(`combos?id=eq.${c.id}`, 'DELETE');
+      }
+      console.log(`✅ Cleared all old combos.`);
+    }
+
+    // 3. Seed Settings
     if (db.settings) {
       console.log('\n⏳ Uploading Store Settings...');
       const settingsPayload = Object.entries(db.settings).map(([k, v]) => ({
@@ -125,19 +152,20 @@ async function runSeed() {
       console.log(`✅ Settings uploaded (${settingsPayload.length} keys).`);
     }
 
-    // 2. Seed Categories
+    // 4. Seed Categories
     if (Array.isArray(db.categories) && db.categories.length > 0) {
       console.log(`\n⏳ Uploading ${db.categories.length} Categories...`);
       const catsPayload = db.categories.map(c => ({
         id: Number(c.id),
         name: c.name,
-        position: Number(c.position || c.sort_order || c.id)
+        position: Number(c.position || c.id),
+        sort_order: Number(c.position || c.id)
       }));
       await supabaseRequest('categories', 'POST', catsPayload, 'id');
       console.log(`✅ ${catsPayload.length} Categories uploaded.`);
     }
 
-    // 3. Seed Products in batches of 30
+    // 5. Seed Products in batches of 25
     if (Array.isArray(db.products) && db.products.length > 0) {
       console.log(`\n⏳ Uploading ${db.products.length} Products...`);
       const prodsPayload = db.products.map(p => ({
@@ -153,7 +181,7 @@ async function runSeed() {
         out_of_stock: !!p.out_of_stock
       }));
 
-      const batchSize = 30;
+      const batchSize = 25;
       for (let i = 0; i < prodsPayload.length; i += batchSize) {
         const batch = prodsPayload.slice(i, i + batchSize);
         await supabaseRequest('products', 'POST', batch, 'id');
@@ -162,7 +190,7 @@ async function runSeed() {
       console.log(`✅ All ${prodsPayload.length} Products uploaded.`);
     }
 
-    // 4. Seed Banners
+    // 6. Seed Banners
     if (Array.isArray(db.banners) && db.banners.length > 0) {
       console.log(`\n⏳ Uploading ${db.banners.length} Banners...`);
       const bannersPayload = db.banners.map(b => ({
@@ -177,34 +205,16 @@ async function runSeed() {
       console.log(`✅ ${bannersPayload.length} Banners uploaded.`);
     }
 
-    // 5. Seed Combos if any
-    if (Array.isArray(db.combos) && db.combos.length > 0) {
-      console.log(`\n⏳ Uploading ${db.combos.length} Combos...`);
-      const combosPayload = db.combos.map(c => ({
-        id: Number(c.id),
-        name: c.name,
-        items: c.items || '',
-        rate: parseFloat(c.rate) || 0,
-        orig_price: parseFloat(c.orig_price) || 0,
-        sale_price: parseFloat(c.sale_price) || 0,
-        img: c.img || '',
-        video: c.video || '',
-        position: Number(c.position || c.id)
-      }));
-      await supabaseRequest('combos', 'POST', combosPayload, 'id');
-      console.log(`✅ ${combosPayload.length} Combos uploaded.`);
-    }
-
-    // 6. Seed Giftboxes if any
+    // 7. Seed Giftboxes
     if (Array.isArray(db.giftboxes) && db.giftboxes.length > 0) {
       console.log(`\n⏳ Uploading ${db.giftboxes.length} Giftboxes...`);
       const giftboxesPayload = db.giftboxes.map(g => ({
         id: Number(g.id),
         name: g.name,
-        items: g.items || '',
-        rate: parseFloat(g.rate) || 0,
+        items: g.items || g.desc || '',
+        rate: parseFloat(g.sale_price || g.rate) || 0,
         orig_price: parseFloat(g.orig_price) || 0,
-        sale_price: parseFloat(g.sale_price) || 0,
+        sale_price: parseFloat(g.sale_price || g.rate) || 0,
         img: g.img || '',
         video: g.video || '',
         position: Number(g.position || g.id)
@@ -213,39 +223,14 @@ async function runSeed() {
       console.log(`✅ ${giftboxesPayload.length} Giftboxes uploaded.`);
     }
 
-    // 7. Seed Orders (Restored from cPanel)
-    if (Array.isArray(db.orders) && db.orders.length > 0) {
-      console.log(`\n⏳ Uploading ${db.orders.length} Restored Orders...`);
-      const ordersPayload = db.orders.map(o => ({
-        id: Number(o.id),
-        order_number: String(o.order_number || ('ATH-' + o.id)),
-        order_type: o.order_type || 'online',
-        customer_name: o.customer_name || '',
-        customer_phone: o.customer_phone || '',
-        customer_email: o.customer_email || '',
-        customer_address: o.customer_address || '',
-        city: o.city || '',
-        state: o.state || 'Tamil Nadu',
-        pincode: o.pincode || '',
-        status: o.status || 'Pending',
-        items_json: JSON.stringify(o.items || []),
-        subtotal: parseFloat(o.subtotal) || 0,
-        discount_amount: parseFloat(o.discount_amount) || 0,
-        total_amount: parseFloat(o.total_amount) || 0,
-        payment_method: o.payment_method || 'COD',
-        notes: o.notes || '',
-        source: 'cpanel_restored'
-      }));
-      await supabaseRequest('orders', 'POST', ordersPayload, 'id');
-      console.log(`✅ ${ordersPayload.length} Orders uploaded.`);
-    }
-
+    // 8. Verify final count in Supabase
+    const finalProducts = await supabaseRequest('products?select=id');
     console.log('\n================================================================');
-    console.log('🎉 SUCCESS! Supabase Database fully seeded with real store data!');
+    console.log(`🎉 SUCCESS! Supabase Database fully seeded!`);
+    console.log(`   Total Products in Supabase: ${finalProducts.length} (Expected: 154)`);
     console.log('================================================================\n');
   } catch (err) {
     console.error('\n❌ Seeding error:', err.message);
-    console.log('\nTip: If tables do not exist yet in Supabase, make sure you ran `supabase_schema.sql` first in your Supabase SQL Editor!');
   }
 }
 

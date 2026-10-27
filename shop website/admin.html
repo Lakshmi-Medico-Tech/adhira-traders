@@ -4405,6 +4405,17 @@
       }
 
       try {
+        if (isSupabaseActive()) {
+          const resData = await window.SupabaseAPI.deleteOrder(orderId);
+          if (resData && resData.success) {
+            showToast(`${name} deleted permanently from database!`);
+            loadSiteData();
+            return;
+          } else {
+            showToast((resData && resData.error) || 'Failed to delete order', 'error');
+            return;
+          }
+        }
         const url = isPhp ? `${apiBase}?action=delete-order&id=${orderId}` : `${apiBase}/orders/${orderId}`;
         const res = await fetch(url, { method: 'DELETE' });
         const data = await res.json();
@@ -5025,6 +5036,17 @@ Wish you a Happy & Safe Diwali! 💥`;
       };
 
       try {
+        if (isSupabaseActive()) {
+          const resData = await window.SupabaseAPI.saveSettings(payload);
+          if (resData && resData.success) {
+            showToast('Website settings saved successfully in database!');
+            loadSiteData();
+            return;
+          } else {
+            showToast((resData && resData.error) || 'Failed to save settings in database', 'error');
+            return;
+          }
+        }
         const url = isPhp ? `${apiBase}?action=settings` : `${apiBase}/settings`;
         const res = await fetch(url, {
           method: isPhp ? 'POST' : 'PUT',
@@ -5039,7 +5061,8 @@ Wish you a Happy & Safe Diwali! 💥`;
           showToast(resData.error || 'Failed to save settings', 'error');
         }
       } catch (e) {
-        showToast('Error saving settings', 'error');
+        console.error(e);
+        showToast('Error saving settings: ' + e.message, 'error');
       }
     }
 
@@ -5341,6 +5364,24 @@ Wish you a Happy & Safe Diwali! 💥`;
       };
 
       try {
+        if (isSupabaseActive()) {
+          let resData;
+          if (id) {
+            resData = await window.SupabaseAPI.updateProduct(parseInt(id, 10), payload);
+          } else {
+            resData = await window.SupabaseAPI.createProduct(payload);
+          }
+          if (resData && resData.success) {
+            showToast(`Product ${id ? 'updated' : 'added'} successfully in database!`);
+            closeProductModal();
+            loadSiteData();
+            return;
+          } else {
+            showToast((resData && resData.error) || 'Failed to save product in database', 'error');
+            return;
+          }
+        }
+
         let url, method;
         if (id) {
           payload.id = parseInt(id, 10);
@@ -5365,13 +5406,25 @@ Wish you a Happy & Safe Diwali! 💥`;
           showToast(resData.error || 'Failed to save product', 'error');
         }
       } catch (err) {
-        showToast('Error saving product', 'error');
+        console.error(err);
+        showToast('Error saving product: ' + err.message, 'error');
       }
     }
 
     async function deleteProduct(id) {
       if (confirm(`Are you sure you want to permanently delete Product #${id}?`)) {
         try {
+          if (isSupabaseActive()) {
+            const resData = await window.SupabaseAPI.deleteProduct(parseInt(id, 10));
+            if (resData && resData.success) {
+              showToast('Product permanently deleted from database');
+              loadSiteData();
+              return;
+            } else {
+              showToast((resData && resData.error) || 'Failed to delete product', 'error');
+              return;
+            }
+          }
           const url = isPhp ? `${apiBase}?action=delete-product` : `${apiBase}/products/${id}`;
           const method = isPhp ? 'POST' : 'DELETE';
           const res = await fetch(url, {
@@ -5385,7 +5438,8 @@ Wish you a Happy & Safe Diwali! 💥`;
             loadSiteData();
           }
         } catch (e) {
-          showToast('Failed to delete product', 'error');
+          console.error(e);
+          showToast('Failed to delete product: ' + e.message, 'error');
         }
       }
     }
@@ -5418,6 +5472,24 @@ Wish you a Happy & Safe Diwali! 💥`;
       const position = parseInt(document.getElementById('cat_position').value, 10) || 1;
 
       try {
+        if (isSupabaseActive()) {
+          let resData;
+          if (id) {
+            resData = await window.SupabaseAPI.updateCategory(parseInt(id, 10), { name, position });
+          } else {
+            resData = await window.SupabaseAPI.createCategory({ name, position });
+          }
+          if (resData && resData.success) {
+            showToast('Category saved in database');
+            closeCategoryModal();
+            loadSiteData();
+            return;
+          } else {
+            showToast((resData && resData.error) || 'Failed to save category in database', 'error');
+            return;
+          }
+        }
+
         let url, method, body;
         if (id) {
           url = isPhp ? `${apiBase}?action=update-category` : `${apiBase}/categories/${id}`;
@@ -5447,6 +5519,17 @@ Wish you a Happy & Safe Diwali! 💥`;
     async function deleteCategory(id) {
       if (confirm('Delete this category? Products in this category will become unassigned.')) {
         try {
+          if (isSupabaseActive()) {
+            const resData = await window.SupabaseAPI.deleteCategory(parseInt(id, 10));
+            if (resData && resData.success) {
+              showToast('Category deleted from database');
+              loadSiteData();
+              return;
+            } else {
+              showToast((resData && resData.error) || 'Failed to delete category', 'error');
+              return;
+            }
+          }
           const url = isPhp ? `${apiBase}?action=delete-category` : `${apiBase}/categories/${id}`;
           const method = isPhp ? 'POST' : 'DELETE';
           const res = await fetch(url, {
@@ -5484,6 +5567,18 @@ Wish you a Happy & Safe Diwali! 💥`;
         subtitle: document.getElementById('banner_subtitle').value.trim()
       };
       try {
+        if (isSupabaseActive()) {
+          const resData = await window.SupabaseAPI.createBanner(payload);
+          if (resData && resData.success) {
+            showToast('Banner added successfully in database');
+            closeBannerModal();
+            loadSiteData();
+            return;
+          } else {
+            showToast((resData && resData.error) || 'Failed to add banner in database', 'error');
+            return;
+          }
+        }
         const url = isPhp ? `${apiBase}?action=banners` : `${apiBase}/banners`;
         const res = await fetch(url, {
           method: 'POST',
@@ -5504,6 +5599,17 @@ Wish you a Happy & Safe Diwali! 💥`;
     async function deleteBanner(id) {
       if (confirm('Remove this banner from homepage?')) {
         try {
+          if (isSupabaseActive()) {
+            const resData = await window.SupabaseAPI.deleteBanner(parseInt(id, 10));
+            if (resData && resData.success) {
+              showToast('Banner removed from database');
+              loadSiteData();
+              return;
+            } else {
+              showToast((resData && resData.error) || 'Failed to delete banner', 'error');
+              return;
+            }
+          }
           const url = isPhp ? `${apiBase}?action=delete-banner` : `${apiBase}/banners/${id}`;
           const method = isPhp ? 'POST' : 'DELETE';
           const res = await fetch(url, {
@@ -5525,6 +5631,13 @@ Wish you a Happy & Safe Diwali! 💥`;
     // Update Order Status
     async function updateOrderStatus(orderId, status) {
       try {
+        if (isSupabaseActive()) {
+          const resData = await window.SupabaseAPI.updateOrder(orderId, { status });
+          if (resData && resData.success) {
+            showToast(`Order status set to ${status} in database`);
+            return;
+          }
+        }
         const url = isPhp ? `${apiBase}?action=update-order` : `${apiBase}/orders/${orderId}`;
         const res = await fetch(url, {
           method: 'POST',
@@ -5878,6 +5991,24 @@ Wish you a Happy & Safe Diwali! 💥`;
       };
 
       try {
+        if (isSupabaseActive()) {
+          let resData;
+          if (id) {
+            resData = await window.SupabaseAPI.updateCombo(parseInt(id, 10), payload);
+          } else {
+            resData = await window.SupabaseAPI.createCombo(payload);
+          }
+          if (resData && resData.success) {
+            showToast(`Combo Pack ${id ? 'updated' : 'added'} successfully in database!`);
+            closeComboModal();
+            loadSiteData();
+            return;
+          } else {
+            showToast((resData && resData.error) || 'Failed to save combo pack in database', 'error');
+            return;
+          }
+        }
+
         let url, method;
         if (id) {
           payload.id = parseInt(id, 10);
@@ -5909,6 +6040,17 @@ Wish you a Happy & Safe Diwali! 💥`;
     async function deleteCombo(id) {
       if (confirm(`Are you sure you want to delete Combo Pack #${id}?`)) {
         try {
+          if (isSupabaseActive()) {
+            const resData = await window.SupabaseAPI.deleteCombo(parseInt(id, 10));
+            if (resData && resData.success) {
+              showToast('Combo pack deleted from database');
+              loadSiteData();
+              return;
+            } else {
+              showToast((resData && resData.error) || 'Failed to delete combo pack', 'error');
+              return;
+            }
+          }
           const url = isPhp ? `${apiBase}?action=delete-combo` : `${apiBase}/combos/${id}`;
           const method = isPhp ? 'POST' : 'DELETE';
           const res = await fetch(url, {
@@ -6107,6 +6249,24 @@ Wish you a Happy & Safe Diwali! 💥`;
       };
 
       try {
+        if (isSupabaseActive()) {
+          let resData;
+          if (id) {
+            resData = await window.SupabaseAPI.updateGiftbox(parseInt(id, 10), payload);
+          } else {
+            resData = await window.SupabaseAPI.createGiftbox(payload);
+          }
+          if (resData && resData.success) {
+            showToast(`Gift Box ${id ? 'updated' : 'added'} successfully in database!`);
+            closeGiftboxModal();
+            loadSiteData();
+            return;
+          } else {
+            showToast((resData && resData.error) || 'Failed to save gift box in database', 'error');
+            return;
+          }
+        }
+
         let url, method;
         if (id) {
           payload.id = parseInt(id, 10);
@@ -6138,6 +6298,17 @@ Wish you a Happy & Safe Diwali! 💥`;
     async function deleteGiftbox(id) {
       if (confirm(`Are you sure you want to delete Gift Box #${id}?`)) {
         try {
+          if (isSupabaseActive()) {
+            const resData = await window.SupabaseAPI.deleteGiftbox(parseInt(id, 10));
+            if (resData && resData.success) {
+              showToast('Gift box deleted from database');
+              loadSiteData();
+              return;
+            } else {
+              showToast((resData && resData.error) || 'Failed to delete gift box', 'error');
+              return;
+            }
+          }
           const url = isPhp ? `${apiBase}?action=delete-giftbox` : `${apiBase}/giftboxes/${id}`;
           const method = isPhp ? 'POST' : 'DELETE';
           const res = await fetch(url, {
