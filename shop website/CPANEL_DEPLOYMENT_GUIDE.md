@@ -35,42 +35,45 @@ This guide explains how to deploy and manage your complete e-commerce website, a
 
 ---
 
-### Step 2: Create MySQL Database & User in cPanel
-1. In cPanel, click **MySQL Database Wizard**.
-2. **Step 1:** Enter a database name (e.g. `cpaneluser_athiradb`) and click *Next Step*.
-3. **Step 2:** Create a database user (e.g. `cpaneluser_athirauser`), generate a strong password, and click *Create User*.
-4. **Step 3:** Check the box **ALL PRIVILEGES** and click *Make Changes*.
-5. Save your Database Name, Username, and Password for Step 4.
+### Step 2: Database Credentials (Configured & Ready)
+Your database credentials have already been configured in `config.php` and `api.php`:
+- **Database Host:** `localhost`
+- **Database Name:** `virtexeindia_adhira_db`
+- **Database User:** `virtexeindia_adhira-db`
+- **Database Password:** `Vishnulakshmi2515@`
+- **Database Charset:** `utf8mb4`
+
+Ensure in cPanel **MySQL Databases** that user `virtexeindia_adhira-db` is added to database `virtexeindia_adhira_db` with **ALL PRIVILEGES**.
 
 ---
 
-### Step 3: Import Database Schema via phpMyAdmin
+### Step 3: Import Database Schema via phpMyAdmin (154 Products & Settings)
 1. In cPanel, click on **phpMyAdmin**.
-2. Select your newly created database from the left sidebar.
+2. Select `virtexeindia_adhira_db` from the left sidebar.
 3. Click the **Import** tab at the top.
-4. Click **Choose File** and select `db_schema.sql`.
+4. Click **Choose File** and select `db_schema.sql` (generated with `utf8mb4` for full bilingual English & Tamil support).
 5. Click **Import** (or **Go**) at the bottom.
-6. All 5 tables will be created:
-   - `settings`
-   - `categories`
-   - `products` (supports both image and video)
-   - `banners`
-   - `orders`
+6. All 7 tables will be populated with complete live store data:
+   - `settings` (Brand name, phone numbers, WhatsApp, UPI, Bank Details, and Google Maps embed code)
+   - `categories` (All 22 categories matching the wholesale price list)
+   - `products` (All 154 products with bilingual English — Tamil names, original MRPs, 90% wholesale prices, descriptions, Cloudinary images & videos)
+   - `banners` (Active festival sale banners)
+   - `combos`
+   - `giftboxes`
+   - `orders` (E-Commerce customer orders table)
 
 ---
 
-### Step 4: Configure `api.php` with MySQL Credentials
-1. In cPanel File Manager, right-click `api.php` and click **Edit**.
-2. Update lines 20–23 with your database details:
-   ```php
-   define('DB_HOST', 'localhost');
-   define('DB_NAME', 'your_cpaneluser_athiradb');
-   define('DB_USER', 'your_cpaneluser_athirauser');
-   define('DB_PASS', 'your_database_password');
-   define('DB_CHARSET', 'utf8mb4');
-   ```
-3. Save changes.
-   *(Note: If MySQL credentials are not provided or connection fails, `api.php` automatically falls back to `database.json` so your website never crashes!)*
+### Step 4: Verify `config.php` and `api.php`
+`config.php` and `api.php` are already pre-configured:
+```php
+define('DB_HOST', 'localhost');
+define('DB_NAME', 'virtexeindia_adhira_db');
+define('DB_USER', 'virtexeindia_adhira-db');
+define('DB_PASS', 'Vishnulakshmi2515@');
+define('DB_CHARSET', 'utf8mb4');
+```
+*(Note: If MySQL connection is ever interrupted, `api.php` automatically falls back to `database.json` so your website stays online 24/7!)*
 
 ---
 

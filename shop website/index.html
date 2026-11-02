@@ -13971,18 +13971,18 @@ document.addEventListener('keydown', function(e) {
       var isCloudflare = window.location.hostname.includes('workers.dev') || window.location.hostname.includes('pages.dev');
       var isRender = window.location.hostname.includes('onrender.com') || window.location.hostname.includes('render.com');
 
-      // 1. On cPanel / Apache / PHP hosts: Fetch directly from api.php (MySQL database)
-      if (!isCloudflare && !isRender) {
-        try {
-          var resPhp = await fetch('api.php?action=site-data');
-          if (resPhp.ok) {
-            var pData = await resPhp.json();
-            if (pData && pData.success && pData.products && pData.products.length > 0) {
-              data = pData;
-            }
+      // 1. Fetch directly from api.php (MySQL database on cPanel / PHP hosting)
+      try {
+        var cpanelApi = localStorage.getItem('athira_cpanel_api_url') || 'api.php';
+        var endpoint = cpanelApi.includes('?') ? cpanelApi : (cpanelApi.replace(/\/+$/, '') + (cpanelApi.endsWith('.php') ? '?action=site-data' : '/api.php?action=site-data'));
+        var resPhp = await fetch(endpoint);
+        if (resPhp.ok) {
+          var pData = await resPhp.json();
+          if (pData && pData.success && pData.products && pData.products.length > 0) {
+            data = pData;
           }
-        } catch (ePhp) {}
-      }
+        }
+      } catch (ePhp) {}
 
       // 2. On Cloudflare: Supabase API
       if (!data && (isCloudflare || isRender || (window.SupabaseAPI && window.SupabaseAPI.isSupabaseMode && window.SupabaseAPI.isSupabaseMode()))) {
