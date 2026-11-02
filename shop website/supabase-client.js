@@ -64,17 +64,10 @@
   // ── DETECTION ─────────────────────────────────────────────
   // Detect if running on Render, Cloudflare Pages/Workers, or explicit Supabase mode
   function isSupabaseMode() {
-    var host = window.location.hostname || '';
     var search = window.location.search || '';
     if (search.indexOf('backend=php') !== -1) return false;
-    if (search.indexOf('backend=supabase') !== -1) return true;
-    // Auto-enable for Render, Cloudflare, Vercel, Netlify
-    if (host.indexOf('onrender.com') !== -1 || host.indexOf('render.com') !== -1) return true;
-    if (host.indexOf('pages.dev') !== -1 || host.indexOf('workers.dev') !== -1) return true;
-    if (host.indexOf('vercel.app') !== -1 || host.indexOf('netlify.app') !== -1) return true;
-    if (localStorage.getItem('athira_backend') === 'supabase') return true;
-    // On cPanel / Apache / custom domain (adhiratraders.digitechmarvels.in), use native PHP/MySQL backend
-    return false;
+    // Default to Supabase PostgreSQL cloud database everywhere so data stays 100% synced
+    return true;
   }
 
   // ── AUTH ──────────────────────────────────────────────────
@@ -730,36 +723,41 @@
     return { success: true };
   }
 
-  // ── FILE UPLOAD (Cloudinary CDN 25GB or Supabase Storage) ──
-  async function uploadFile(file, folderType) {
-    var ext = file.name.split('.').pop().toLowerCase();
-    var isVid = ['mp4', 'webm', 'mov', 'ogg'].indexOf(ext) !== -1;
-    var mime = isVid ? ('video/' + ext) : ('image/' + ext);
+  // ── FILE UPLOAD (Cloudinary CDN 25GB, Supabase Storage & Local Server) ──
+  var DEFAULT_CLOUDINARY_CLOUD = 'i9saawen';
+  var DEFAULT_CLOUDINARY_PRESET = 'ml_default';
 
-    // 1. Check if Cloudinary is configured in settings or localStorage
-    var cName = '';
-    var cPreset = '';
+  async function uploadFile(file, folderType) {
+    if (!file) return { success: false, error: 'No file selected' };
+    var ext = (file.name.split('.').pop() || '').toLowerCase();
+    var isVid = ['mp4', 'webm', 'mov', 'ogg', 'mkv', 'avi'].indexOf(ext) !== -1;
+    var mime = file.type || (isVid ? ('video/' + (ext === 'mov' ? 'quicktime' : ext)) : ('image/' + (ext === 'jpg' ? 'jpeg' : ext)));
+
+    var cName = DEFAULT_CLOUDINARY_CLOUD;
+    var cPreset = DEFAULT_CLOUDINARY_PRESET;
+
+    // Check if overridden in settings or localStorage
     try {
       var sb = getClient();
       if (sb) {
         var { data: rows } = await sb.from('settings').select('setting_key,setting_value').in('setting_key', ['cloudinary_cloud_name', 'cloudinary_upload_preset']);
-        if (rows) {
+        if (rows && rows.length > 0) {
           rows.forEach(function(r) {
-            if (r.setting_key === 'cloudinary_cloud_name') cName = (r.setting_value || '').trim();
-            if (r.setting_key === 'cloudinary_upload_preset') cPreset = (r.setting_value || '').trim();
+            if (r.setting_key === 'cloudinary_cloud_name' && r.setting_value) cName = r.setting_value.trim();
+            if (r.setting_key === 'cloudinary_upload_preset' && r.setting_value) cPreset = r.setting_value.trim();
           });
         }
       }
     } catch (e) {}
 
-    if (!cName) {
-      try { cName = localStorage.getItem('athira_c_name') || ''; } catch (e) {}
-    }
-    if (!cPreset) {
-      try { cPreset = localStorage.getItem('athira_c_preset') || ''; } catch (e) {}
-    }
+    try {
+      var lsName = localStorage.getItem('athira_c_name');
+      if (lsName) cName = lsName.trim();
+      var lsPreset = localStorage.getItem('athira_c_preset');
+      if (lsPreset) cPreset = lsPreset.trim();
+    } catch (e) {}
 
-    // If Cloudinary configured, upload to Cloudinary (25 GB Free)
+    // 1. Try Cloudinary CDN (Fast HTTPS Direct Upload, 25GB free, supports 100MB videos)
     if (cName && cPreset) {
       try {
         var resourceType = isVid ? 'video' : 'image';
@@ -767,35 +765,99 @@
         fd.append('file', file);
         fd.append('upload_preset', cPreset);
 
+        var controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+        var timeoutId = controller ? setTimeout(function() { controller.abort(); }, 40000) : null;
+
         var cRes = await fetch('https://api.cloudinary.com/v1_1/' + encodeURIComponent(cName) + '/' + resourceType + '/upload', {
           method: 'POST',
-          body: fd
+          body: fd,
+          signal: controller ? controller.signal : undefined
         });
-        var cData = await cRes.json();
-        if (cData && cData.secure_url) {
-          return { success: true, url: cData.secure_url, filename: file.name, is_video: isVid, provider: 'cloudinary' };
-        } else if (cData && cData.error) {
-          console.warn('[Cloudinary Error]:', cData.error.message);
-          // Fall through to Supabase fallback
+        if (timeoutId) clearTimeout(timeoutId);
+
+        if (cRes.ok) {
+          var cData = await cRes.json();
+          if (cData && cData.secure_url) {
+            return {
+              success: true,
+              url: cData.secure_url,
+              filename: file.name,
+              is_video: isVid,
+              provider: 'cloudinary'
+            };
+          }
+        } else {
+          var errJson = await cRes.json().catch(function() { return {}; });
+          console.warn('[Cloudinary Error]:', errJson);
         }
       } catch (cErr) {
-        console.warn('[Cloudinary Upload Exception]:', cErr);
+        console.warn('[Cloudinary Exception]:', cErr.message);
       }
     }
 
-    // 2. Fallback to Supabase Storage
-    var sb = getClient();
-    if (!sb) return { success: false, error: 'Storage client not initialised' };
-    var uName = 'media_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '.' + ext;
-    var filePath = (folderType || 'products') + '/' + uName;
+    // 2. Fallback to Supabase Storage with 15s timeout protection
+    try {
+      var sb2 = getClient();
+      if (sb2 && sb2.storage) {
+        var uName = 'media_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '.' + ext;
+        var filePath = (folderType || (isVid ? 'videos' : 'products')) + '/' + uName;
 
-    var { error } = await sb.storage.from('media').upload(filePath, file, { contentType: mime, upsert: false });
-    if (error) {
-      console.warn('[Supabase Storage upload warning]:', error.message);
-      return { success: false, error: error.message };
+        var uploadPromise = sb2.storage.from('media').upload(filePath, file, { contentType: mime, upsert: true });
+        var timeoutPromise = new Promise(function(_, reject) {
+          setTimeout(function() { reject(new Error('Supabase storage timed out after 15s')); }, 15000);
+        });
+
+        var { data: upData, error: upError } = await Promise.race([uploadPromise, timeoutPromise]);
+        if (!upError && upData) {
+          var pub = sb2.storage.from('media').getPublicUrl(filePath);
+          if (pub && pub.data && pub.data.publicUrl) {
+            return {
+              success: true,
+              url: pub.data.publicUrl,
+              filename: uName,
+              is_video: isVid,
+              provider: 'supabase'
+            };
+          }
+        }
+      }
+    } catch (sbEx) {
+      console.warn('[Supabase Storage upload notice]:', sbEx.message);
     }
-    var pub = sb.storage.from('media').getPublicUrl(filePath);
-    return { success: true, url: pub.data.publicUrl, filename: uName, is_video: isVid, provider: 'supabase' };
+
+    // 3. Fallback to Local Server /api/upload if running locally
+    try {
+      if (typeof window !== 'undefined' && window.location && window.location.protocol.startsWith('http')) {
+        var reader = new FileReader();
+        var base64Data = await new Promise(function(resolve, reject) {
+          reader.onload = function(ev) { resolve(ev.target.result); };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
+        var lRes = await fetch('/api/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: file.name, type: folderType || (isVid ? 'videos' : 'products'), base64: base64Data })
+        });
+        if (lRes.ok) {
+          var lData = await lRes.json();
+          if (lData && lData.success) {
+            return {
+              success: true,
+              url: lData.url,
+              filename: lData.filename || file.name,
+              is_video: isVid,
+              provider: 'local'
+            };
+          }
+        }
+      }
+    } catch (locErr) {
+      console.warn('[Local Upload notice]:', locErr.message);
+    }
+
+    return { success: false, error: 'Upload failed across all storage providers. Please check your internet connection and try again.' };
   }
 
   // ── DB STATUS ─────────────────────────────────────────────

@@ -5331,7 +5331,7 @@ Wish you a Happy & Safe Diwali! 💥`;
       const msg = document.getElementById('noVideoMsg');
 
       if (v) {
-        if (v.endsWith('.mp4') || v.endsWith('.webm') || v.includes('storage/')) {
+        if (/\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(v) || v.includes('cloudinary.com') || v.includes('supabase.co') || v.includes('storage/')) {
           player.src = v;
           player.style.display = 'block';
           msg.style.display = 'none';
@@ -5364,46 +5364,50 @@ Wish you a Happy & Safe Diwali! 💥`;
       };
 
       try {
+        let savedSuccess = false;
+        let pId = id ? parseInt(id, 10) : null;
+
+        // 1. Primary: Save to Supabase Cloud DB
         if (isSupabaseActive()) {
           let resData;
-          if (id) {
-            resData = await window.SupabaseAPI.updateProduct(parseInt(id, 10), payload);
+          if (pId) {
+            resData = await window.SupabaseAPI.updateProduct(pId, payload);
           } else {
             resData = await window.SupabaseAPI.createProduct(payload);
           }
           if (resData && resData.success) {
-            showToast(`Product ${id ? 'updated' : 'added'} successfully in database!`);
-            closeProductModal();
-            loadSiteData();
-            return;
-          } else {
-            showToast((resData && resData.error) || 'Failed to save product in database', 'error');
-            return;
+            savedSuccess = true;
           }
         }
 
-        let url, method;
-        if (id) {
-          payload.id = parseInt(id, 10);
-          url = isPhp ? `${apiBase}?action=update-product` : `${apiBase}/products/${id}`;
-          method = isPhp ? 'POST' : 'PUT';
-        } else {
-          url = isPhp ? `${apiBase}?action=products` : `${apiBase}/products`;
-          method = 'POST';
-        }
+        // 2. Dual-sync to local database.json if Node/PHP server is active
+        try {
+          let url, method;
+          if (pId) {
+            payload.id = pId;
+            url = isPhp ? `${apiBase}?action=update-product` : `${apiBase}/products/${pId}`;
+            method = isPhp ? 'POST' : 'PUT';
+          } else {
+            url = isPhp ? `${apiBase}?action=products` : `${apiBase}/products`;
+            method = 'POST';
+          }
+          const res = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          if (res.ok) {
+            const resData = await res.json();
+            if (resData && resData.success) savedSuccess = true;
+          }
+        } catch (syncErr) {}
 
-        const res = await fetch(url, {
-          method,
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        const resData = await res.json();
-        if (resData.success) {
-          showToast(`Product ${id ? 'updated' : 'added'} successfully!`);
+        if (savedSuccess) {
+          showToast(`Product ${id ? 'updated' : 'added'} successfully in database!`, 'success');
           closeProductModal();
           loadSiteData();
         } else {
-          showToast(resData.error || 'Failed to save product', 'error');
+          showToast('Failed to save product in database', 'error');
         }
       } catch (err) {
         console.error(err);
@@ -5414,32 +5418,31 @@ Wish you a Happy & Safe Diwali! 💥`;
     async function deleteProduct(id) {
       if (confirm(`Are you sure you want to permanently delete Product #${id}?`)) {
         try {
+          let deletedSuccess = false;
+          // 1. Delete from Supabase Cloud DB
           if (isSupabaseActive()) {
             const resData = await window.SupabaseAPI.deleteProduct(parseInt(id, 10));
-            if (resData && resData.success) {
-              showToast('Product permanently deleted from database');
-              loadSiteData();
-              return;
-            } else {
-              showToast((resData && resData.error) || 'Failed to delete product', 'error');
-              return;
+            if (resData && resData.success) deletedSuccess = true;
+          }
+          // 2. Also delete from local database if Node server is active
+          try {
+            const url = isPhp ? `${apiBase}?action=delete-product&id=${id}` : `${apiBase}/products/${id}`;
+            const res = await fetch(url, { method: isPhp ? 'GET' : 'DELETE' });
+            if (res.ok) {
+              const resData = await res.json();
+              if (resData && resData.success) deletedSuccess = true;
             }
-          }
-          const url = isPhp ? `${apiBase}?action=delete-product` : `${apiBase}/products/${id}`;
-          const method = isPhp ? 'POST' : 'DELETE';
-          const res = await fetch(url, {
-            method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id })
-          });
-          const resData = await res.json();
-          if (resData.success) {
-            showToast('Product deleted successfully');
+          } catch(syncErr) {}
+
+          if (deletedSuccess) {
+            showToast('Product permanently deleted from database', 'success');
             loadSiteData();
+          } else {
+            showToast('Failed to delete product', 'error');
           }
-        } catch (e) {
-          console.error(e);
-          showToast('Failed to delete product: ' + e.message, 'error');
+        } catch (err) {
+          console.error(err);
+          showToast('Error deleting product: ' + err.message, 'error');
         }
       }
     }
@@ -5655,15 +5658,14 @@ Wish you a Happy & Safe Diwali! 💥`;
 
     // File Upload Handler (Images & Videos)
     async function handleFileUpload(event, folderType, targetInputId, callback) {
-      const file = event.target.files[0];
+      const file = event.target.files && event.target.files[0];
       if (!file) return;
 
       showToast(`Uploading ${file.name}...`, 'info');
 
-      // Upload using SupabaseAPI on Cloudflare, or native cPanel PHP on cPanel
       try {
-        let resData;
-        if (isSupabaseActive()) {
+        let resData = null;
+        if (window.SupabaseAPI && typeof window.SupabaseAPI.uploadFile === 'function') {
           resData = await window.SupabaseAPI.uploadFile(file, folderType);
         } else if (isPhp) {
           // PHP FormData native cPanel upload
@@ -5691,16 +5693,26 @@ Wish you a Happy & Safe Diwali! 💥`;
         }
 
         if (resData && resData.success) {
-          document.getElementById(targetInputId).value = resData.url;
-          const prov = resData.provider === 'cloudinary' ? 'Cloudinary CDN (25GB)' : 'Supabase Storage';
-          showToast(`File uploaded successfully via ${prov}!`);
-          if (callback) callback();
+          const inputEl = document.getElementById(targetInputId);
+          if (inputEl) {
+            inputEl.value = resData.url;
+            inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+            inputEl.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+          const prov = resData.provider === 'cloudinary' ? 'Cloudinary CDN (Fast)' : 
+                       (resData.provider === 'supabase' ? 'Supabase Storage' : 'Server Storage');
+          showToast(`File uploaded successfully via ${prov}!`, 'success');
+          if (typeof callback === 'function') {
+            try { callback(); } catch (cbErr) { console.warn(cbErr); }
+          }
         } else {
           showToast((resData && resData.error) || 'Upload failed', 'error');
         }
       } catch (err) {
         console.error(err);
         showToast('Upload error: ' + err.message, 'error');
+      } finally {
+        try { event.target.value = ''; } catch(e) {}
       }
     }
 

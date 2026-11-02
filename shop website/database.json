@@ -194,7 +194,7 @@
       "orig_price": 900,
       "sale_price": 90,
       "img": "./storage/products/media_6ac336873a2719.25006232.png",
-      "video": "",
+      "video": "https://res.cloudinary.com/i9saawen/video/upload/v1793448206/WhatsApp_Video.mp4",
       "out_of_stock": false,
       "position": 1
     },

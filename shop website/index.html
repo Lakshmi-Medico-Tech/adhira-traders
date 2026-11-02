@@ -13421,7 +13421,11 @@ document.addEventListener('keydown', function(e) {
 
             if (modal) modal.classList.remove('show');
             document.body.style.overflow = '';
-            if (media) media.classList.remove('is-video');
+            if (media) {
+                media.classList.remove('is-video');
+                var cp = media.querySelector('video.custom-player');
+                if (cp) { cp.pause(); cp.src = ''; cp.style.display = 'none'; }
+            }
             if (frame) frame.src = '';
             if (actionBtn) actionBtn.innerHTML = '<i class="fa-solid fa-play"></i> <span>Play Video</span>';
         };
@@ -13437,6 +13441,8 @@ document.addEventListener('keydown', function(e) {
                 if (media.classList.contains('is-video')) {
                     media.classList.remove('is-video');
                     frame.src = '';
+                    var cp = media.querySelector('video.custom-player');
+                    if (cp) { cp.pause(); cp.style.display = 'none'; }
                     actionBtn.innerHTML = '<i class="fa-solid fa-play"></i> <span>Play Video</span>';
                 } else {
                     media.classList.add('is-video');
@@ -14445,14 +14451,14 @@ document.addEventListener('keydown', function(e) {
     }
 
     // =========================================================
-    // 2. ENHANCE PREVIEW MODAL FOR LOCAL MP4/WEBM VIDEOS
+    // 2. ENHANCE PREVIEW MODAL FOR DIRECT MP4/WEBM/CDN VIDEOS
     // =========================================================
     var origOpenPreview = window.openPreviewModal;
     window.openPreviewModal = function(imgSrc, name, videoUrl) {
       if (origOpenPreview) origOpenPreview(imgSrc, name, videoUrl);
 
-      // Support local direct MP4/WebM videos
-      if (videoUrl && (videoUrl.endsWith('.mp4') || videoUrl.endsWith('.webm') || videoUrl.includes('storage/videos/'))) {
+      // Support direct MP4/WebM/Cloudinary/Supabase videos
+      if (videoUrl && (/\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(videoUrl) || videoUrl.includes('cloudinary.com') || videoUrl.includes('supabase.co') || videoUrl.includes('storage/videos/'))) {
         var media = document.getElementById('tblLightboxMedia');
         var frame = document.getElementById('tblLightboxVideoFrame');
         var actionBtn2 = document.getElementById('tblLightboxActionBtn');
