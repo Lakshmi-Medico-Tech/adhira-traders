@@ -950,7 +950,7 @@ define('ADMIN_PASS', 'admin123');
     res.writeHead(200, {
       'Content-Type': mime,
       'Content-Length': total,
-      'Cache-Control': 'no-cache'
+      'Cache-Control': (ext === '.html' || ext === '.js') ? 'no-cache, no-store, must-revalidate' : 'public, max-age=86400'
     });
     fs.createReadStream(filePath).pipe(res);
     return;
