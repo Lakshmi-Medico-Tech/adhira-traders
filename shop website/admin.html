@@ -3132,7 +3132,9 @@
         if (loginScreen) {
           loginScreen.style.display = 'flex';
           const u = document.getElementById('loginUser');
-          if (u) { u.focus(); }
+          const p = document.getElementById('loginPass');
+          if (u) { u.value = ''; u.focus(); }
+          if (p) { p.value = ''; }
         }
       }
     }
