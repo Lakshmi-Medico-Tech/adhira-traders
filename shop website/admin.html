@@ -5780,8 +5780,15 @@ Wish you a Happy & Safe Diwali! 💥`;
         if (existing) {
           existing.img = payload.img;
           existing.video = payload.video;
+          existing.name = payload.name;
+          existing.desc = payload.desc;
+          existing.orig_price = payload.orig_price;
+          existing.sale_price = payload.sale_price;
+          existing.out_of_stock = payload.out_of_stock;
         }
-        renderProductsTable();
+        if (typeof renderProducts === 'function') {
+          renderProducts();
+        }
         showToast('Image & product auto-saved to database!', 'success');
       } catch (e) {
         console.warn('[Auto-save notice]:', e);
@@ -5793,37 +5800,56 @@ Wish you a Happy & Safe Diwali! 💥`;
       const file = event.target.files && event.target.files[0];
       if (!file) return;
 
+      // 0. Ultra-responsive instant local preview (zero lag feedback)
+      try {
+        const localBlobUrl = URL.createObjectURL(file);
+        if (targetInputId === 'prod_img') {
+          const previewEl = document.getElementById('modalImgPreview');
+          if (previewEl) previewEl.src = localBlobUrl;
+        } else if (targetInputId === 'prod_video') {
+          const player = document.getElementById('modalVideoPlayer');
+          const msg = document.getElementById('noVideoMsg');
+          if (player) {
+            player.src = localBlobUrl;
+            player.style.display = 'block';
+            if (msg) msg.style.display = 'none';
+          }
+        }
+      } catch (previewErr) {
+        console.warn('[Local preview notice]:', previewErr);
+      }
+
       const uploadToast = showToast(`Uploading ${file.name}...`, 'info');
 
       try {
         let resData = null;
         const fetchFn = window.__origFetch || window.fetch;
 
-        // 1. Direct Cloudinary CDN upload first (Fast, zero dependencies, reliable)
-        try {
-          resData = await directCloudinaryUpload(file);
-        } catch (cErr) {
-          console.warn('[Direct Cloudinary notice]:', cErr);
+        // 1. Direct cPanel / PHP hosting upload FIRST (Fast, reliable, same-origin, permanent, never blocked by Edge/AdBlock)
+        if (isPhp || !isSupabaseActive() || window.location.protocol.startsWith('http')) {
+          try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('type', folderType);
+            const res = await fetchFn(`${apiBase}?action=upload`, { method: 'POST', body: formData });
+            if (res.ok) {
+              const sData = await res.json();
+              if (sData && sData.success) {
+                resData = sData;
+                resData.provider = 'cPanel Server';
+              }
+            }
+          } catch (phpErr) {
+            console.warn('[cPanel upload error]:', phpErr);
+          }
         }
 
-        // 2. On cPanel / PHP hosting: Upload directly to api.php (saves to storage/ and returns URL)
+        // 2. Fallback to Cloudinary CDN if cPanel upload fails or not on PHP
         if (!resData || !resData.success) {
-          if (isPhp || !isSupabaseActive()) {
-            try {
-              const formData = new FormData();
-              formData.append('file', file);
-              formData.append('type', folderType);
-              const res = await fetchFn(`${apiBase}?action=upload`, { method: 'POST', body: formData });
-              if (res.ok) {
-                const sData = await res.json();
-                if (sData && sData.success) {
-                  resData = sData;
-                  resData.provider = 'cPanel Server';
-                }
-              }
-            } catch (phpErr) {
-              console.warn('[cPanel upload error]:', phpErr);
-            }
+          try {
+            resData = await directCloudinaryUpload(file);
+          } catch (cErr) {
+            console.warn('[Direct Cloudinary notice]:', cErr);
           }
         }
 
@@ -5867,8 +5893,8 @@ Wish you a Happy & Safe Diwali! 💥`;
             inputEl.dispatchEvent(new Event('input', { bubbles: true }));
             inputEl.dispatchEvent(new Event('change', { bubbles: true }));
           }
-          const prov = resData.provider === 'cloudinary' ? 'Cloudinary CDN (Fast)' : 
-                       (resData.provider === 'cPanel Server' ? 'cPanel Hosting' : 
+          const prov = resData.provider === 'cPanel Server' ? 'cPanel Hosting' : 
+                       (resData.provider === 'cloudinary' ? 'Cloudinary CDN (Fast)' : 
                        (resData.provider === 'supabase' ? 'Supabase Storage' : 'Local Storage'));
           showToast(`File uploaded successfully via ${prov}!`, 'success');
           if (typeof callback === 'function') {

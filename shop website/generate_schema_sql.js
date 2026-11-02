@@ -184,3 +184,4 @@ console.log('Successfully generated db_schema.sql!');
 console.log('Categories:', db.categories.length);
 console.log('Products:', db.products.length);
 console.log('File size:', sql.length, 'bytes');
+
