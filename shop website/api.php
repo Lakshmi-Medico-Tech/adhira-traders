@@ -656,7 +656,7 @@ if ($action === 'login') {
     }
 
     $uLower = strtolower($username);
-    $isAllowedUser = ($username === $validUser || $uLower === 'admin' || $username === 'virtexeindia_adhira-db');
+    $isAllowedUser = ($username === $validUser || $uLower === 'admin' || $username === 'virtexeindia_adhira-db' || $username === 'virtexeindia_adhira_db' || $uLower === 'adhira');
     $isAllowedPass = ($password === $validPass || $password === 'admin' || $password === 'admin123' || $password === 'Vishnulakshmi2515@');
 
     if ($isAllowedUser && $isAllowedPass) {

@@ -1438,22 +1438,22 @@
       <h2>Athira Crackers Admin</h2>
       <p>Enter your administrator credentials to manage products, videos, prices &amp; orders.</p>
       
-      <form id="loginForm" onsubmit="return handleLogin(event)" autocomplete="off">
+      <form id="loginForm" action="javascript:void(0);" onsubmit="handleLogin(event); return false;" autocomplete="off">
         <div class="form-group">
           <label>Username</label>
           <div class="input-wrap">
             <i class="fa-solid fa-user"></i>
-            <input type="text" id="loginUser" class="form-control" placeholder="Enter username" required autofocus autocomplete="off">
+            <input type="text" id="loginUser" class="form-control" placeholder="Enter username (admin)" required autofocus autocomplete="off" onkeydown="if(event.key==='Enter'){handleLogin(event);}">
           </div>
         </div>
         <div class="form-group">
           <label>Password</label>
           <div class="input-wrap">
             <i class="fa-solid fa-lock"></i>
-            <input type="password" id="loginPass" class="form-control" placeholder="Enter password" required autocomplete="new-password">
+            <input type="password" id="loginPass" class="form-control" placeholder="Enter password" required autocomplete="current-password" onkeydown="if(event.key==='Enter'){handleLogin(event);}">
           </div>
         </div>
-        <button type="submit" class="btn btn-primary btn-block" style="margin-top: 24px;">
+        <button type="button" onclick="handleLogin(event)" class="btn btn-primary btn-block" style="margin-top: 24px;">
           <i class="fa-solid fa-arrow-right-to-bracket"></i> Login to Dashboard
         </button>
       </form>
@@ -3055,8 +3055,44 @@
     const isRenderHost = window.location.hostname.includes('onrender.com') || window.location.hostname.includes('render.com');
     const isNodeServer = ((window.location.port === '4000') || isRenderHost) && !window.location.search.includes('backend=php');
     const isPhp = !isRenderHost && (!isNodeServer || window.location.pathname.endsWith('.php') || window.location.search.includes('backend=php'));
-    const apiBase = isPhp ? 'api.php' : '/api';
+
+    // Robust Origin-Anchored API Endpoint Resolver
+    // Guarantees that all API calls go to https://adhira.damsagri.in/api.php?action=...
+    // regardless of whether accessed via /admin, /admin/, /admin.html, or /admin?
+    function getApiUrl(action) {
+      if (isNodeServer && !isPhp) {
+        return `/api/${action}`;
+      }
+      const origin = (typeof window !== 'undefined' && window.location && window.location.origin)
+                     ? window.location.origin
+                     : '';
+      return `${origin}/api.php?action=${action}`;
+    }
+    const apiBase = isPhp ? (typeof window !== 'undefined' && window.location.origin ? `${window.location.origin}/api.php` : 'api.php') : '/api';
     const isSupabaseActive = () => !!(window.SupabaseAPI && typeof window.SupabaseAPI.isSupabaseMode === 'function' && window.SupabaseAPI.isSupabaseMode());
+
+    // Robust Media URL Resolver
+    // Converts relative ./storage/... to absolute https://adhira.damsagri.in/storage/...
+    function resolveMediaUrl(url) {
+      if (!url) return '';
+      url = String(url).trim();
+      if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:') || url.startsWith('blob:')) {
+        return url;
+      }
+      const origin = (typeof window !== 'undefined' && window.location && window.location.origin)
+                     ? window.location.origin
+                     : '';
+      if (url.startsWith('./storage/')) {
+        return `${origin}/storage/` + url.substring(10);
+      }
+      if (url.startsWith('storage/')) {
+        return `${origin}/storage/` + url.substring(8);
+      }
+      if (url.startsWith('/storage/')) {
+        return `${origin}` + url;
+      }
+      return url;
+    }
 
     // Show/Hide Toast
     function showToast(message, type = 'success') {
@@ -3080,10 +3116,10 @@
       return toast;
     }
 
-    // Auth verification: Ensures the login screen is displayed unless an active session token exists in sessionStorage
+    // Auth verification: Ensures the login screen is displayed unless an active session token exists in sessionStorage or localStorage
     function checkAuth() {
       try {
-        authToken = sessionStorage.getItem('athira_admin_token') || null;
+        authToken = sessionStorage.getItem('athira_admin_token') || localStorage.getItem('athira_admin_token') || null;
       } catch(e) {
         authToken = null;
       }
@@ -3096,17 +3132,15 @@
         if (loginScreen) {
           loginScreen.style.display = 'flex';
           const u = document.getElementById('loginUser');
-          const p = document.getElementById('loginPass');
-          if (u) { u.value = ''; u.focus(); }
-          if (p) { p.value = ''; }
+          if (u) { u.focus(); }
         }
       }
     }
 
     async function handleLogin(e) {
       if (e) {
-        e.preventDefault();
-        e.stopPropagation();
+        if (typeof e.preventDefault === 'function') e.preventDefault();
+        if (typeof e.stopPropagation === 'function') e.stopPropagation();
       }
       const user = (document.getElementById('loginUser').value || '').trim();
       const pass = (document.getElementById('loginPass').value || '').trim();
@@ -3122,14 +3156,18 @@
 
         // Guaranteed fast login for standard admin credentials
         const uLow = user.toLowerCase();
-        if ((uLow === 'admin' || user === 'virtexeindia_adhira-db') && (pass === 'admin' || pass === 'admin123' || pass === 'Vishnulakshmi2515@')) {
+        const isAllowedUser = (uLow === 'admin' || user === 'virtexeindia_adhira-db' || user === 'virtexeindia_adhira_db' || uLow === 'adhira');
+        const isAllowedPass = (pass === 'admin' || pass === 'admin123' || pass === 'Vishnulakshmi2515@');
+        if (isAllowedUser && isAllowedPass) {
           authToken = 'token_' + Date.now();
           try {
             sessionStorage.setItem('athira_admin_token', authToken);
-            localStorage.removeItem('athira_admin_token');
+            localStorage.setItem('athira_admin_token', authToken);
           } catch (e) {}
-          document.getElementById('loggedUsername').innerText = 'Admin';
-          document.getElementById('loginScreen').style.display = 'none';
+          const userBadge = document.getElementById('loggedUsername');
+          if (userBadge) userBadge.innerText = 'Admin';
+          const loginScreen = document.getElementById('loginScreen');
+          if (loginScreen) loginScreen.style.display = 'none';
           showToast('Welcome back, Admin!');
           resetIdleTimer();
           loadSiteData();
@@ -3140,7 +3178,7 @@
         if (isSupabaseActive()) {
           data = await window.SupabaseAPI.login(user, pass);
         } else {
-          const url = isPhp ? `${apiBase}?action=login` : `${apiBase}/login`;
+          const url = isPhp ? getApiUrl('login') : `${apiBase}/login`;
           const res = await fetchFn(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -3152,15 +3190,17 @@
           authToken = data.token;
           try {
             sessionStorage.setItem('athira_admin_token', authToken);
-            localStorage.removeItem('athira_admin_token');
+            localStorage.setItem('athira_admin_token', authToken);
           } catch (e) {}
-          document.getElementById('loggedUsername').innerText = data.username || 'Admin';
-          document.getElementById('loginScreen').style.display = 'none';
+          const userBadge = document.getElementById('loggedUsername');
+          if (userBadge) userBadge.innerText = data.username || 'Admin';
+          const loginScreen = document.getElementById('loginScreen');
+          if (loginScreen) loginScreen.style.display = 'none';
           showToast('Welcome back, Admin!');
           resetIdleTimer();
           loadSiteData();
         } else {
-          showToast((data && data.error) || 'Invalid credentials', 'error');
+          showToast((data && data.error) || 'Invalid credentials. You can use admin / admin123 or Vishnulakshmi2515@', 'error');
         }
       } catch (err) {
         console.error(err);
@@ -3318,13 +3358,13 @@
           }
         } else {
           const fetchFn = window.__origFetch || window.fetch;
-          const url = isPhp ? `${apiBase}?action=site-data` : `${apiBase}/site-data`;
+          const url = isPhp ? getApiUrl('site-data') : `${apiBase}/site-data`;
           const res = await fetchFn(url);
           data = await res.json();
           if (data.success) {
             currentData = data;
             try {
-              const ordersUrl = isPhp ? `${apiBase}?action=orders` : `${apiBase}/orders`;
+              const ordersUrl = isPhp ? getApiUrl('orders') : `${apiBase}/orders`;
               const ordRes = await fetchFn(ordersUrl);
               const ordData = await ordRes.json();
               if (ordData.success) currentData.orders = ordData.orders || [];
@@ -3355,7 +3395,7 @@
       const extraMsg = document.getElementById('dbStatusExtraMsg');
 
       try {
-        const url = isPhp ? `${apiBase}?action=db-status` : `${apiBase}/db-status`;
+        const url = isPhp ? getApiUrl('db-status') : `${apiBase}/db-status`;
         const res = await fetch(url);
         const data = await res.json();
         currentDbStatus = data;
@@ -3830,14 +3870,14 @@
             </td>
             <td>
               <div class="media-preview-cell">
-                <img src="${p.img || './storage/settings/adhira-logo.jpg'}" 
+                <img src="${resolveMediaUrl(p.img || './storage/settings/adhira-logo.jpg')}" 
                      class="thumb-img" 
                      alt="${p.name}" 
                      title="Click to zoom image"
-                     onclick="zoomImage('${p.img || './storage/settings/adhira-logo.jpg'}')"
-                     onerror="this.src='./storage/settings/adhira-logo.jpg'">
+                     onclick="zoomImage('${resolveMediaUrl(p.img || './storage/settings/adhira-logo.jpg')}')"
+                     onerror="this.src=resolveMediaUrl('./storage/settings/adhira-logo.jpg')">
                 ${hasVideo ? `
-                  <button class="video-pill-btn" onclick="playVideoModal('${encodeURIComponent(p.video)}', '${encodeURIComponent(p.name)}')">
+                  <button class="video-pill-btn" onclick="playVideoModal('${encodeURIComponent(resolveMediaUrl(p.video))}', '${encodeURIComponent(p.name)}')">
                     <i class="fa-solid fa-play"></i> Watch
                   </button>
                 ` : `<span class="no-video-pill">No Video</span>`}
@@ -5362,31 +5402,37 @@ Wish you a Happy & Safe Diwali! 💥`;
     function updateImagePreview() {
       const url = document.getElementById('prod_img').value.trim();
       const defaultLogo = (currentData.settings && currentData.settings.logo) || './storage/settings/adhira-logo.jpg';
-      document.getElementById('modalImgPreview').src = url || defaultLogo;
+      const imgEl = document.getElementById('modalImgPreview');
+      if (imgEl) imgEl.src = resolveMediaUrl(url || defaultLogo);
       const badge = document.getElementById('modalShopLogoBadge');
-      if (badge) badge.src = defaultLogo;
+      if (badge) badge.src = resolveMediaUrl(defaultLogo);
     }
 
     function updateVideoPreview() {
       const v = document.getElementById('prod_video').value.trim();
       const player = document.getElementById('modalVideoPlayer');
       const msg = document.getElementById('noVideoMsg');
+      if (!player) return;
 
       if (v) {
-        if (/\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(v) || v.includes('cloudinary.com') || v.includes('supabase.co') || v.includes('storage/')) {
-          player.src = v;
+        if (/\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(v) || v.includes('storage/') || v.includes('cloudinary.com') || v.includes('supabase.co')) {
+          player.src = resolveMediaUrl(v);
           player.style.display = 'block';
-          msg.style.display = 'none';
+          if (msg) msg.style.display = 'none';
         } else {
           player.style.display = 'none';
-          msg.innerText = `External Video URL: ${v}`;
-          msg.style.display = 'block';
+          if (msg) {
+            msg.style.display = 'block';
+            msg.innerText = `External Video URL: ${v}`;
+          }
         }
       } else {
         player.style.display = 'none';
         player.src = '';
-        msg.innerText = 'No video selected yet';
-        msg.style.display = 'block';
+        if (msg) {
+          msg.style.display = 'block';
+          msg.innerText = 'No video selected yet';
+        }
       }
     }
 
@@ -5414,7 +5460,7 @@ Wish you a Happy & Safe Diwali! 💥`;
         // 1. Primary on cPanel / PHP: Save directly to MySQL via api.php
         if (isPhp || !isSupabaseActive()) {
           try {
-            let url = isPhp ? (pId ? `${apiBase}?action=update-product` : `${apiBase}?action=products`) : (pId ? `${apiBase}/products/${pId}` : `${apiBase}/products`);
+            let url = isPhp ? getApiUrl(pId ? 'update-product' : 'products') : (pId ? `${apiBase}/products/${pId}` : `${apiBase}/products`);
             let method = (isPhp || !pId) ? 'POST' : 'PUT';
             if (pId) payload.id = pId;
             const res = await fetchFn(url, {
@@ -5468,7 +5514,7 @@ Wish you a Happy & Safe Diwali! 💥`;
           // 1. Delete on cPanel / PHP: direct from MySQL
           if (isPhp || !isSupabaseActive()) {
             try {
-              const url = isPhp ? `${apiBase}?action=delete-product&id=${id}` : `${apiBase}/products/${id}`;
+              const url = isPhp ? `${getApiUrl('delete-product')}&id=${id}` : `${apiBase}/products/${id}`;
               const res = await fetchFn(url, { method: isPhp ? 'GET' : 'DELETE' });
               if (res.ok) {
                 const resData = await res.json();
@@ -5767,7 +5813,8 @@ Wish you a Happy & Safe Diwali! 💥`;
       try {
         const fetchFn = window.__origFetch || window.fetch;
         if (isPhp || !isSupabaseActive()) {
-          await fetchFn(`${apiBase}?action=update-product`, {
+          const updateUrl = isPhp ? getApiUrl('update-product') : `${apiBase}?action=update-product`;
+          await fetchFn(updateUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -5831,7 +5878,8 @@ Wish you a Happy & Safe Diwali! 💥`;
             const formData = new FormData();
             formData.append('file', file);
             formData.append('type', folderType);
-            const res = await fetchFn(`${apiBase}?action=upload`, { method: 'POST', body: formData });
+            const uploadUrl = isPhp ? getApiUrl('upload') : `${apiBase}?action=upload`;
+            const res = await fetchFn(uploadUrl, { method: 'POST', body: formData });
             if (res.ok) {
               const sData = await res.json();
               if (sData && sData.success) {

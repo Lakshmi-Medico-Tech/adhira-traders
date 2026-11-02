@@ -11,7 +11,8 @@
     # RewriteCond %{HTTPS} off
     # RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-    # Ensure relative storage requests from /admin or /admin/ resolve to /storage
+    # Ensure relative storage and API requests from /admin or /admin/ resolve to root
+    RewriteRule ^admin/api\.php$ api.php [L,QSA]
     RewriteRule ^admin/storage/(.*)$ storage/$1 [L]
 
     # Clean URL: /admin -> admin.html
