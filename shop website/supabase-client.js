@@ -65,9 +65,18 @@
   // Detect if running on Render, Cloudflare Pages/Workers, or explicit Supabase mode
   function isSupabaseMode() {
     var search = window.location.search || '';
-    if (search.indexOf('backend=php') !== -1) return false;
-    // Default to Supabase PostgreSQL cloud database everywhere so data stays 100% synced
-    return true;
+    if (search.indexOf('backend=supabase') !== -1) return true;
+    if (search.indexOf('backend=php') !== -1 || localStorage.getItem('athira_backend') === 'php') return false;
+
+    var host = (typeof window !== 'undefined' && window.location && window.location.hostname) || '';
+    var isCloudflare = host.includes('pages.dev') || host.includes('workers.dev');
+    var isRender = host.includes('onrender.com') || host.includes('render.com');
+
+    if (isCloudflare || isRender) return true;
+
+    // On cPanel or PHP-enabled hosting (such as damsagri.in, virtexeindia.com, or localhost):
+    // Always default to native PHP + MySQL backend (api.php)
+    return false;
   }
 
   // ── AUTH ──────────────────────────────────────────────────
