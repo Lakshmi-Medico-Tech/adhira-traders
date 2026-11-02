@@ -13327,7 +13327,7 @@ document.addEventListener('keydown', function(e) {
                     }
                 });
             }
-            // Thumbnail Click Handler for Lightbox Preview (Image + Video)
+            // Thumbnail Click Handler for Lightbox Preview (Photo Only)
             document.querySelectorAll('.prod-thumb-wrap').forEach(function(wrap) {
                 wrap.addEventListener('click', function(e) {
                     e.preventDefault();
@@ -13337,13 +13337,17 @@ document.addEventListener('keydown', function(e) {
                     var imgSrc = row.getAttribute('data-img') || '';
                     var name = row.getAttribute('data-display-name') || row.querySelector('.prod-name')?.textContent || 'Product Preview';
                     var videoUrl = row.getAttribute('data-video') || '';
-                    openPreviewModal(imgSrc, name, videoUrl);
+                    if (window.openImageModal) {
+                        window.openImageModal(imgSrc, name, videoUrl);
+                    } else if (window.openPreviewModal) {
+                        window.openPreviewModal(imgSrc, name, videoUrl, 'image');
+                    }
                 });
             });
         });
 
-        // Lightbox functions (Image + Video Player with YouTube Shorts/Full URL support)
-        var savedVideoSrc = '';
+        // Lightbox state & functions (Independent Image and Video Modals)
+        var activeModalData = { img: '', name: '', video: '', mode: 'image' };
 
         function extractVideoEmbedUrl(url) {
             if (!url) return null;
@@ -13372,45 +13376,133 @@ document.addEventListener('keydown', function(e) {
                 return 'https://player.vimeo.com/video/' + vimeoMatch[1] + '?autoplay=1';
             }
 
-            // Direct embed or standard video link
-            if (str.indexOf('http://') === 0 || str.indexOf('https://') === 0) {
-                return str;
-            }
-
             return null;
         }
 
-        window.openPreviewModal = function(imgSrc, name, videoUrl) {
+        // 1. OPEN IMAGE ONLY: When user clicks thumbnail image
+        window.openImageModal = function(imgSrc, name, videoUrl) {
             var modal = document.getElementById('tblLightbox');
             var img = document.getElementById('tblLightboxImg');
             var title = document.getElementById('tblLightboxName');
             var media = document.getElementById('tblLightboxMedia');
             var frame = document.getElementById('tblLightboxVideoFrame');
             var actionBtn = document.getElementById('tblLightboxActionBtn');
-
             if (!modal) return;
 
-            if (img) img.src = imgSrc || '';
-            if (title) title.textContent = name || 'Product Preview';
-            if (media) media.classList.remove('is-video');
-            if (frame) frame.src = '';
+            activeModalData = { img: imgSrc || '', name: name || 'Product Photo', video: videoUrl || '', mode: 'image' };
 
-            var embedUrl = extractVideoEmbedUrl(videoUrl);
-            if (embedUrl) {
-                savedVideoSrc = embedUrl;
-                if (actionBtn) {
-                    actionBtn.innerHTML = '<i class="fa-solid fa-play"></i> <span>Play Video</span>';
-                    actionBtn.classList.remove('is-hidden');
+            // Stop and hide any video player
+            if (media) {
+                media.classList.remove('is-video');
+                var cp = media.querySelector('video.custom-player');
+                if (cp) {
+                    cp.pause();
+                    cp.style.display = 'none';
+                    cp.src = '';
                 }
-            } else {
-                savedVideoSrc = '';
-                if (actionBtn) {
-                    actionBtn.classList.add('is-hidden');
-                }
+            }
+            if (frame) {
+                frame.src = '';
+                frame.style.display = 'none';
+            }
+
+            // Display product photo only
+            if (img) {
+                img.src = imgSrc || './storage/settings/adhira-logo.jpg';
+                img.style.display = 'block';
+            }
+            if (title) {
+                title.textContent = (name || 'Product Photo');
+            }
+
+            // Switch to video button if product has demo video
+            var hasVideo = videoUrl && String(videoUrl).trim().length > 5;
+            if (hasVideo && actionBtn) {
+                actionBtn.innerHTML = '<i class="fa-solid fa-play"></i> <span>Watch Video Demo</span>';
+                actionBtn.classList.remove('is-hidden');
+            } else if (actionBtn) {
+                actionBtn.classList.add('is-hidden');
             }
 
             modal.classList.add('show');
             document.body.style.overflow = 'hidden';
+        };
+
+        // 2. OPEN VIDEO ONLY: When user clicks VIDEO DEMO button
+        window.openVideoModal = function(videoUrl, name, imgSrc) {
+            var modal = document.getElementById('tblLightbox');
+            var img = document.getElementById('tblLightboxImg');
+            var title = document.getElementById('tblLightboxName');
+            var media = document.getElementById('tblLightboxMedia');
+            var frame = document.getElementById('tblLightboxVideoFrame');
+            var actionBtn = document.getElementById('tblLightboxActionBtn');
+            if (!modal) return;
+
+            if (!videoUrl || String(videoUrl).trim().length < 5) {
+                return window.openImageModal(imgSrc, name, '');
+            }
+
+            var cleanVid = String(videoUrl).trim();
+            activeModalData = { img: imgSrc || '', name: name || 'Cracker Demo', video: cleanVid, mode: 'video' };
+
+            // Switch to video mode
+            if (img) img.style.display = 'none';
+            if (media) media.classList.add('is-video');
+            if (title) title.textContent = (name || 'Cracker') + ' — Video Demo';
+
+            var embedUrl = extractVideoEmbedUrl(cleanVid);
+            if (embedUrl) {
+                // YouTube / Vimeo
+                if (frame) {
+                    frame.src = embedUrl;
+                    frame.style.display = 'block';
+                }
+                var cp = media.querySelector('video.custom-player');
+                if (cp) {
+                    cp.pause();
+                    cp.style.display = 'none';
+                    cp.src = '';
+                }
+            } else {
+                // Direct MP4 / WebM / Cloudinary / Storage video
+                if (frame) {
+                    frame.src = '';
+                    frame.style.display = 'none';
+                }
+                var cp = media.querySelector('video.custom-player');
+                if (!cp) {
+                    cp = document.createElement('video');
+                    cp.className = 'custom-player';
+                    cp.controls = true;
+                    cp.autoplay = true;
+                    cp.playsInline = true;
+                    cp.style.cssText = 'width:100%;height:100%;border-radius:8px;position:absolute;top:0;left:0;object-fit:contain;background:#000;z-index:2;';
+                    media.appendChild(cp);
+                }
+                cp.src = cleanVid;
+                cp.style.display = 'block';
+                cp.play().catch(function() {});
+            }
+
+            // Switch to photo button if product has photo
+            var hasImage = imgSrc && String(imgSrc).trim().length > 0;
+            if (hasImage && actionBtn) {
+                actionBtn.innerHTML = '<i class="fa-solid fa-image"></i> <span>View Product Photo</span>';
+                actionBtn.classList.remove('is-hidden');
+            } else if (actionBtn) {
+                actionBtn.classList.add('is-hidden');
+            }
+
+            modal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        };
+
+        // Backwards compatibility dispatcher
+        window.openPreviewModal = function(imgSrc, name, videoUrl, mode) {
+            if (mode === 'video') {
+                return window.openVideoModal(videoUrl, name, imgSrc);
+            }
+            return window.openImageModal(imgSrc, name, videoUrl);
         };
 
         window.closePreviewModal = function() {
@@ -13418,6 +13510,7 @@ document.addEventListener('keydown', function(e) {
             var media = document.getElementById('tblLightboxMedia');
             var frame = document.getElementById('tblLightboxVideoFrame');
             var actionBtn = document.getElementById('tblLightboxActionBtn');
+            var img = document.getElementById('tblLightboxImg');
 
             if (modal) modal.classList.remove('show');
             document.body.style.overflow = '';
@@ -13426,28 +13519,27 @@ document.addEventListener('keydown', function(e) {
                 var cp = media.querySelector('video.custom-player');
                 if (cp) { cp.pause(); cp.src = ''; cp.style.display = 'none'; }
             }
-            if (frame) frame.src = '';
-            if (actionBtn) actionBtn.innerHTML = '<i class="fa-solid fa-play"></i> <span>Play Video</span>';
+            if (frame) {
+                frame.src = '';
+                frame.style.display = 'none';
+            }
+            if (img) img.style.display = 'block';
+            if (actionBtn) actionBtn.classList.add('is-hidden');
+            activeModalData = { img: '', name: '', video: '', mode: 'image' };
         };
 
         // Action button toggle between Image and Video
         var actionBtn = document.getElementById('tblLightboxActionBtn');
         if (actionBtn) {
-            actionBtn.addEventListener('click', function() {
-                var media = document.getElementById('tblLightboxMedia');
-                var frame = document.getElementById('tblLightboxVideoFrame');
-                if (!savedVideoSrc || !media || !frame) return;
-
-                if (media.classList.contains('is-video')) {
-                    media.classList.remove('is-video');
-                    frame.src = '';
-                    var cp = media.querySelector('video.custom-player');
-                    if (cp) { cp.pause(); cp.style.display = 'none'; }
-                    actionBtn.innerHTML = '<i class="fa-solid fa-play"></i> <span>Play Video</span>';
+            actionBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (activeModalData.mode === 'image') {
+                    if (activeModalData.video) {
+                        window.openVideoModal(activeModalData.video, activeModalData.name, activeModalData.img);
+                    }
                 } else {
-                    media.classList.add('is-video');
-                    frame.src = savedVideoSrc;
-                    actionBtn.innerHTML = '<i class="fa-solid fa-image"></i> <span>Show Image</span>';
+                    window.openImageModal(activeModalData.img, activeModalData.name, activeModalData.video);
                 }
             });
         }
@@ -14403,29 +14495,27 @@ document.addEventListener('keydown', function(e) {
           parent.insertBefore(wrapper, thumbWrap);
           wrapper.appendChild(thumbWrap);
 
-          // Image click: open lightbox to image only
+          // Click image: ONLY opens and shows image
           thumbWrap.style.cursor = 'pointer';
           thumbWrap.onclick = function(e) {
             e.stopPropagation();
             var imgSrc = row.getAttribute('data-img') || '';
             var name = row.getAttribute('data-display-name') || row.getAttribute('data-name') || 'Cracker';
             var vid = row.getAttribute('data-video') || '';
-            if (window.openPreviewModal) {
-              window.openPreviewModal(imgSrc, name, vid);
-              // Ensure image view (not video) on image click
-              var media = document.getElementById('tblLightboxMedia');
-              if (media) media.classList.remove('is-video');
-              var frame = document.getElementById('tblLightboxVideoFrame');
-              if (frame) frame.src = '';
+            if (window.openImageModal) {
+              window.openImageModal(imgSrc, name, vid);
+            } else if (window.openPreviewModal) {
+              window.openPreviewModal(imgSrc, name, vid, 'image');
             }
           };
         }
 
         var wrapper = thumbWrap.parentNode;
 
-        // Add VIDEO DEMO button at bottom if product has video and not already added
+        // Add VIDEO DEMO button if product has video and not already added
         if (videoUrl && videoUrl.trim().length > 5 && !wrapper.querySelector('.video-demo-badge')) {
           var badge = document.createElement('button');
+          badge.type = 'button';
           badge.className = 'video-demo-badge';
           badge.innerHTML = '<i class="fa-solid fa-play"></i> VIDEO DEMO';
           badge.title = 'Watch Cracker Burst Demo';
@@ -14433,58 +14523,16 @@ document.addEventListener('keydown', function(e) {
             e.stopPropagation();
             var imgSrc = row.getAttribute('data-img') || '';
             var name = row.getAttribute('data-display-name') || row.getAttribute('data-name') || 'Cracker';
-            if (window.openPreviewModal) {
-              window.openPreviewModal(imgSrc, name, videoUrl);
-              // Auto-switch to video
-              setTimeout(function() {
-                var actionBtn = document.getElementById('tblLightboxActionBtn');
-                var media = document.getElementById('tblLightboxMedia');
-                if (actionBtn && media && !media.classList.contains('is-video')) {
-                  actionBtn.click();
-                }
-              }, 80);
+            if (window.openVideoModal) {
+              window.openVideoModal(videoUrl, name, imgSrc);
+            } else if (window.openPreviewModal) {
+              window.openPreviewModal(imgSrc, name, videoUrl, 'video');
             }
           };
           wrapper.appendChild(badge);
         }
       });
     }
-
-    // =========================================================
-    // 2. ENHANCE PREVIEW MODAL FOR DIRECT MP4/WEBM/CDN VIDEOS
-    // =========================================================
-    var origOpenPreview = window.openPreviewModal;
-    window.openPreviewModal = function(imgSrc, name, videoUrl) {
-      if (origOpenPreview) origOpenPreview(imgSrc, name, videoUrl);
-
-      // Support direct MP4/WebM/Cloudinary/Supabase videos
-      if (videoUrl && (/\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(videoUrl) || videoUrl.includes('cloudinary.com') || videoUrl.includes('supabase.co') || videoUrl.includes('storage/videos/'))) {
-        var media = document.getElementById('tblLightboxMedia');
-        var frame = document.getElementById('tblLightboxVideoFrame');
-        var actionBtn2 = document.getElementById('tblLightboxActionBtn');
-        if (media && frame) {
-          // Replace iframe with html5 video element if needed
-          var existingVideo = media.querySelector('video.custom-player');
-          if (!existingVideo) {
-            existingVideo = document.createElement('video');
-            existingVideo.className = 'custom-player';
-            existingVideo.controls = true;
-            existingVideo.autoplay = true;
-            existingVideo.style.cssText = 'width:100%;height:100%;border-radius:8px;position:absolute;top:0;left:0;object-fit:contain;background:#000;';
-            media.appendChild(existingVideo);
-          }
-          existingVideo.src = videoUrl;
-          existingVideo.style.display = 'block';
-          frame.style.display = 'none';
-          // Add is-video class to HIDE the image — both must not show together
-          media.classList.add('is-video');
-          if (actionBtn2) {
-            actionBtn2.innerHTML = '<i class="fa-solid fa-image"></i> <span>Show Image</span>';
-            actionBtn2.classList.remove('is-hidden');
-          }
-        }
-      }
-    };
 
     // =========================================================
     // 3. CAPTURE CHECKOUT AND SAVE ORDER TO REAL DATABASE
