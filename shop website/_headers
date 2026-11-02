@@ -5,6 +5,14 @@
   Referrer-Policy: strict-origin-when-cross-origin
   Access-Control-Allow-Origin: *
 
-# Cache assets
+# Always fetch fresh logic for admin and scripts
+/*.js
+  Cache-Control: no-cache, no-store, must-revalidate
+/*.html
+  Cache-Control: no-cache, no-store, must-revalidate
+/admin
+  Cache-Control: no-cache, no-store, must-revalidate
+
+# Cache static images
 /storage/*
   Cache-Control: public, max-age=604800, immutable

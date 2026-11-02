@@ -14,7 +14,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <!-- Supabase Cloud DB Client (Cloudflare Pages Ready) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script src="supabase-client.js"></script>
+  <script src="supabase-client.js?v=20261102_02"></script>
 
   <style>
     :root {
@@ -5656,6 +5656,43 @@ Wish you a Happy & Safe Diwali! 💥`;
       }
     }
 
+    // Direct Cloudinary CDN Upload (Instant client-side upload, 25GB free, supports 100MB videos & images)
+    async function directCloudinaryUpload(file) {
+      const ext = (file.name.split('.').pop() || '').toLowerCase();
+      const isVid = ['mp4', 'webm', 'mov', 'ogg', 'mkv', 'avi'].includes(ext);
+      const resourceType = isVid ? 'video' : 'image';
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('upload_preset', 'ml_default');
+
+      const controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+      const timeoutId = controller ? setTimeout(() => controller.abort(), 35000) : null;
+
+      const res = await fetch(`https://api.cloudinary.com/v1_1/i9saawen/${resourceType}/upload`, {
+        method: 'POST',
+        body: fd,
+        signal: controller ? controller.signal : undefined
+      });
+      if (timeoutId) clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.secure_url) {
+          return {
+            success: true,
+            url: data.secure_url,
+            filename: file.name,
+            is_video: isVid,
+            provider: 'cloudinary'
+          };
+        }
+      } else {
+        const errJson = await res.json().catch(() => ({}));
+        console.warn('[Direct Cloudinary error]:', errJson);
+      }
+      return null;
+    }
+
     // File Upload Handler (Images & Videos)
     async function handleFileUpload(event, folderType, targetInputId, callback) {
       const file = event.target.files && event.target.files[0];
@@ -5665,31 +5702,49 @@ Wish you a Happy & Safe Diwali! 💥`;
 
       try {
         let resData = null;
-        if (window.SupabaseAPI && typeof window.SupabaseAPI.uploadFile === 'function') {
-          resData = await window.SupabaseAPI.uploadFile(file, folderType);
-        } else if (isPhp) {
-          // PHP FormData native cPanel upload
-          const formData = new FormData();
-          formData.append('file', file);
-          formData.append('type', folderType);
-          const res = await fetch(`${apiBase}?action=upload`, { method: 'POST', body: formData });
-          resData = await res.json();
-        } else {
-          // Node Base64 fallback
-          const reader = new FileReader();
-          resData = await new Promise((resolve, reject) => {
-            reader.onload = async function(e) {
-              try {
-                const res = await fetch(`${apiBase}/upload`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ filename: file.name, type: folderType, base64: e.target.result })
-                });
-                resolve(await res.json());
-              } catch(err) { reject(err); }
-            };
-            reader.readAsDataURL(file);
-          });
+
+        // 1. Direct Cloudinary CDN upload first (Fast, zero dependencies, reliable)
+        try {
+          resData = await directCloudinaryUpload(file);
+        } catch (cErr) {
+          console.warn('[Direct Cloudinary notice]:', cErr);
+        }
+
+        // 2. If Cloudinary was blocked or failed, try SupabaseAPI
+        if (!resData || !resData.success) {
+          if (window.SupabaseAPI && typeof window.SupabaseAPI.uploadFile === 'function') {
+            try {
+              resData = await window.SupabaseAPI.uploadFile(file, folderType);
+            } catch (sbErr) {
+              console.warn('[SupabaseAPI upload notice]:', sbErr);
+            }
+          }
+        }
+
+        // 3. Fallback to server upload (PHP or Node)
+        if (!resData || !resData.success) {
+          if (isPhp) {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('type', folderType);
+            const res = await fetch(`${apiBase}?action=upload`, { method: 'POST', body: formData });
+            resData = await res.json();
+          } else {
+            const reader = new FileReader();
+            resData = await new Promise((resolve, reject) => {
+              reader.onload = async function(e) {
+                try {
+                  const res = await fetch(`${apiBase}/upload`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename: file.name, type: folderType, base64: e.target.result })
+                  });
+                  resolve(await res.json());
+                } catch(err) { reject(err); }
+              };
+              reader.readAsDataURL(file);
+            });
+          }
         }
 
         if (resData && resData.success) {
@@ -5706,7 +5761,7 @@ Wish you a Happy & Safe Diwali! 💥`;
             try { callback(); } catch (cbErr) { console.warn(cbErr); }
           }
         } else {
-          showToast((resData && resData.error) || 'Upload failed', 'error');
+          showToast((resData && resData.error) || 'Upload failed. Please check your internet connection.', 'error');
         }
       } catch (err) {
         console.error(err);
