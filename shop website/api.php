@@ -222,6 +222,49 @@ try {
         }
     }
 
+    // Auto-seed orders into MySQL if orders table is empty
+    $checkOrderCount = (int)$pdo->query("SELECT COUNT(*) FROM `orders`")->fetchColumn();
+    if ($checkOrderCount === 0) {
+        $ordersFile = __DIR__ . '/orders.json';
+        $seedOrders = file_exists($ordersFile) ? json_decode(file_get_contents($ordersFile), true) : [];
+        if (empty($seedOrders) && file_exists($jsonDbFile)) {
+            $dbData = json_decode(file_get_contents($jsonDbFile), true);
+            $seedOrders = $dbData['orders'] ?? [];
+        }
+        if (!empty($seedOrders)) {
+            $stmt = $pdo->prepare("
+                INSERT INTO orders (id, order_number, customer_name, customer_phone, customer_email, customer_address, city, state, pincode, items_json, subtotal, discount_amount, total_amount, payment_method, status, notes, order_type, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE customer_name=VALUES(customer_name), total_amount=VALUES(total_amount), items_json=VALUES(items_json), status=VALUES(status)
+            ");
+            foreach ($seedOrders as $o) {
+                $itemsStr = is_string($o['items_json'] ?? null) ? $o['items_json'] : json_encode($o['items'] ?? []);
+                $ordNum = !empty($o['order_number']) ? $o['order_number'] : ('ATH-' . date('Ymd') . '-' . str_pad($o['id'] ?? rand(100, 999), 4, '0', STR_PAD_LEFT));
+                $cDate = !empty($o['created_at']) ? date('Y-m-d H:i:s', strtotime($o['created_at'])) : date('Y-m-d H:i:s');
+                $stmt->execute([
+                    $o['id'] ?? null,
+                    $ordNum,
+                    $o['customer_name'] ?? 'Customer',
+                    $o['customer_phone'] ?? '',
+                    $o['customer_email'] ?? '',
+                    $o['customer_address'] ?? '',
+                    $o['city'] ?? '',
+                    $o['state'] ?? 'Tamil Nadu',
+                    $o['pincode'] ?? '',
+                    $itemsStr,
+                    (float)($o['subtotal'] ?? 0),
+                    (float)($o['discount_amount'] ?? 0),
+                    (float)($o['total_amount'] ?? 0),
+                    $o['payment_method'] ?? 'COD',
+                    $o['status'] ?? 'Pending',
+                    $o['notes'] ?? '',
+                    $o['order_type'] ?? 'website',
+                    $cDate
+                ]);
+            }
+        }
+    }
+
 } catch (Exception $e) {
     // MySQL not configured or offline - fallback to database.json
     $pdo = null;
@@ -460,7 +503,7 @@ if ($action === 'sync-to-mysql') {
     }
 
     $data = readJsonDb();
-    $imported = ['categories' => 0, 'products' => 0, 'combos' => 0, 'giftboxes' => 0, 'banners' => 0, 'settings' => 0];
+    $imported = ['categories' => 0, 'products' => 0, 'combos' => 0, 'giftboxes' => 0, 'banners' => 0, 'settings' => 0, 'orders' => 0];
 
     // Ensure Tables Exist
     $pdo->exec("
@@ -614,10 +657,133 @@ if ($action === 'sync-to-mysql') {
         }
     }
 
+    // Sync Customer Orders
+    $ordersToSync = !empty($data['orders']) ? $data['orders'] : [];
+    if (empty($ordersToSync) && file_exists(__DIR__ . '/orders.json')) {
+        $ordersToSync = json_decode(file_get_contents(__DIR__ . '/orders.json'), true) ?: [];
+    }
+    if (!empty($ordersToSync)) {
+        $stmt = $pdo->prepare("
+            INSERT INTO orders (id, order_number, customer_name, customer_phone, customer_email, customer_address, city, state, pincode, items_json, subtotal, discount_amount, total_amount, payment_method, status, notes, order_type, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE customer_name=VALUES(customer_name), customer_phone=VALUES(customer_phone), total_amount=VALUES(total_amount), items_json=VALUES(items_json), status=VALUES(status)
+        ");
+        foreach ($ordersToSync as $o) {
+            $itemsStr = is_string($o['items_json'] ?? null) ? $o['items_json'] : json_encode($o['items'] ?? []);
+            $ordNum = !empty($o['order_number']) ? $o['order_number'] : ('ATH-' . date('Ymd') . '-' . str_pad($o['id'] ?? rand(100, 999), 4, '0', STR_PAD_LEFT));
+            $cDate = !empty($o['created_at']) ? date('Y-m-d H:i:s', strtotime($o['created_at'])) : date('Y-m-d H:i:s');
+            $stmt->execute([
+                $o['id'] ?? null,
+                $ordNum,
+                $o['customer_name'] ?? 'Customer',
+                $o['customer_phone'] ?? '',
+                $o['customer_email'] ?? '',
+                $o['customer_address'] ?? '',
+                $o['city'] ?? '',
+                $o['state'] ?? 'Tamil Nadu',
+                $o['pincode'] ?? '',
+                $itemsStr,
+                (float)($o['subtotal'] ?? 0),
+                (float)($o['discount_amount'] ?? 0),
+                (float)($o['total_amount'] ?? 0),
+                $o['payment_method'] ?? 'COD',
+                $o['status'] ?? 'Pending',
+                $o['notes'] ?? '',
+                $o['order_type'] ?? 'website',
+                $cDate
+            ]);
+            $imported['orders']++;
+        }
+    }
+
     echo json_encode([
         'success' => true,
-        'message' => 'Successfully synchronized all products, categories, combos, giftboxes, and settings into real cPanel MySQL!',
+        'message' => 'Successfully synchronized all products, categories, combos, giftboxes, orders, and settings into real cPanel MySQL!',
         'imported' => $imported
+    ]);
+    exit;
+}
+
+// A6. IMPORT / RESTORE ALL ORDERS INTO MYSQL
+if ($action === 'import-orders') {
+    if (!$pdo) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'error' => 'MySQL database is not connected.']);
+        exit;
+    }
+
+    $input = getJsonInput();
+    $ordersToImport = !empty($input['orders']) ? $input['orders'] : null;
+
+    if (empty($ordersToImport)) {
+        if (file_exists(__DIR__ . '/orders.json')) {
+            $ordersToImport = json_decode(file_get_contents(__DIR__ . '/orders.json'), true);
+        } else if (file_exists(__DIR__ . '/database.json')) {
+            $dbData = json_decode(file_get_contents(__DIR__ . '/database.json'), true);
+            $ordersToImport = $dbData['orders'] ?? [];
+        }
+    }
+
+    if (empty($ordersToImport)) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'error' => 'No orders data found to import.']);
+        exit;
+    }
+
+    $stmt = $pdo->prepare("
+        INSERT INTO orders (id, order_number, customer_name, customer_phone, customer_email, customer_address, city, state, pincode, items_json, subtotal, discount_amount, total_amount, payment_method, status, notes, order_type, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+            customer_name = VALUES(customer_name),
+            customer_phone = VALUES(customer_phone),
+            customer_email = VALUES(customer_email),
+            customer_address = VALUES(customer_address),
+            city = VALUES(city),
+            state = VALUES(state),
+            pincode = VALUES(pincode),
+            items_json = VALUES(items_json),
+            subtotal = VALUES(subtotal),
+            discount_amount = VALUES(discount_amount),
+            total_amount = VALUES(total_amount),
+            payment_method = VALUES(payment_method),
+            status = VALUES(status),
+            notes = VALUES(notes),
+            order_type = VALUES(order_type),
+            created_at = VALUES(created_at)
+    ");
+
+    $count = 0;
+    foreach ($ordersToImport as $o) {
+        $itemsStr = is_string($o['items_json'] ?? null) ? $o['items_json'] : json_encode($o['items'] ?? []);
+        $ordNum = !empty($o['order_number']) ? $o['order_number'] : ('ATH-' . date('Ymd') . '-' . str_pad($o['id'] ?? rand(100, 999), 4, '0', STR_PAD_LEFT));
+        $cDate = !empty($o['created_at']) ? date('Y-m-d H:i:s', strtotime($o['created_at'])) : date('Y-m-d H:i:s');
+        $stmt->execute([
+            $o['id'] ?? null,
+            $ordNum,
+            $o['customer_name'] ?? 'Customer',
+            $o['customer_phone'] ?? '',
+            $o['customer_email'] ?? '',
+            $o['customer_address'] ?? '',
+            $o['city'] ?? '',
+            $o['state'] ?? 'Tamil Nadu',
+            $o['pincode'] ?? '',
+            $itemsStr,
+            (float)($o['subtotal'] ?? 0),
+            (float)($o['discount_amount'] ?? 0),
+            (float)($o['total_amount'] ?? 0),
+            $o['payment_method'] ?? 'COD',
+            $o['status'] ?? 'Pending',
+            $o['notes'] ?? '',
+            $o['order_type'] ?? 'website',
+            $cDate
+        ]);
+        $count++;
+    }
+
+    echo json_encode([
+        'success' => true,
+        'message' => "Successfully imported {$count} orders into cPanel MySQL database!",
+        'imported_count' => $count
     ]);
     exit;
 }
@@ -1781,7 +1947,45 @@ if ($action === 'orders' || $action === 'create-order') {
     } else {
         // GET orders
         if ($pdo) {
-            $orders = $pdo->query("SELECT * FROM orders ORDER BY id DESC LIMIT 200")->fetchAll();
+            $orders = $pdo->query("SELECT * FROM orders ORDER BY id DESC LIMIT 500")->fetchAll();
+            // If MySQL table is empty, auto-populate from orders.json or database.json
+            if (empty($orders)) {
+                $ordersFile = __DIR__ . '/orders.json';
+                $seedOrders = file_exists($ordersFile) ? json_decode(file_get_contents($ordersFile), true) : [];
+                if (empty($seedOrders) && file_exists($jsonDbFile)) {
+                    $dbData = json_decode(file_get_contents($jsonDbFile), true);
+                    $seedOrders = $dbData['orders'] ?? [];
+                }
+                if (!empty($seedOrders)) {
+                    $insStmt = $pdo->prepare("INSERT INTO orders (id, order_number, customer_name, customer_phone, customer_email, customer_address, city, state, pincode, items_json, subtotal, discount_amount, total_amount, payment_method, status, notes, order_type, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE customer_name=VALUES(customer_name), total_amount=VALUES(total_amount)");
+                    foreach ($seedOrders as $so) {
+                        $itemsStr = is_string($so['items_json'] ?? null) ? $so['items_json'] : json_encode($so['items'] ?? []);
+                        $ordNum = !empty($so['order_number']) ? $so['order_number'] : ('ATH-' . date('Ymd') . '-' . str_pad($so['id'] ?? rand(100, 999), 4, '0', STR_PAD_LEFT));
+                        $cDate = !empty($so['created_at']) ? date('Y-m-d H:i:s', strtotime($so['created_at'])) : date('Y-m-d H:i:s');
+                        $insStmt->execute([
+                            $so['id'] ?? null,
+                            $ordNum,
+                            $so['customer_name'] ?? 'Customer',
+                            $so['customer_phone'] ?? '',
+                            $so['customer_email'] ?? '',
+                            $so['customer_address'] ?? '',
+                            $so['city'] ?? '',
+                            $so['state'] ?? 'Tamil Nadu',
+                            $so['pincode'] ?? '',
+                            $itemsStr,
+                            (float)($so['subtotal'] ?? 0),
+                            (float)($so['discount_amount'] ?? 0),
+                            (float)($so['total_amount'] ?? 0),
+                            $so['payment_method'] ?? 'COD',
+                            $so['status'] ?? 'Pending',
+                            $so['notes'] ?? '',
+                            $so['order_type'] ?? 'website',
+                            $cDate
+                        ]);
+                    }
+                    $orders = $pdo->query("SELECT * FROM orders ORDER BY id DESC LIMIT 500")->fetchAll();
+                }
+            }
             foreach ($orders as &$o) {
                 $o['items'] = json_decode($o['items_json'], true) ?: [];
             }

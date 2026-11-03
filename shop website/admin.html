@@ -3553,7 +3553,7 @@
         const data = await res.json();
         if (data.success) {
           const imp = data.imported || {};
-          const summary = `${imp.products || 0} products, ${imp.categories || 0} categories, ${imp.combos || 0} combos, ${imp.giftboxes || 0} gifts`;
+          const summary = `${imp.products || 0} products, ${imp.categories || 0} categories, ${imp.combos || 0} combos, ${imp.giftboxes || 0} gifts, ${imp.orders || 0} orders`;
           showToast(`Synced successfully: ${summary}!`);
           await checkDbStatus(true);
           await loadSiteData();

@@ -177,6 +177,15 @@ sql += '  `order_type` VARCHAR(50) DEFAULT "website",\n';
 sql += '  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n';
 sql += ') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;\n\n';
 
+if (db.orders && db.orders.length > 0) {
+  sql += `-- Inserting ${db.orders.length} previous customer orders\n`;
+  db.orders.forEach(o => {
+    const itemsStr = typeof o.items_json === 'string' ? o.items_json : JSON.stringify(o.items || []);
+    sql += `INSERT INTO \`orders\` (\`id\`, \`order_number\`, \`customer_name\`, \`customer_phone\`, \`customer_email\`, \`customer_address\`, \`city\`, \`state\`, \`pincode\`, \`items_json\`, \`subtotal\`, \`discount_amount\`, \`total_amount\`, \`payment_method\`, \`status\`, \`notes\`, \`order_type\`, \`created_at\`) VALUES (${o.id}, ${esc(o.order_number)}, ${esc(o.customer_name)}, ${esc(o.customer_phone)}, ${esc(o.customer_email || '')}, ${esc(o.customer_address)}, ${esc(o.city || '')}, ${esc(o.state || 'Tamil Nadu')}, ${esc(o.pincode || '')}, ${esc(itemsStr)}, ${o.subtotal || 0}, ${o.discount_amount || 0}, ${o.total_amount || 0}, ${esc(o.payment_method || 'COD')}, ${esc(o.status || 'Pending')}, ${esc(o.notes || '')}, ${esc(o.order_type || 'website')}, ${esc(o.created_at || '2026-10-24 10:00:00')}) ON DUPLICATE KEY UPDATE \`customer_name\`=VALUES(\`customer_name\`), \`customer_phone\`=VALUES(\`customer_phone\`), \`total_amount\`=VALUES(\`total_amount\`), \`items_json\`=VALUES(\`items_json\`), \`status\`=VALUES(\`status\`);\n`;
+  });
+  sql += '\n';
+}
+
 sql += 'SET FOREIGN_KEY_CHECKS = 1;\n';
 
 fs.writeFileSync(path.join(__dirname, 'db_schema.sql'), sql, 'utf8');
