@@ -143,6 +143,16 @@
       box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
       background: rgba(16, 21, 38, 0.95);
     }
+    /* Prevent browser autofill from turning inputs white and unreadable */
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus,
+    input:-webkit-autofill:active {
+      -webkit-box-shadow: 0 0 0 1000px #101526 inset !important;
+      -webkit-text-fill-color: #f8fafc !important;
+      caret-color: #f8fafc !important;
+      transition: background-color 5000s ease-in-out 0s;
+    }
     textarea.form-control { min-height: 90px; resize: vertical; }
 
     .btn {
@@ -1450,12 +1460,16 @@
           <label>Password</label>
           <div class="input-wrap">
             <i class="fa-solid fa-lock"></i>
-            <input type="password" id="loginPass" class="form-control" placeholder="Enter password" required autocomplete="current-password" onkeydown="if(event.key==='Enter'){handleLogin(event);}">
+            <input type="password" id="loginPass" class="form-control" placeholder="Enter password (admin)" required autocomplete="current-password" onkeydown="if(event.key==='Enter'){handleLogin(event);}">
+            <i class="fa-solid fa-eye" id="toggleLoginPass" onclick="togglePasswordVisibility()" style="left:auto; right:14px; cursor:pointer; color:var(--text-muted);" title="Show/Hide Password"></i>
           </div>
         </div>
         <button type="button" onclick="handleLogin(event)" class="btn btn-primary btn-block" style="margin-top: 24px;">
           <i class="fa-solid fa-arrow-right-to-bracket"></i> Login to Dashboard
         </button>
+        <div style="margin-top: 14px; font-size: 12px; color: var(--text-muted); opacity: 0.85;">
+          Default Login: <strong style="color:var(--primary);">admin</strong> / <strong style="color:var(--primary);">admin</strong>
+        </div>
       </form>
     </div>
   </div>
@@ -3114,6 +3128,19 @@
         toast.remove();
       };
       return toast;
+    }
+
+    function togglePasswordVisibility() {
+      const p = document.getElementById('loginPass');
+      const icon = document.getElementById('toggleLoginPass');
+      if (!p) return;
+      if (p.type === 'password') {
+        p.type = 'text';
+        if (icon) { icon.classList.remove('fa-eye'); icon.classList.add('fa-eye-slash'); }
+      } else {
+        p.type = 'password';
+        if (icon) { icon.classList.remove('fa-eye-slash'); icon.classList.add('fa-eye'); }
+      }
     }
 
     // Auth verification: Ensures the login screen is displayed unless an active session token exists in sessionStorage or localStorage
